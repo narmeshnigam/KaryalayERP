@@ -1,0 +1,30 @@
+<?php
+/**
+ * Database Configuration File
+ * 
+ * This file contains all database connection constants.
+ * Modify these values according to your local setup.
+ */
+
+// Database configuration constants
+define('DB_HOST', 'localhost');      // Database host (usually localhost)
+define('DB_USER', 'root');           // Database username
+define('DB_PASS', '');               // Database password (empty for XAMPP default)
+define('DB_NAME', 'karyalay_db');    // Database name
+define('DB_CHARSET', 'utf8mb4');     // Character set
+
+// Application configuration
+define('APP_NAME', 'Karyalay ERP');  // Application name
+define('APP_URL', 'http://localhost/KaryalayERP'); // Application base URL
+
+// Session configuration
+define('SESSION_NAME', 'karyalay_session'); // Session name
+define('SESSION_LIFETIME', 3600);    // Session lifetime in seconds (1 hour)
+
+// Timezone
+date_default_timezone_set('Asia/Kolkata');
+
+// Error reporting (set to 0 in production)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+?>
