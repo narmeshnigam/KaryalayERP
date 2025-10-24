@@ -12,6 +12,7 @@
 
 // Get current page for active state
 $current_page = basename($_SERVER['PHP_SELF']);
+$current_path = $_SERVER['PHP_SELF'] ?? '';
 
 // Define navigation menu items
 $nav_items = [
@@ -24,8 +25,14 @@ $nav_items = [
     [
         'icon' => 'employees.png',
         'label' => 'Employees',
-        'link' => 'employees.php',
-        'active' => ($current_page == 'employees.php')
+        'link' => 'employee/index.php',
+        'active' => (strpos($current_path, '/employee/') !== false) || in_array($current_page, ['employees.php','add_employee.php','view_employee.php','edit_employee.php'])
+    ],
+    [
+        'icon' => 'attendance.png',
+        'label' => 'Attendance',
+        'link' => 'attendance/index.php',
+        'active' => (strpos($current_path, '/attendance/') !== false) || in_array($current_page, ['mark_attendance.php'])
     ],
     [
         'icon' => 'crm.png',
@@ -513,6 +520,7 @@ $has_square_icon = file_exists($square_icon_path);
                                 $icon_map = [
                                     'Dashboard' => '🏠',
                                     'Employees' => '👥',
+                                    'Attendance' => '📅',
                                     'CRM' => '📞',
                                     'Expenses' => '💰',
                                     'Documents' => '📂',

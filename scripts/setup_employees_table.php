@@ -4,14 +4,22 @@
  * Creates employees table with comprehensive fields
  */
 
+session_start();
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/db_connect.php';
+
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ../public/login.php');
+    exit;
+}
 
 // Page title for header
 $page_title = "Employee Module - Database Setup";
 
-// Include header
-require_once __DIR__ . '/../includes/header.php';
+// Include header with sidebar
+require_once __DIR__ . '/../includes/header_sidebar.php';
+require_once __DIR__ . '/../includes/sidebar.php';
 
 function setupEmployeesTable() {
     $conn = createConnection(true);
@@ -142,11 +150,7 @@ function setupEmployeesTable() {
             INDEX idx_official_email (official_email),
             INDEX idx_department (department),
             INDEX idx_status (status),
-            INDEX idx_date_of_joining (date_of_joining),
-            
-            -- Foreign Keys
-            FOREIGN KEY (reporting_manager_id) REFERENCES employees(id) ON DELETE SET NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+            INDEX idx_date_of_joining (date_of_joining)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Employee Master Table'";
         
         if (mysqli_query($conn, $create_table)) {
@@ -176,8 +180,7 @@ function setupEmployeesTable() {
                 status ENUM('Active', 'Inactive') DEFAULT 'Active',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_status (status),
-                FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
+                INDEX idx_status (status)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
             
             mysqli_query($conn, $create_designations);
@@ -241,12 +244,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<div class="container" style="max-width: 700px; margin-top: 50px;">
-    <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #003581; margin-bottom: 10px;">👥 Employee Module Setup</h1>
-        <p style="color: #6c757d;">Create database tables for Employee Management</p>
-    </div>
+<div class="main-wrapper">
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>👥 Employee Module Setup</h1>
+                    <p>Create database tables for Employee Management</p>
+                </div>
+                <div>
+                    <a href="../public/dashboard.php" class="btn btn-accent">
+                        ← Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
 
+<div class="card" style="max-width: 800px; margin: 0 auto;">
     <?php if ($result): ?>
         <div class="alert <?php echo $result['success'] ? 'alert-success' : 'alert-error'; ?>">
             <?php echo htmlspecialchars($result['message']); ?>
@@ -254,8 +269,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <?php if ($result['success']): ?>
             <div style="text-align: center; margin-top: 30px;">
-                <a href="../public/employees.php" class="btn">Go to Employee Module</a>
-                <a href="../public/dashboard.php" class="btn btn-accent" style="margin-left: 10px;">Back to Dashboard</a>
+                <a href="../public/employee/index.php" class="btn" style="padding: 15px 40px; font-size: 16px;">
+                    Go to Employee Module
+                </a>
+            </div>
+        <?php else: ?>
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="../public/dashboard.php" class="btn btn-accent">Back to Dashboard</a>
             </div>
         <?php endif; ?>
     <?php else: ?>
@@ -273,10 +293,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 🚀 Create Employee Module Tables
             </button>
         </form>
-
-        <div style="text-align: center; margin-top: 20px;">
-            <a href="../public/dashboard.php" class="btn btn-accent">Back to Dashboard</a>
-        </div>
     <?php endif; ?>
     
     <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px; font-size: 13px; color: #6c757d;">
@@ -287,4 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+    </div>
+</div>
+
+<?php require_once __DIR__ . '/../includes/footer_sidebar.php'; ?>

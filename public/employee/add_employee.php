@@ -1,16 +1,15 @@
 <?php
 /**
- * Add New Employee
- * Comprehensive form to add new employee with all details
+ * Add New Employee (Scoped under /public/employee)
  */
 
 session_start();
-require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../config/db_connect.php';
+require_once __DIR__ . '/../../config/config.php';
+require_once __DIR__ . '/../../config/db_connect.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: ../login.php');
     exit;
 }
 
@@ -18,8 +17,8 @@ if (!isset($_SESSION['user_id'])) {
 $page_title = "Add New Employee - " . APP_NAME;
 
 // Include header with sidebar
-require_once __DIR__ . '/../includes/header_sidebar.php';
-require_once __DIR__ . '/../includes/sidebar.php';
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 
 $conn = createConnection(true);
 
@@ -82,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $aadhar_doc_path = null;
         $pan_doc_path = null;
         
-        $upload_dir = __DIR__ . '/../uploads/employees/';
+        $upload_dir = __DIR__ . '/../../uploads/employees/';
         if (!file_exists($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
@@ -152,7 +151,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Database prepare error: ' . mysqli_error($conn);
         } else {
             // Types map for 68 params
-            // 1-28: s, 29: i, 30-31: s, 32: i, 33: s, 34-39: d, 40-47: s, 48-55: s, 56-58: s, 59: i, 60-61: s, 62-63: d, 64-67: s, 68: i
             $types = 'ssssssssssssssssssssssssssss'  // 1-28
                    . 'i'                              // 29
                    . 'ss'                             // 30-31
@@ -261,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $employee_id = mysqli_insert_id($conn);
                 mysqli_stmt_close($stmt);
                 closeConnection($conn);
-                header('Location: employees.php?success=1&employee_code=' . urlencode($employee_code));
+                header('Location: index.php?success=1&employee_code=' . urlencode($employee_code));
                 exit;
             } else {
                 $errors[] = 'Error adding employee: ' . mysqli_stmt_error($stmt);
@@ -284,7 +282,7 @@ closeConnection($conn);
                     <p>Enter employee information and details</p>
                 </div>
                 <div>
-                    <a href="employees.php" class="btn btn-accent">
+                    <a href="index.php" class="btn btn-accent">
                         ← Back to Employee List
                     </a>
                 </div>
@@ -710,7 +708,7 @@ closeConnection($conn);
                 <button type="submit" class="btn" style="padding: 15px 60px; font-size: 16px;">
                     ✅ Add Employee
                 </button>
-                <a href="employees.php" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; margin-left: 15px; text-decoration: none;">
+                <a href="index.php" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; margin-left: 15px; text-decoration: none;">
                     ❌ Cancel
                 </a>
             </div>
@@ -740,4 +738,4 @@ function calculateGross() {
 }
 </script>
 
-<?php require_once __DIR__ . '/../includes/footer_sidebar.php'; ?>
+<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
