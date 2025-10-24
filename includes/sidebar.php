@@ -15,6 +15,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $current_path = $_SERVER['PHP_SELF'] ?? '';
 
 // Define navigation menu items
+$user_role = $_SESSION['role'] ?? 'user';
+$reimbursements_link = ($user_role === 'user')
+    ? APP_URL . '/public/employee_portal/reimbursements/index.php'
+    : APP_URL . '/public/reimbursements/index.php';
+
 $nav_items = [
     [
         'icon' => 'dashboard.png',
@@ -33,6 +38,12 @@ $nav_items = [
         'label' => 'Attendance',
         'link' => 'attendance/index.php',
         'active' => (strpos($current_path, '/attendance/') !== false) || in_array($current_page, ['mark_attendance.php'])
+    ],
+    [
+        'icon' => 'expenses.png',
+        'label' => 'Reimbursements',
+        'link' => $reimbursements_link,
+        'active' => (strpos($current_path, '/reimbursements/') !== false)
     ],
     [
         'icon' => 'crm.png',
@@ -523,6 +534,7 @@ $has_square_icon = file_exists($square_icon_path);
                                     'Attendance' => '📅',
                                     'CRM' => '📞',
                                     'Expenses' => '💰',
+                                    'Reimbursements' => '💳',
                                     'Documents' => '📂',
                                     'Visitor Log' => '📋',
                                     'Analytics' => '📊',
