@@ -6,11 +6,7 @@
  * Used across all pages for consistent UI
  */
 
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
+require_once __DIR__ . '/bootstrap.php';
 // Include config for APP_NAME
 require_once __DIR__ . '/../config/config.php';
 
@@ -125,6 +121,14 @@ $page_title = isset($page_title) ? $page_title : APP_NAME;
         }
         
         /* Alert Styles */
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+
+        .flash-messages .alert {
+            margin-bottom: 12px;
+        }
+
         .alert {
             padding: 15px 20px;
             border-radius: 6px;
@@ -133,6 +137,10 @@ $page_title = isset($page_title) ? $page_title : APP_NAME;
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .alert-content {
+            flex: 1;
         }
         
         .alert-success {

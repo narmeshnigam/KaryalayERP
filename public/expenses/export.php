@@ -14,7 +14,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_role = $_SESSION['role'] ?? 'user';
 if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../dashboard.php');
+    header('Location: ../index.php');
     exit;
 }
 

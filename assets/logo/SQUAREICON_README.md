@@ -57,7 +57,7 @@ If `squareicon.png` is not found, the system displays:
 
 ## Testing
 1. Place `squareicon.png` in `assets/logo/` folder
-2. Visit `http://localhost/KaryalayERP/public/dashboard.php`
+2. Visit `http://localhost/KaryalayERP/public/index.php`
 3. Click hamburger menu (☰) to collapse sidebar
 4. Verify your icon appears in the header
 5. Click the icon to verify sidebar expands

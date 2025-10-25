@@ -109,7 +109,7 @@ if ($conn) {
           <p>Create the database table required for managing office expenses.</p>
         </div>
         <div>
-          <a href="../public/dashboard.php" class="btn btn-accent">← Back to Dashboard</a>
+          <a href="../public/index.php" class="btn btn-accent">← Back to Dashboard</a>
         </div>
       </div>
     </div>

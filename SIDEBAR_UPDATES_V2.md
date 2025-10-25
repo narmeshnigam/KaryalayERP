@@ -167,7 +167,7 @@ body.sidebar-collapsed .main-wrapper {
    - See `assets/icons/SETUP_GUIDE.md`
 
 3. **Create Module Pages**
-   - Use `dashboard.php` as template
+   - Use `index.php` as template
    - Include `header_sidebar.php` and `sidebar.php`
    - Navigation will automatically highlight active page
 

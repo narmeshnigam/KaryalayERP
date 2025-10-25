@@ -12,7 +12,7 @@ session_start();
 
 // If already logged in, redirect to dashboard
 if (isset($_SESSION['user_id'])) {
-    header('Location: dashboard.php');
+    header('Location: index.php');
     exit;
 }
 
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $_SESSION['login_time'] = time();
                         
                         // Redirect to dashboard
-                        header('Location: dashboard.php');
+                        header('Location: index.php');
                         exit;
                     } else {
                         $error_message = 'Invalid username or password.';

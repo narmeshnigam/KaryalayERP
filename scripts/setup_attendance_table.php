@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <p>Create database tables for Attendance Management</p>
                 </div>
                 <div>
-                    <a href="../public/dashboard.php" class="btn btn-accent">
+                    <a href="../public/index.php" class="btn btn-accent">
                         ← Back to Dashboard
                     </a>
                 </div>
@@ -224,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php else: ?>
             <div style="text-align: center; margin-top: 30px;">
-                <a href="../public/dashboard.php" class="btn btn-accent">Back to Dashboard</a>
+                <a href="../public/index.php" class="btn btn-accent">Back to Dashboard</a>
             </div>
         <?php endif; ?>
     <?php else: ?>

@@ -24,8 +24,8 @@ $nav_items = [
     [
         'icon' => 'dashboard.png',
         'label' => 'Dashboard',
-        'link' => 'dashboard.php',
-        'active' => ($current_page == 'dashboard.php')
+        'link' => 'index.php',
+        'active' => ($current_page == 'index.php')
     ],
     [
         'icon' => 'employees.png',
@@ -48,26 +48,26 @@ $nav_items = [
     [
         'icon' => 'crm.png',
         'label' => 'CRM',
-        'link' => 'crm.php',
+        'link' => 'crm/index.php',
         'active' => ($current_page == 'crm.php')
     ],
     [
         'icon' => 'expenses.png',
         'label' => 'Expenses',
-        'link' => 'expenses.php',
-        'active' => ($current_page == 'expenses.php')
+        'link' => 'expenses/index.php',
+        'active' => (strpos($current_path, '/reimbursements/') !== false)
     ],
     [
         'icon' => 'documents.png',
         'label' => 'Documents',
-        'link' => 'documents.php',
+        'link' => 'documents/index.php',
         'active' => ($current_page == 'documents.php')
     ],
     [
         'icon' => 'visitors.png',
         'label' => 'Visitor Log',
-        'link' => 'visitors.php',
-        'active' => ($current_page == 'visitors.php')
+        'link' => 'visitors/index.php',
+        'active' => (strpos($current_path, '/visitors/') !== false)
     ],
     [
         'icon' => 'analytics.png',

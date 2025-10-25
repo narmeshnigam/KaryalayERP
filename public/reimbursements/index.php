@@ -14,7 +14,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_role = $_SESSION['role'] ?? 'user';
 if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../dashboard.php');
+    header('Location: ../index.php');
     exit;
 }
 
@@ -48,7 +48,7 @@ if (!tableExists($conn, 'reimbursements')) {
     echo '<h2 style="margin-top:0;color:#003581;">Reimbursement module not set up</h2>';
     echo '<p>Run the setup script to create the reimbursements table.</p>';
     echo '<a href="../../scripts/setup_reimbursements_table.php" class="btn" style="margin-top:20px;">🚀 Setup Reimbursements Module</a>';
-    echo '<a href="../dashboard.php" class="btn btn-accent" style="margin-left:10px;margin-top:20px;">Back to dashboard</a>';
+    echo '<a href="../index.php" class="btn btn-accent" style="margin-left:10px;margin-top:20px;">Back to dashboard</a>';
     echo '</div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;

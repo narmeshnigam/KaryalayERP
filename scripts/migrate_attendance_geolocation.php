@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <p>Migrate attendance table to support GPS coordinates</p>
                 </div>
                 <div>
-                    <a href="../public/dashboard.php" class="btn btn-accent">← Back to Dashboard</a>
+                    <a href="../public/index.php" class="btn btn-accent">← Back to Dashboard</a>
                 </div>
             </div>
         </div>

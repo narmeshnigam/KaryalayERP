@@ -28,7 +28,7 @@ KaryalayERP/
 │
 ├── public/
 │   ├── login.php               # Login form and authentication
-│   ├── dashboard.php           # Protected dashboard page
+│   ├── index.php           # Protected dashboard page
 │   └── logout.php              # Logout handler
 │
 ├── scripts/

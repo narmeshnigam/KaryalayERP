@@ -20,7 +20,7 @@
 - ✅ Removed bottom footer (minimalist design)
 
 ### 3. Dashboard Updates
-- ✅ Updated `public/dashboard.php` to use new sidebar system
+- ✅ Updated `public/index.php` to use new sidebar system
 - ✅ Preserved all dashboard content (no changes to body)
 - ✅ Applied correct brand colors (#003581, #faa718)
 - ✅ Content area adjusts when sidebar collapses/expands
@@ -49,7 +49,7 @@ KaryalayERP/
 │   ├── header_sidebar.php   # Header for pages with sidebar
 │   └── footer_sidebar.php   # Footer for pages with sidebar
 └── public/
-    └── dashboard.php        # Updated to use sidebar
+    └── index.php        # Updated to use sidebar
 ```
 
 ## 🎨 Features
@@ -140,7 +140,7 @@ include __DIR__ . '/../includes/footer_sidebar.php';
 
 | Icon File | Label | Link | Status |
 |-----------|-------|------|--------|
-| dashboard.png | Dashboard | dashboard.php | ✅ Active |
+| dashboard.png | Dashboard | index.php | ✅ Active |
 | employees.png | Employees | employees.php | To be created |
 | crm.png | CRM | crm.php | To be created |
 | expenses.png | Expenses | expenses.php | To be created |
@@ -165,7 +165,7 @@ include __DIR__ . '/../includes/footer_sidebar.php';
 
 3. **Create Module Pages**
    - Create employees.php, crm.php, etc.
-   - Copy dashboard.php structure
+   - Copy index.php structure
    - Use same header/sidebar/footer includes
 
 4. **Customize Menu**
@@ -193,7 +193,7 @@ include __DIR__ . '/../includes/footer_sidebar.php';
 
 Navigate to:
 ```
-http://localhost/KaryalayERP/public/dashboard.php
+http://localhost/KaryalayERP/public/index.php
 ```
 
 Login with default credentials:

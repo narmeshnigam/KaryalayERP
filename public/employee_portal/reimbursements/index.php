@@ -42,7 +42,7 @@ if (!tableExists($conn, 'reimbursements')) {
     echo '<div class="card" style="max-width:720px;margin:0 auto;">';
     echo '<h2 style="margin-top:0;color:#003581;">Reimbursement module not ready</h2>';
     echo '<p>The reimbursements table is missing. Please contact your administrator to run the module setup.</p>';
-    echo '<a href="../../dashboard.php" class="btn" style="margin-top:20px;">← Back to dashboard</a>';
+    echo '<a href="../../index.php" class="btn" style="margin-top:20px;">← Back to dashboard</a>';
     echo '</div></div></div>';
     require_once __DIR__ . '/../../../includes/footer_sidebar.php';
     exit;

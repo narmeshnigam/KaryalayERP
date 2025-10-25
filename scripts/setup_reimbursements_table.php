@@ -113,7 +113,7 @@ if ($conn) {
 					<p>Prepare the database table required for expense reimbursements.</p>
 				</div>
 				<div>
-					<a href="../public/dashboard.php" class="btn btn-accent">← Back to Dashboard</a>
+					<a href="../public/index.php" class="btn btn-accent">← Back to Dashboard</a>
 				</div>
 			</div>
 		</div>

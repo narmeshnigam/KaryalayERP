@@ -132,6 +132,38 @@ closeConnection($conn);
                     Employee <?php echo isset($_GET['employee_code']) ? htmlspecialchars($_GET['employee_code']) : ''; ?> has been added successfully!
                 </div>
             <?php endif; ?>
+
+            <!-- Statistics Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
+                <?php
+                $conn2 = createConnection(true);
+                $total_employees = mysqli_fetch_assoc(mysqli_query($conn2, "SELECT COUNT(*) as count FROM employees WHERE status='Active'"))['count'];
+                $total_departments = mysqli_fetch_assoc(mysqli_query($conn2, "SELECT COUNT(DISTINCT department) as count FROM employees"))['count'];
+                $on_leave = mysqli_fetch_assoc(mysqli_query($conn2, "SELECT COUNT(*) as count FROM employees WHERE status='On Leave'"))['count'];
+                $new_this_month = mysqli_fetch_assoc(mysqli_query($conn2, "SELECT COUNT(*) as count FROM employees WHERE MONTH(date_of_joining) = MONTH(CURRENT_DATE) AND YEAR(date_of_joining) = YEAR(CURRENT_DATE)"))['count'];
+                closeConnection($conn2);
+                ?>
+                
+                <div class="card" style="text-align: center; background: linear-gradient(135deg, #003581 0%, #004aad 100%); color: white;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $total_employees; ?></div>
+                    <div style="font-size: 14px; opacity: 0.9;">Active Employees</div>
+                </div>
+                
+                <div class="card" style="text-align: center; background: linear-gradient(135deg, #faa718 0%, #ffc04d 100%); color: white;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $total_departments; ?></div>
+                    <div style="font-size: 14px; opacity: 0.9;">Departments</div>
+                </div>
+                
+                <div class="card" style="text-align: center; background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); color: white;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $on_leave; ?></div>
+                    <div style="font-size: 14px; opacity: 0.9;">On Leave Today</div>
+                </div>
+                
+                <div class="card" style="text-align: center; background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%); color: white;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $new_this_month; ?></div>
+                    <div style="font-size: 14px; opacity: 0.9;">New This Month</div>
+                </div>
+            </div>
             
             <!-- Search and Filters -->
             <div class="card" style="margin-bottom: 25px;">
@@ -170,38 +202,6 @@ closeConnection($conn);
                         <a href="index.php" class="btn btn-accent" style="white-space: nowrap; text-decoration: none; display: inline-block; text-align: center;">Clear</a>
                     </div>
                 </form>
-            </div>
-
-            <!-- Statistics Cards -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
-                <?php
-                $conn2 = createConnection(true);
-                $total_employees = mysqli_fetch_assoc(mysqli_query($conn2, "SELECT COUNT(*) as count FROM employees WHERE status='Active'"))['count'];
-                $total_departments = mysqli_fetch_assoc(mysqli_query($conn2, "SELECT COUNT(DISTINCT department) as count FROM employees"))['count'];
-                $on_leave = mysqli_fetch_assoc(mysqli_query($conn2, "SELECT COUNT(*) as count FROM employees WHERE status='On Leave'"))['count'];
-                $new_this_month = mysqli_fetch_assoc(mysqli_query($conn2, "SELECT COUNT(*) as count FROM employees WHERE MONTH(date_of_joining) = MONTH(CURRENT_DATE) AND YEAR(date_of_joining) = YEAR(CURRENT_DATE)"))['count'];
-                closeConnection($conn2);
-                ?>
-                
-                <div class="card" style="text-align: center; background: linear-gradient(135deg, #003581 0%, #004aad 100%); color: white;">
-                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $total_employees; ?></div>
-                    <div style="font-size: 14px; opacity: 0.9;">Active Employees</div>
-                </div>
-                
-                <div class="card" style="text-align: center; background: linear-gradient(135deg, #faa718 0%, #ffc04d 100%); color: white;">
-                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $total_departments; ?></div>
-                    <div style="font-size: 14px; opacity: 0.9;">Departments</div>
-                </div>
-                
-                <div class="card" style="text-align: center; background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); color: white;">
-                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $on_leave; ?></div>
-                    <div style="font-size: 14px; opacity: 0.9;">On Leave Today</div>
-                </div>
-                
-                <div class="card" style="text-align: center; background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%); color: white;">
-                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $new_this_month; ?></div>
-                    <div style="font-size: 14px; opacity: 0.9;">New This Month</div>
-                </div>
             </div>
 
             <!-- Employee List -->

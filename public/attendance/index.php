@@ -54,7 +54,7 @@ if (!$hasEmployees || !$hasAttendance) {
               <p>We couldn't find the required database tables to show attendance records.</p>
             </div>
             <div>
-              <a href="../dashboard.php" class="btn btn-accent">← Back to Dashboard</a>
+              <a href="../index.php" class="btn btn-accent">← Back to Dashboard</a>
             </div>
           </div>
         </div>

@@ -278,7 +278,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             
             <nav>
                 <ul class="nav-menu">
-                    <li><a href="../public/dashboard.php" class="<?php echo ($current_page == 'dashboard.php') ? 'active' : ''; ?>">Dashboard</a></li>
+                    <li><a href="../public/index.php" class="<?php echo ($current_page == 'index.php') ? 'active' : ''; ?>">Dashboard</a></li>
                     <li>
                         <div class="user-info">
                             👤 <?php echo htmlspecialchars($_SESSION['username']); ?>

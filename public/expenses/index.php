@@ -14,7 +14,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_role = $_SESSION['role'] ?? 'user';
 if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../dashboard.php');
+    header('Location: ../index.php');
     exit;
 }
 
@@ -47,7 +47,7 @@ if (!tableExists($conn, 'office_expenses')) {
     echo '<h2 style="margin-top:0;color:#003581;">Expense Tracker module not ready</h2>';
     echo '<p>The <code>office_expenses</code> table is missing. Run the setup script to continue.</p>';
     echo '<a href="../../scripts/setup_office_expenses_table.php" class="btn" style="margin-top:20px;">🚀 Setup Expense Tracker</a>';
-    echo '<a href="../dashboard.php" class="btn btn-accent" style="margin-left:10px;margin-top:20px;">Back to dashboard</a>';
+    echo '<a href="../index.php" class="btn btn-accent" style="margin-left:10px;margin-top:20px;">Back to dashboard</a>';
     echo '</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;

@@ -43,7 +43,7 @@ if (needsSetup()) {
 
 // If user is logged in, redirect to dashboard
 if (isset($_SESSION['user_id'])) {
-    header('Location: public/dashboard.php');
+    header('Location: public/index.php');
     exit;
 }
 
