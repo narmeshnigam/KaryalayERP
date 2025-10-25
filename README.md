@@ -12,6 +12,7 @@ A complete **Core PHP** project with login system, database auto-setup, and sess
 - ✅ **Clean UI** - Responsive design with modern CSS
 - ✅ **Modular Structure** - Organized folder structure for maintainability
 - ✅ **Well Commented Code** - Easy to understand and extend
+- ✅ **Salary Viewer Module** - Admin-managed payroll uploads with employee slip access
 
 ## 📁 Project Structure
 

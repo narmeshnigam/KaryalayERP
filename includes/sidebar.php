@@ -58,6 +58,12 @@ $nav_items = [
         'active' => (strpos($current_path, '/reimbursements/') !== false)
     ],
     [
+        'icon' => 'salary.png',
+        'label' => 'Salary Viewer',
+        'link' => 'salary/index.php',
+        'active' => (strpos($current_path, '/salary/') !== false) || in_array($current_page, ['salary.php'], true)
+    ],
+    [
         'icon' => 'documents.png',
         'label' => 'Documents',
         'link' => 'documents/index.php',
@@ -534,6 +540,7 @@ $has_square_icon = file_exists($square_icon_path);
                                     'Attendance' => '📅',
                                     'CRM' => '📞',
                                     'Expenses' => '💰',
+                                    'Salary Viewer' => '💵',
                                     'Reimbursements' => '💳',
                                     'Documents' => '📂',
                                     'Visitor Log' => '📋',
