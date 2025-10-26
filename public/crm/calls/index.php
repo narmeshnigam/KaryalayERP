@@ -180,7 +180,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
           <p>View and manage all telephonic interactions</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
+          <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
+          <a href="my.php" class="btn btn-accent">☎️ My Calls</a>
           <a href="add.php" class="btn">➕ Log New Call</a>
         </div>
       </div>

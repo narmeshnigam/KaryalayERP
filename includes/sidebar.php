@@ -13,99 +13,118 @@
 // Get current page for active state
 $current_page = basename($_SERVER['PHP_SELF']);
 $current_path = $_SERVER['PHP_SELF'] ?? '';
-
-// Define navigation menu items
 $user_role = $_SESSION['role'] ?? 'user';
-$reimbursements_link = ($user_role === 'user')
-    ? APP_URL . '/public/employee_portal/reimbursements/index.php'
-    : APP_URL . '/public/reimbursements/index.php';
 
+// Get current employee ID for profile link
+$current_employee_id = null;
+$conn_sidebar = @createConnection(true);
+if ($conn_sidebar) {
+    $stmt = @mysqli_prepare($conn_sidebar, 'SELECT id FROM employees WHERE user_id = ? LIMIT 1');
+    if ($stmt) {
+        $uid = (int)$_SESSION['user_id'];
+        @mysqli_stmt_bind_param($stmt, 'i', $uid);
+        @mysqli_stmt_execute($stmt);
+        $result = @mysqli_stmt_get_result($stmt);
+        if ($result && $row = @mysqli_fetch_assoc($result)) {
+            $current_employee_id = (int)$row['id'];
+        }
+        @mysqli_stmt_close($stmt);
+    }
+    @closeConnection($conn_sidebar);
+}
+
+// Define navigation menu items with ABSOLUTE URLs
+// Main navigation (ordered as requested)
 $nav_items = [
     [
         'icon' => 'dashboard.png',
         'label' => 'Dashboard',
-        'link' => 'index.php',
-        'active' => ($current_page == 'index.php')
+        'link' => APP_URL . '/public/index.php',
+        'active' => ($current_page == 'index.php' && strpos($current_path, '/public/index.php') !== false)
     ],
     [
         'icon' => 'employees.png',
         'label' => 'Employees',
-        'link' => 'employee/index.php',
-        'active' => (strpos($current_path, '/employee/') !== false) || in_array($current_page, ['employees.php','add_employee.php','view_employee.php','edit_employee.php'])
+        'link' => APP_URL . '/public/employee/index.php',
+        'active' => (strpos($current_path, '/employee/') !== false)
     ],
     [
         'icon' => 'attendance.png',
         'label' => 'Attendance',
-        'link' => 'attendance/index.php',
-        'active' => (strpos($current_path, '/attendance/') !== false) || in_array($current_page, ['mark_attendance.php'])
+        'link' => APP_URL . '/public/attendance/index.php',
+        'active' => (strpos($current_path, '/public/attendance/') !== false)
     ],
     [
         'icon' => 'expenses.png',
         'label' => 'Reimbursements',
-        'link' => $reimbursements_link,
-        'active' => (strpos($current_path, '/reimbursements/') !== false)
+        'link' => APP_URL . '/public/reimbursements/index.php',
+        'active' => (strpos($current_path, '/public/reimbursements/') !== false && strpos($current_path, '/employee_portal/') === false)
     ],
     [
         'icon' => 'crm.png',
         'label' => 'CRM',
-        'link' => 'crm/index.php',
-        'active' => (strpos($current_path, '/crm/') !== false)
+        'link' => APP_URL . '/public/crm/index.php',
+        'active' => (strpos($current_path, '/crm/') !== false && strpos($current_path, '/crm/dashboard.php') === false)
     ],
-    // CRM Dashboard (Managers/Admins only) – insert dynamically below if role permits
     [
         'icon' => 'expenses.png',
         'label' => 'Expenses',
-        'link' => 'expenses/index.php',
-        'active' => (strpos($current_path, '/reimbursements/') !== false)
+        'link' => APP_URL . '/public/expenses/index.php',
+        'active' => (strpos($current_path, '/expenses/') !== false)
     ],
     [
         'icon' => 'salary.png',
-        'label' => 'Salary Viewer',
-        'link' => 'salary/index.php',
-        'active' => (strpos($current_path, '/salary/') !== false) || in_array($current_page, ['salary.php'], true)
+        'label' => 'Salary',
+        'link' => APP_URL . '/public/salary/admin.php',
+        'active' => (strpos($current_path, '/public/salary/') !== false && strpos($current_path, '/employee_portal/') === false)
     ],
     [
         'icon' => 'documents.png',
         'label' => 'Documents',
-        'link' => 'documents/index.php',
-        'active' => ($current_page == 'documents.php')
+        'link' => APP_URL . '/public/documents/index.php',
+        'active' => (strpos($current_path, '/documents/') !== false && strpos($current_path, '/employee_portal/') === false)
     ],
     [
         'icon' => 'visitors.png',
         'label' => 'Visitor Log',
-        'link' => 'visitors/index.php',
+        'link' => APP_URL . '/public/visitors/index.php',
         'active' => (strpos($current_path, '/visitors/') !== false)
-    ],
-    [
-        'icon' => 'analytics.png',
-        'label' => 'Analytics',
-        'link' => 'analytics.php',
-        'active' => ($current_page == 'analytics.php')
-    ],
-    [
-        'icon' => 'settings.png',
-        'label' => 'Settings',
-        'link' => 'settings.php',
-        'active' => ($current_page == 'settings.php')
-    ],
-    [
-        'icon' => 'roles.png',
-        'label' => 'Roles & Permissions',
-        'link' => 'roles.php',
-        'active' => ($current_page == 'roles.php')
     ],
     [
         'icon' => 'branding.png',
         'label' => 'Branding',
-        'link' => 'branding.php',
-        'active' => ($current_page == 'branding.php')
-    ],
-    [
-        'icon' => 'notifications.png',
-        'label' => 'Notifications',
-        'link' => 'notifications.php',
-        'active' => ($current_page == 'notifications.php')
+        'link' => APP_URL . '/public/branding/view.php',
+        'active' => (strpos($current_path, '/branding/') !== false)
     ]
+];
+
+// Employee-specific menu items (always shown at bottom)
+$employee_items = [];
+if ($current_employee_id) {
+    $employee_items[] = [
+        'icon' => 'employees.png',
+        'label' => 'My Profile',
+        'link' => APP_URL . '/public/employee/view_employee.php?id=' . $current_employee_id,
+        'active' => ($current_page == 'view_employee.php' && isset($_GET['id']) && (int)$_GET['id'] === $current_employee_id)
+    ];
+}
+$employee_items[] = [
+    'icon' => 'attendance.png',
+    'label' => 'My Attendance',
+    'link' => APP_URL . '/public/employee_portal/attendance/index.php',
+    'active' => (strpos($current_path, '/employee_portal/attendance/') !== false)
+];
+$employee_items[] = [
+    'icon' => 'expenses.png',
+    'label' => 'My Reimbursements',
+    'link' => APP_URL . '/public/employee_portal/reimbursements/index.php',
+    'active' => (strpos($current_path, '/employee_portal/reimbursements/') !== false)
+];
+$employee_items[] = [
+    'icon' => 'salary.png',
+    'label' => 'My Salary',
+    'link' => APP_URL . '/public/employee_portal/salary/index.php',
+    'active' => (strpos($current_path, '/employee_portal/salary/') !== false)
 ];
 
 // Check if icon file exists, otherwise use SVG fallback
@@ -124,6 +143,30 @@ $has_logo_icon = file_exists($logo_icon_path);
 // Check if square icon exists
 $square_icon_path = __DIR__ . '/../assets/logo/icon_white_text_transparent.png';
 $has_square_icon = file_exists($square_icon_path);
+
+// Get branding logos from database
+$branding_full_logo = null;
+$branding_square_logo = null;
+$conn_branding = @createConnection(true);
+if ($conn_branding) {
+    // Check if branding_settings table exists
+    $table_check = @mysqli_query($conn_branding, "SHOW TABLES LIKE 'branding_settings'");
+    if ($table_check && mysqli_num_rows($table_check) > 0) {
+        $res = @mysqli_query($conn_branding, "SELECT sidebar_header_full_logo, sidebar_square_logo FROM branding_settings LIMIT 1");
+        if ($res && mysqli_num_rows($res) > 0) {
+            $row = mysqli_fetch_assoc($res);
+            if (!empty($row['sidebar_header_full_logo'])) {
+                $branding_full_logo = '../../' . $row['sidebar_header_full_logo'];
+            }
+            if (!empty($row['sidebar_square_logo'])) {
+                $branding_square_logo = '../../' . $row['sidebar_square_logo'];
+            }
+            mysqli_free_result($res);
+        }
+        if ($table_check) @mysqli_free_result($table_check);
+    }
+    @closeConnection($conn_branding);
+}
 ?>
 
 <style>
@@ -499,7 +542,9 @@ $has_square_icon = file_exists($square_icon_path);
         <div class="sidebar-logo" id="sidebarLogo" onclick="handleLogoClick()">
             <!-- Expanded Logo (shown when sidebar is expanded) -->
             <div class="logo-expanded">
-                <?php if ($has_logo_icon): ?>
+                <?php if ($branding_full_logo): ?>
+                    <img src="<?php echo $branding_full_logo; ?>" alt="<?php echo APP_NAME; ?>" style="width: 120px;">
+                <?php elseif ($has_logo_icon): ?>
                     <img src="<?php echo APP_URL; ?>/assets/logo/logo_white_text_transparent.png" alt="<?php echo APP_NAME; ?>" style="width: 120px;">
                 <?php else: ?>
                     <div style="width: 32px; height: 32px; background: #faa718; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #003581;">K</div>
@@ -508,7 +553,9 @@ $has_square_icon = file_exists($square_icon_path);
             
             <!-- Collapsed Square Icon (shown when sidebar is collapsed) -->
             <div class="logo-collapsed" style="display: none;">
-                <?php if ($has_square_icon): ?>
+                <?php if ($branding_square_logo): ?>
+                    <img src="<?php echo $branding_square_logo; ?>" alt="Menu" class="square-icon">
+                <?php elseif ($has_square_icon): ?>
                     <img src="<?php echo APP_URL; ?>/assets/logo/icon_white_text_transparent.png" alt="Menu" class="square-icon">
                 <?php else: ?>
                     <div style="width: 40px; height: 40px; background: #faa718; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #003581; font-size: 20px;">K</div>
@@ -521,20 +568,18 @@ $has_square_icon = file_exists($square_icon_path);
     <nav class="sidebar-nav">
         <ul>
             <?php 
-            // Inject CRM Dashboard link (manager/admin) just after CRM item
-            $injected = false;
+            // Main navigation items
             foreach ($nav_items as $item): 
-                $isCrm = ($item['label'] === 'CRM');
             ?>
                 <li class="sidebar-nav-item">
-                    <a href="<?php echo $item['link']; ?>" 
+                    <a href="<?php echo htmlspecialchars($item['link'], ENT_QUOTES); ?>" 
                        class="sidebar-nav-link <?php echo $item['active'] ? 'active' : ''; ?>"
-                       data-tooltip="<?php echo $item['label']; ?>">
+                       data-tooltip="<?php echo htmlspecialchars($item['label'], ENT_QUOTES); ?>">
                         <?php 
                         $icon_path = getIconPath($item['icon']);
                         if ($icon_path): 
                         ?>
-                            <img src="<?php echo $icon_path; ?>" alt="<?php echo $item['label']; ?>" class="nav-icon">
+                            <img src="<?php echo $icon_path; ?>" alt="<?php echo htmlspecialchars($item['label'], ENT_QUOTES); ?>" class="nav-icon">
                         <?php else: ?>
                             <!-- SVG Fallback Icons -->
                             <span class="nav-icon-fallback">
@@ -544,40 +589,59 @@ $has_square_icon = file_exists($square_icon_path);
                                     'Dashboard' => '🏠',
                                     'Employees' => '👥',
                                     'Attendance' => '📅',
-                                    'CRM' => '📞',
-                                    'Expenses' => '💰',
-                                    'Salary Viewer' => '💵',
-                                    'Reimbursements' => '💳',
+                                    'Reimbursements' => '�',
+                                    'CRM' => '�',
+                                    'Expenses' => '�',
+                                    'Salary' => '�',
                                     'Documents' => '📂',
                                     'Visitor Log' => '📋',
-                                    'Analytics' => '📊',
-                                    'Settings' => '⚙️',
-                                    'Roles & Permissions' => '🔐',
-                                    'Branding' => '🎨',
-                                    'Notifications' => '💬'
+                                    'Branding' => '🎨'
                                 ];
                                 echo $icon_map[$item['label']] ?? '•';
                                 ?>
                             </span>
                         <?php endif; ?>
-                        <span class="nav-text"><?php echo $item['label']; ?></span>
+                        <span class="nav-text"><?php echo htmlspecialchars($item['label'], ENT_QUOTES); ?></span>
                     </a>
                 </li>
-                <?php if ($isCrm && in_array(strtolower($user_role), ['admin','manager'], true) && !$injected): ?>
+            <?php endforeach; ?>
+            
+            <?php if (!empty($employee_items)): ?>
+                <li style="margin: 10px 15px; border-top: 1px solid rgba(255,255,255,0.2);"></li>
+                <?php foreach ($employee_items as $item): ?>
                     <li class="sidebar-nav-item">
-                        <a href="crm/dashboard.php" class="sidebar-nav-link <?php echo (strpos($current_path, '/crm/dashboard.php') !== false) ? 'active' : ''; ?>" data-tooltip="CRM Dashboard">
-                            <span class="nav-icon-fallback">📊</span>
-                            <span class="nav-text">CRM Dashboard</span>
+                        <a href="<?php echo htmlspecialchars($item['link'], ENT_QUOTES); ?>" 
+                           class="sidebar-nav-link <?php echo $item['active'] ? 'active' : ''; ?>"
+                           data-tooltip="<?php echo htmlspecialchars($item['label'], ENT_QUOTES); ?>">
+                            <?php 
+                            $icon_path = getIconPath($item['icon']);
+                            if ($icon_path): 
+                            ?>
+                                <img src="<?php echo $icon_path; ?>" alt="<?php echo htmlspecialchars($item['label'], ENT_QUOTES); ?>" class="nav-icon">
+                            <?php else: ?>
+                                <span class="nav-icon-fallback">
+                                    <?php
+                                    $icon_map = [
+                                        'My Profile' => '👤',
+                                        'My Attendance' => '📅',
+                                        'My Reimbursements' => '💳',
+                                        'My Salary' => '💵'
+                                    ];
+                                    echo $icon_map[$item['label']] ?? '•';
+                                    ?>
+                                </span>
+                            <?php endif; ?>
+                            <span class="nav-text"><?php echo htmlspecialchars($item['label'], ENT_QUOTES); ?></span>
                         </a>
                     </li>
-                    <?php $injected = true; endif; ?>
-            <?php endforeach; ?>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </ul>
     </nav>
 
     <!-- Logout -->
     <div class="sidebar-footer">
-        <a href="logout.php" class="logout-link" data-tooltip="Logout">
+        <a href="<?php echo APP_URL; ?>/public/logout.php" class="logout-link" data-tooltip="Logout">
             <?php 
             $logout_icon = getIconPath('logout.png');
             if ($logout_icon): 

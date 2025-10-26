@@ -14,30 +14,12 @@ session_start();
 
 // Include configuration
 require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/config/db_connect.php';
+require_once __DIR__ . '/config/setup_helper.php';
 
-/**
- * Check if system needs initial setup
- * Returns true if setup is needed, false otherwise
- */
-function needsSetup() {
-    // Check if database exists
-    if (!databaseExists()) {
-        return true;
-    }
-    
-    // Check if users table exists
-    if (!usersTableExists()) {
-        return true;
-    }
-    
-    return false;
-}
-
-// Check if setup is needed
-if (needsSetup()) {
-    // Redirect to setup script
-    header('Location: scripts/setup_db.php');
+// Check if setup is complete
+if (!isSetupComplete()) {
+    // Redirect to setup wizard
+    header('Location: setup/index.php');
     exit;
 }
 

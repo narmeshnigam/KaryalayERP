@@ -203,7 +203,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
           <p>Manage your assigned meetings</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
+          <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
+          <a href="index.php" class="btn btn-accent">🗓️ All Meetings</a>
           <a href="add.php" class="btn">➕ Schedule Meeting</a>
         </div>
       </div>

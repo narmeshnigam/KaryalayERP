@@ -282,7 +282,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
           <p>Manage lead assignments, status, and follow-ups</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
+          <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
+          <a href="my.php" class="btn btn-accent">📌 My Leads</a>
           <a href="add.php" class="btn">➕ Add Lead</a>
         </div>
       </div>

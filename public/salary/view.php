@@ -14,13 +14,16 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $record_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$user_role = $_SESSION['role'] ?? 'employee';
+$can_manage_role = in_array(strtolower($user_role), ['admin', 'manager'], true);
+$redirect_back = $can_manage_role ? 'admin.php' : '../employee_portal/salary/index.php';
+
 if ($record_id <= 0) {
     flash_add('error', 'Missing salary record identifier.', 'salary');
-    header('Location: index.php');
+    header('Location: ' . $redirect_back);
     exit;
 }
 
-$user_role = $_SESSION['role'] ?? 'employee';
 $page_title = 'Salary Details - ' . APP_NAME;
 
 $conn = createConnection(true);
@@ -63,7 +66,7 @@ mysqli_stmt_close($select);
 if (!$record) {
     closeConnection($conn);
     flash_add('error', 'Salary record not found.', 'salary');
-    header('Location: index.php');
+    header('Location: ' . $redirect_back);
     exit;
 }
 
@@ -72,7 +75,7 @@ $can_manage = salary_role_can_manage($user_role);
 if (!$can_manage && !$owns_record) {
     closeConnection($conn);
     flash_add('error', 'You are not allowed to view this salary record.', 'salary');
-    header('Location: index.php');
+    header('Location: ' . $redirect_back);
     exit;
 }
 
@@ -193,7 +196,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <p>Summary of earnings for <?php echo salary_format_month_label($record['month']); ?>.</p>
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                    <a href="<?php echo $can_manage ? 'admin.php' : 'index.php'; ?>" class="btn btn-secondary">← Back</a>
+                    <a href="<?php echo $can_manage ? 'admin.php' : '../employee_portal/salary/index.php'; ?>" class="btn btn-secondary">← Back</a>
                     <?php if (!empty($record['slip_path'])): ?>
                         <a href="view.php?id=<?php echo $record_id; ?>&download=1" class="btn" style="background:#17a2b8;color:#fff;">⬇ Download Slip</a>
                     <?php endif; ?>

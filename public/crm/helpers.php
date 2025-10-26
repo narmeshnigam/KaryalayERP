@@ -2,6 +2,25 @@
 require_once __DIR__ . '/../../includes/bootstrap.php';
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
+
+// Check CRM module prerequisites before loading
+function crm_check_prerequisites(): void {
+    $conn = createConnection(true);
+    if (!$conn) {
+        die('Database connection failed. Please check your configuration.');
+    }
+    
+    $check = get_prerequisite_check_result($conn, 'crm');
+    closeConnection($conn);
+    
+    if (!$check['allowed']) {
+        display_prerequisite_error('crm', $check['missing_modules']);
+    }
+}
+
+// Run prerequisite check
+crm_check_prerequisites();
 
 function crm_tables_exist(mysqli $conn): bool {
     $tables = ['crm_tasks','crm_calls','crm_meetings','crm_visits','crm_leads'];

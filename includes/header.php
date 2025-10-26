@@ -17,6 +17,26 @@ require_once __DIR__ . '/../config/config.php';
 // Get page title from variable or use default
 $page_title = isset($page_title) ? $page_title : APP_NAME;
 $current_page = basename($_SERVER['PHP_SELF']);
+
+// Load favicon from branding settings if available
+$favicon_url = APP_URL . '/assets/logo/icon_blue_text_transparent.png'; // default
+$conn_favicon = @createConnection(true);
+if ($conn_favicon) {
+    // Check if branding_settings table exists
+    $table_check = @mysqli_query($conn_favicon, "SHOW TABLES LIKE 'branding_settings'");
+    if ($table_check && mysqli_num_rows($table_check) > 0) {
+        $res = @mysqli_query($conn_favicon, "SELECT favicon FROM branding_settings LIMIT 1");
+        if ($res && mysqli_num_rows($res) > 0) {
+            $row = mysqli_fetch_assoc($res);
+            if (!empty($row['favicon'])) {
+                $favicon_url = APP_URL . '/' . $row['favicon'];
+            }
+            mysqli_free_result($res);
+        }
+        if ($table_check) @mysqli_free_result($table_check);
+    }
+    @closeConnection($conn_favicon);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -25,6 +45,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title><?php echo htmlspecialchars($page_title); ?></title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?php echo $favicon_url; ?>">
+    <link rel="shortcut icon" href="<?php echo $favicon_url; ?>">
     
     <style>
         /* Global Styles */

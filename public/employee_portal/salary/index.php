@@ -3,32 +3,44 @@
  * Salary Viewer - Employee portal listing page.
  */
 
-require_once __DIR__ . '/../../includes/bootstrap.php';
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
-require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/../../../includes/bootstrap.php';
+require_once __DIR__ . '/../../../config/config.php';
+require_once __DIR__ . '/../../../config/db_connect.php';
+require_once __DIR__ . '/../../../config/module_dependencies.php';
+require_once __DIR__ . '/../../salary/helpers.php';
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
+    header('Location: ../../login.php');
     exit;
+}
+
+// Check salary module prerequisites
+$conn_check = createConnection(true);
+if ($conn_check) {
+    $prereq_check = get_prerequisite_check_result($conn_check, 'salary');
+    if (!$prereq_check['allowed']) {
+        closeConnection($conn_check);
+        display_prerequisite_error('salary', $prereq_check['missing_modules']);
+    }
+    closeConnection($conn_check);
 }
 
 $user_role = $_SESSION['role'] ?? 'employee';
 $page_title = 'My Salary Records - ' . APP_NAME;
 
-require_once __DIR__ . '/../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../includes/sidebar.php';
+require_once __DIR__ . '/../../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../../includes/sidebar.php';
 
 $conn = createConnection(true);
 if (!$conn) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
+    require_once __DIR__ . '/../../../includes/footer_sidebar.php';
     exit;
 }
 
 if (!salary_table_exists($conn)) {
     closeConnection($conn);
-    require_once __DIR__ . '/onboarding.php';
+    require_once __DIR__ . '/../../salary/onboarding.php';
     exit;
 }
 
@@ -39,7 +51,7 @@ if (!$current_employee_id) {
     echo '<h2 style="margin-top:0;color:#003581;">Employee profile missing</h2>';
     echo '<p>We could not find an employee record linked to your user account. Please contact HR or the administrator.</p>';
     echo '</div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
+    require_once __DIR__ . '/../../../includes/footer_sidebar.php';
     closeConnection($conn);
     exit;
 }
@@ -235,4 +247,4 @@ closeConnection($conn);
     </div>
 </div>
 
-<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php require_once __DIR__ . '/../../../includes/footer_sidebar.php'; ?>

@@ -16,7 +16,7 @@ if (!isset($_SESSION['user_id'])) {
 $user_role = $_SESSION['role'] ?? 'employee';
 if (!salary_role_can_manage($user_role)) {
     flash_add('error', 'You do not have permission to access the Salary Manager.', 'salary');
-    header('Location: index.php');
+    header('Location: ../employee_portal/salary/index.php');
     exit;
 }
 

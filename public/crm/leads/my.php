@@ -312,7 +312,8 @@ $statuses = crm_lead_statuses();
           <p>Review assigned leads, progress them, and plan follow-ups</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
+          <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
+          <a href="index.php" class="btn btn-accent">📇 All Leads</a>
           <a href="add.php" class="btn">➕ Add Lead</a>
         </div>
       </div>

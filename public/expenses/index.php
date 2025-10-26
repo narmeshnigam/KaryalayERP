@@ -6,10 +6,22 @@
 session_start();
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../login.php');
     exit;
+}
+
+// Check office_expenses module prerequisites
+$conn_check = createConnection(true);
+if ($conn_check) {
+    $prereq_check = get_prerequisite_check_result($conn_check, 'office_expenses');
+    if (!$prereq_check['allowed']) {
+        closeConnection($conn_check);
+        display_prerequisite_error('office_expenses', $prereq_check['missing_modules']);
+    }
+    closeConnection($conn_check);
 }
 
 $user_role = $_SESSION['role'] ?? 'user';

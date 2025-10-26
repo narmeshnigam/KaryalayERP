@@ -7,6 +7,7 @@
 session_start();
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/db_connect.php';
+require_once __DIR__ . '/../config/module_dependencies.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -20,6 +21,11 @@ $page_title = "Attendance Module - Database Setup";
 // Include header with sidebar
 require_once __DIR__ . '/../includes/header_sidebar.php';
 require_once __DIR__ . '/../includes/sidebar.php';
+
+// Check prerequisites
+$conn_check = createConnection(true);
+$prerequisite_check = $conn_check ? get_prerequisite_check_result($conn_check, 'attendance') : ['allowed' => false, 'missing_modules' => []];
+if ($conn_check) closeConnection($conn_check);
 
 function setupAttendanceModule() {
     $conn = createConnection(true);
@@ -228,6 +234,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php endif; ?>
     <?php else: ?>
+        <?php if (!$prerequisite_check['allowed']): ?>
+            <div class="alert alert-error" style="margin-bottom:20px;">
+                <strong>⚠️ Prerequisites Not Met</strong><br>
+                <?php echo htmlspecialchars($prerequisite_check['message']); ?>
+                <div style="margin-top:12px;">
+                    <strong>Required Modules:</strong>
+                    <ul style="margin:8px 0 0 20px;">
+                        <?php foreach ($prerequisite_check['missing_modules'] as $mod): ?>
+                            <li>
+                                <?php echo htmlspecialchars($mod['display_name']); ?>
+                                <?php if ($mod['setup_path']): ?>
+                                    - <a href="<?php echo htmlspecialchars($mod['setup_path']); ?>" style="color:#003581;font-weight:600;">Setup Now →</a>
+                                <?php endif; ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            </div>
+        <?php endif; ?>
+        
         <div class="alert alert-info">
             <strong>ℹ️ Setup Information</strong><br>
             This will create the following database tables:<br><br>
@@ -239,9 +265,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <form method="POST" style="text-align: center; margin-top: 30px;">
-            <button type="submit" class="btn" style="padding: 15px 40px; font-size: 16px;">
+            <button type="submit" class="btn" style="padding: 15px 40px; font-size: 16px;" <?php echo !$prerequisite_check['allowed'] ? 'disabled' : ''; ?>>
                 🚀 Create Attendance Module Tables
             </button>
+            <?php if (!$prerequisite_check['allowed']): ?>
+                <p style="color:#dc3545;margin-top:10px;font-size:13px;">Setup button is disabled until prerequisites are met.</p>
+            <?php endif; ?>
         </form>
     <?php endif; ?>
     

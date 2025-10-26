@@ -7,6 +7,7 @@ session_start();
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/db_connect.php';
 require_once __DIR__ . '/../includes/bootstrap.php';
+require_once __DIR__ . '/../config/module_dependencies.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../public/login.php');
@@ -16,6 +17,11 @@ if (!isset($_SESSION['user_id'])) {
 $page_title = 'CRM - Module Setup';
 require_once __DIR__ . '/../includes/header_sidebar.php';
 require_once __DIR__ . '/../includes/sidebar.php';
+
+// Check prerequisites
+$conn_check = createConnection(true);
+$prerequisite_check = $conn_check ? get_prerequisite_check_result($conn_check, 'crm') : ['allowed' => false, 'missing_modules' => []];
+if ($conn_check) closeConnection($conn_check);
 
 function crm_setup_table_exists(mysqli $conn, string $table): bool
 {
@@ -420,6 +426,26 @@ if ($conn_check) { closeConnection($conn_check); }
             <?php endif; ?>
         <?php endif; ?>
 
+        <?php if (!$prerequisite_check['allowed']): ?>
+            <div class="alert alert-error" style="margin-bottom:24px;">
+                <strong>⚠️ Prerequisites Not Met</strong><br>
+                <?php echo htmlspecialchars($prerequisite_check['message']); ?>
+                <div style="margin-top:12px;">
+                    <strong>Required Modules:</strong>
+                    <ul style="margin:8px 0 0 20px;">
+                        <?php foreach ($prerequisite_check['missing_modules'] as $mod): ?>
+                            <li>
+                                <?php echo htmlspecialchars($mod['display_name']); ?>
+                                <?php if ($mod['setup_path']): ?>
+                                    - <a href="<?php echo htmlspecialchars($mod['setup_path']); ?>" style="color:#003581;font-weight:600;">Setup Now →</a>
+                                <?php endif; ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div class="card" style="max-width:820px;margin:0 auto;">
             <h2 style="margin-top:0;color:#003581;">Setup Checklist</h2>
             <ol style="line-height:1.7;margin-left:18px;">
@@ -429,7 +455,11 @@ if ($conn_check) { closeConnection($conn_check); }
             </ol>
 
             <div style="margin:24px 0;">
-                <?php if ($has_tables): ?>
+                <?php if (!$prerequisite_check['allowed']): ?>
+                    <div class="alert alert-error">
+                        Setup is disabled until all prerequisite modules are installed. Please set up the required modules first.
+                    </div>
+                <?php elseif ($has_tables): ?>
                     <div class="alert alert-info" style="margin-bottom:16px;">CRM tables already exist. You can start using the module.</div>
                     <a href="../public/crm/index.php" class="btn" style="padding:12px 28px;">📊 Open CRM</a>
                 <?php else: ?>

@@ -10,14 +10,22 @@
 // Start session
 session_start();
 
+// Include configuration and database connection
+require_once __DIR__ . '/../config/db_connect.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/setup_helper.php';
+
+// Check if setup is complete, redirect to setup wizard if not
+if (!isSetupComplete()) {
+    header('Location: ' . APP_URL . '/setup/index.php');
+    exit;
+}
+
 // If already logged in, redirect to dashboard
 if (isset($_SESSION['user_id'])) {
     header('Location: index.php');
     exit;
 }
-
-// Include configuration and database connection
-require_once __DIR__ . '/../config/db_connect.php';
 
 // Initialize variables
 $error_message = '';
@@ -98,7 +106,29 @@ include __DIR__ . '/../includes/header.php';
     <div class="container">
         <!-- Logo/Title -->
         <div class="text-center mb-20">
-            <img src="<?php echo APP_URL; ?>/assets/logo/logo_white_bg.png" alt="<?php echo APP_NAME; ?>" style="height: 100px;">
+            <?php
+                // Try to load login_page_logo from branding settings
+                $branding_logo = '';
+                if ($conn && isset($conn)) {
+                    // Check if branding_settings table exists
+                    $table_check = @mysqli_query($conn, "SHOW TABLES LIKE 'branding_settings'");
+                    if ($table_check && mysqli_num_rows($table_check) > 0) {
+                        $res = @mysqli_query($conn, "SELECT login_page_logo FROM branding_settings LIMIT 1");
+                        if ($res && mysqli_num_rows($res) > 0) {
+                            $row = mysqli_fetch_assoc($res);
+                            if (!empty($row['login_page_logo'])) {
+                                $branding_logo = APP_URL . '/' . $row['login_page_logo'];
+                            }
+                            mysqli_free_result($res);
+                        }
+                        if ($table_check) @mysqli_free_result($table_check);
+                    }
+                }
+                
+                // Use branding logo if available, otherwise fall back to default
+                $logo_url = !empty($branding_logo) ? $branding_logo : APP_URL . '/assets/logo/logo_white_bg.png';
+            ?>
+            <img src="<?php echo $logo_url; ?>" alt="<?php echo APP_NAME; ?>" style="height: 100px;">
             <p style="color: #666; font-size: 14px;">Please login to continue</p>
         </div>
         

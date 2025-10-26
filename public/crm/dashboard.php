@@ -44,40 +44,53 @@ $recent = crm_recent_interactions($conn, $filters, 20);
 ?>
 
 <style>
+  :root{
+    --brand-blue: #0b5ed7;
+    --brand-blue-2: #0747b2;
+    --brand-amber: #f59e0b;
+    --brand-green: #198754;
+    --brand-teal: #0ea5a4;
+    --brand-red: #dc3545;
+    --card-shadow: 0 8px 22px rgba(11,35,74,0.08);
+  }
+
   /* Tighten header/subnav spacing */
   .page-header { margin-bottom: 12px; }
   /* Improve subnav visibility */
   .crm-subnav { background:#f7f9fc; border:1px solid #e6edf5; border-radius:8px; padding:8px 12px; margin-bottom:16px; box-shadow: inset 0 -1px 0 rgba(0,0,0,0.03); position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:12px; }
   .crm-subnav .sub-links { display:flex; gap:10px; flex-wrap:wrap; }
   .crm-subnav a { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:6px; color:#0d2d66; text-decoration:none; font-weight:600; font-size:14px; transition: background 0.2s, color 0.2s; }
-  .crm-subnav a:hover { background:#edf2ff; color:#003581; }
+  .crm-subnav a:hover { background:#edf2ff; color:var(--brand-blue); }
+
   .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; margin-bottom:24px; }
-  .kpi-tile { padding:20px; border-left:4px solid #003581; background:#ffffff; }
-  .kpi-tile.blue { border-left-color:#003581; background:#eef3ff; }
-  .kpi-tile.green { border-left-color:#28a745; background:#eaf7f0; }
-  .kpi-tile.amber { border-left-color:#faa718; background:#fff6e6; }
-  .kpi-tile.red { border-left-color:#dc3545; background:#fdecea; }
-  .kpi-tile.teal { border-left-color:#17a2b8; background:#e6f7f6; }
-  .kpi-label { color:#6c757d; font-size:13px; margin-bottom:4px; font-weight:500; }
-  .kpi-value { font-size:28px; font-weight:700; color:#003581; margin-bottom:4px; }
-  .kpi-value.green { color:#28a745; }
-  .kpi-value.amber { color:#faa718; }
-  .kpi-value.red { color:#dc3545; }
-  .kpi-sub { font-size:12px; color:#6c757d; }
-  .kpi-delta { font-size:12px; font-weight:600; }
-  .kpi-delta.up { color:#16a34a; }
-  .kpi-delta.down { color:#dc2626; }
-  .ring { width:64px; height:64px; border-radius:50%; background: conic-gradient(#003581 calc(var(--p)*1%), #e5e7eb 0); display:grid; place-items:center; position:relative; flex-shrink:0; }
-  .ring::before { content:''; position:absolute; inset:8px; background:#fff; border-radius:50%; }
-  .ring > span { position:relative; font-size:12px; font-weight:700; color:#1f2937; }
+  .kpi-tile { padding:22px; border-radius:12px; color:var(--tile-text, #fff); text-align:center; box-shadow:var(--card-shadow); min-height:120px; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+  .kpi-tile.blue { background:linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-2) 100%); }
+  .kpi-tile.green { background:linear-gradient(135deg, var(--brand-green) 0%, #16a34a 100%); }
+  .kpi-tile.amber { background:linear-gradient(135deg, var(--brand-amber) 0%, #f97316 100%); }
+  .kpi-tile.red { background:linear-gradient(135deg, var(--brand-red) 0%, #e6504b 100%); }
+  .kpi-tile.teal { background:linear-gradient(135deg, var(--brand-teal) 0%, #0891b2 100%); }
+
+  .kpi-label { color:rgba(255,255,255,0.95); font-size:13px; margin-bottom:8px; font-weight:600; letter-spacing:0.2px; }
+  .kpi-value { font-size:34px; font-weight:800; color:#fff; margin-bottom:6px; text-shadow:0 2px 6px rgba(0,0,0,0.12); }
+  .kpi-sub { font-size:13px; color:rgba(255,255,255,0.92); opacity:0.95; }
+
+  .kpi-delta { font-size:12px; font-weight:700; display:inline-block; padding:6px 9px; border-radius:999px; background:rgba(0,0,0,0.12); color:#fff; }
+  .kpi-delta.up { color:#e6ffea; background:rgba(20,120,45,0.18); }
+  .kpi-delta.down { color:#ffeef0; background:rgba(220,53,69,0.12); }
+
+  .ring { width:64px; height:64px; border-radius:50%; background: conic-gradient(rgba(255,255,255,0.95) calc(var(--p)*1%), rgba(255,255,255,0.12) 0); display:grid; place-items:center; position:relative; flex-shrink:0; box-shadow: inset 0 -3px 8px rgba(0,0,0,0.06); border:3px solid rgba(255,255,255,0.06); }
+  .ring::before { content:''; position:absolute; inset:10px; background:rgba(0,0,0,0.06); border-radius:50%; }
+  .ring > span { position:relative; font-size:12px; font-weight:800; color:white; z-index:2; }
+
   .grid-2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(450px,1fr)); gap:24px; margin-bottom:24px; }
   .card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; }
-  .card-header h3 { margin:0 0 4px 0; color:#003581; font-size:18px; font-weight:600; }
+  .card-header h3 { margin:0 0 4px 0; color:#0b3a75; font-size:18px; font-weight:700; }
   .card-header p { margin:0; color:#6c757d; font-size:13px; }
+
   .progress-wrap { background:#f3f4f6; border-radius:9999px; overflow:hidden; height:10px; }
-  .progress-bar { height:10px; background:#003581; border-radius:9999px; }
+  .progress-bar { height:10px; background:var(--brand-blue); border-radius:9999px; }
   .muted { color:#6c757d; }
-  .badge { padding:4px 10px; border-radius:4px; font-size:12px; font-weight:600; }
+  .badge { padding:4px 10px; border-radius:6px; font-size:12px; font-weight:700; }
   .badge-success { background:#d1f4e0; color:#1e7e34; }
   .badge-warning { background:#fff3cd; color:#856404; }
   .badge-danger { background:#f8d7da; color:#721c24; }
@@ -172,17 +185,17 @@ $recent = crm_recent_interactions($conn, $filters, 20);
 
     <!-- KPI CARDS -->
     <div class="kpi-grid">
-      <div class="card kpi-tile blue">
+      <div class="kpi-tile blue" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
         <div class="kpi-label">Total Leads</div>
         <div class="kpi-value"><?php echo (int)$kpis['total_leads']; ?></div>
         <?php $delta = (int)$kpis['total_leads'] - (int)$kpisPrev['total_leads']; $isUp = $delta>=0; ?>
         <div class="kpi-delta <?php echo $isUp?'up':'down'; ?>"><?php echo $isUp?'▲':'▼'; ?> <?php echo ($delta>=0?'+':'').$delta; ?> vs prev period</div>
       </div>
       
-      <div class="card kpi-tile green">
+      <div class="kpi-tile green" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
         <div class="kpi-label">Active Leads</div>
         <?php $activePct = $kpis['total_leads']? round(($kpis['active_leads']/$kpis['total_leads'])*100,1):0; $activePrevPct = $kpisPrev['total_leads']? round(($kpisPrev['active_leads']/$kpisPrev['total_leads'])*100,1):0; $d = round($activePct-$activePrevPct,1); ?>
-        <div style="display:flex;align-items:center;gap:14px;">
+        <div style="display:flex;align-items:center;gap:14px;justify-content:center;width:100%;margin-bottom:8px;">
           <div class="ring" style="--p: <?php echo max(0,min(100,$activePct)); ?>;">
             <span><?php echo $activePct; ?>%</span>
           </div>
@@ -194,16 +207,16 @@ $recent = crm_recent_interactions($conn, $filters, 20);
         </div>
       </div>
       
-      <div class="card kpi-tile amber">
+      <div class="kpi-tile amber" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
         <div class="kpi-label">Conversion Rate</div>
         <div class="kpi-value amber"><?php echo $kpis['conversion_rate']; ?>%</div>
         <?php $d = round($kpis['conversion_rate'] - $kpisPrev['conversion_rate'],1); ?>
         <div class="kpi-delta <?php echo ($d>=0)?'up':'down'; ?>"><?php echo ($d>=0)?'▲':'▼'; ?> <?php echo ($d>=0?'+':'').$d; ?>% vs prev period</div>
       </div>
       
-      <div class="card kpi-tile blue">
+      <div class="kpi-tile blue" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
         <div class="kpi-label">Follow-up Compliance</div>
-        <div style="display:flex;align-items:center;gap:14px;">
+        <div style="display:flex;align-items:center;gap:14px;justify-content:center;width:100%;margin-bottom:8px;">
           <div class="ring" style="--p: <?php echo max(0,min(100,$kpis['followup_compliance'])); ?>;">
             <span><?php echo $kpis['followup_compliance']; ?>%</span>
           </div>
@@ -215,18 +228,18 @@ $recent = crm_recent_interactions($conn, $filters, 20);
         </div>
       </div>
       
-      <div class="card kpi-tile teal">
+      <div class="kpi-tile teal" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
         <div class="kpi-label">Avg Response Time</div>
         <?php $d = round($kpis['avg_response_days'] - $kpisPrev['avg_response_days'],1); $improve = $d<=0; ?>
-        <div class="kpi-value" style="color:#17a2b8;">⏱ <?php echo $kpis['avg_response_days']; ?> days</div>
+        <div class="kpi-value">⏱ <?php echo $kpis['avg_response_days']; ?> days</div>
         <div class="kpi-delta <?php echo $improve?'up':'down'; ?>"><?php echo $improve?'▼':'▲'; ?> <?php echo ($d>=0?'+':'').$d; ?> d vs prev period</div>
       </div>
       
-      <div class="card kpi-tile red">
+      <div class="kpi-tile red" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
         <div class="kpi-label">Pending Tasks</div>
-        <div class="kpi-value red"><?php echo (int)$kpis['pending_tasks']; ?></div>
+        <div class="kpi-value"><?php echo (int)$kpis['pending_tasks']; ?></div>
         <?php $deltaPend = (int)$kpis['pending_tasks'] - (int)$kpisPrev['pending_tasks']; $deltaOver = (int)$kpis['overdue_tasks'] - (int)$kpisPrev['overdue_tasks']; ?>
-        <div class="kpi-sub" style="color:#dc3545;">Overdue: <?php echo (int)$kpis['overdue_tasks']; ?> <span style="font-weight:600;">(<?php echo ($deltaOver>=0?'+':'').$deltaOver; ?>)</span></div>
+        <div class="kpi-sub">Overdue: <?php echo (int)$kpis['overdue_tasks']; ?> <span style="font-weight:600;">(<?php echo ($deltaOver>=0?'+':'').$deltaOver; ?>)</span></div>
       </div>
     </div>
 

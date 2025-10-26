@@ -65,7 +65,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
           <p>Tasks assigned to you</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <?php if (crm_role_can_manage($user_role)): ?><a href="index.php" class="btn btn-accent">← All Tasks</a><?php endif; ?>
+          <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
+          <a href="index.php" class="btn btn-accent">🧰 All Tasks</a>
           <a href="add.php" class="btn">➕ New Task</a>
         </div>
       </div>
