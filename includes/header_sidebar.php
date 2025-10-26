@@ -226,6 +226,98 @@ $page_title = isset($page_title) ? $page_title : APP_NAME;
             margin: 5px 0 0 0;
             font-size: 14px;
         }
+
+        .btn.btn-secondary,
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #003581;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+            color: #003581;
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 9999px;
+            white-space: nowrap;
+        }
+
+        .badge-info {
+            background: #0ea5e9;
+            color: #ffffff;
+        }
+
+        .badge-warning {
+            background: #faa718;
+            color: #003581;
+        }
+
+        .badge-success {
+            background: #16a34a;
+            color: #ffffff;
+        }
+
+        .badge-secondary {
+            background: #6b7280;
+            color: #ffffff;
+        }
+
+        .badge-light {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .badge-danger {
+            background: #dc2626;
+            color: #ffffff;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+        }
+
+        .table thead {
+            background: #003581;
+            color: #ffffff;
+        }
+
+        .table th {
+            padding: 12px 14px;
+            text-align: left;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+
+        .table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .table-striped tbody tr:nth-child(odd) {
+            background: #f3f4f6;
+        }
+
+        .table-striped tbody tr:hover {
+            background: #e5e7eb;
+        }
     </style>
 </head>
 <body>

@@ -43,6 +43,39 @@ function crm_setup_ensure_upload_dir(): bool
     return is_writable($dir);
 }
 
+function crm_setup_column_exists(mysqli $conn, string $table, string $column): bool
+{
+    $table = mysqli_real_escape_string($conn, $table);
+    $column = mysqli_real_escape_string($conn, $column);
+    $sql = "SHOW COLUMNS FROM `$table` LIKE '$column'";
+    $res = mysqli_query($conn, $sql);
+    $exists = ($res && mysqli_num_rows($res) > 0);
+    if ($res) { mysqli_free_result($res); }
+    return $exists;
+}
+
+function crm_setup_index_exists(mysqli $conn, string $table, string $index): bool
+{
+    $table = mysqli_real_escape_string($conn, $table);
+    $index = mysqli_real_escape_string($conn, $index);
+    $sql = "SHOW INDEX FROM `$table` WHERE Key_name = '$index'";
+    $res = mysqli_query($conn, $sql);
+    $exists = ($res && mysqli_num_rows($res) > 0);
+    if ($res) { mysqli_free_result($res); }
+    return $exists;
+}
+
+function crm_setup_has_duplicates(mysqli $conn, string $table, string $column): bool
+{
+    $table = mysqli_real_escape_string($conn, $table);
+    $column = mysqli_real_escape_string($conn, $column);
+    $sql = "SELECT `$column` AS val FROM `$table` WHERE `$column` IS NOT NULL AND `$column` <> '' GROUP BY `$column` HAVING COUNT(*) > 1 LIMIT 1";
+    $res = mysqli_query($conn, $sql);
+    $has = ($res && mysqli_num_rows($res) > 0);
+    if ($res) { mysqli_free_result($res); }
+    return $has;
+}
+
 function crm_setup_create(): array
 {
     $conn = createConnection(true);
@@ -73,66 +106,100 @@ function crm_setup_create(): array
         id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(150) NOT NULL,
         summary TEXT NULL,
-        employee_id INT NOT NULL,
+        lead_id INT NULL,
         call_date DATETIME NOT NULL,
+        duration VARCHAR(50) NULL,
+        outcome VARCHAR(100) NULL,
         location TEXT NULL,
         attachment TEXT NULL,
         created_by INT NOT NULL,
+        assigned_to INT NULL,
+        follow_up_date DATE NULL,
+        follow_up_type VARCHAR(50) NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP NULL DEFAULT NULL,
-        INDEX idx_employee_id (employee_id),
-        INDEX idx_call_date (call_date)
+        INDEX idx_lead_id (lead_id),
+        INDEX idx_call_date (call_date),
+        INDEX idx_assigned_to (assigned_to),
+        INDEX idx_outcome (outcome),
+        INDEX idx_follow_up_date (follow_up_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
 
     $sql[] = "CREATE TABLE IF NOT EXISTS crm_meetings (
         id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(150) NOT NULL,
         agenda TEXT NULL,
-        employee_id INT NOT NULL,
+        lead_id INT NULL,
         meeting_date DATETIME NOT NULL,
+        outcome TEXT NULL,
+        follow_up_date DATE NULL,
+        follow_up_type VARCHAR(50) NULL,
+        assigned_to INT NULL,
+        created_by INT NOT NULL,
         location TEXT NULL,
         attachment TEXT NULL,
-        created_by INT NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP NULL DEFAULT NULL,
-        INDEX idx_employee_id (employee_id),
-        INDEX idx_meeting_date (meeting_date)
+        INDEX idx_lead_id (lead_id),
+        INDEX idx_assigned_to (assigned_to),
+        INDEX idx_meeting_date (meeting_date),
+        INDEX idx_follow_up_date (follow_up_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
 
     $sql[] = "CREATE TABLE IF NOT EXISTS crm_visits (
         id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(150) NOT NULL,
         notes TEXT NULL,
-        employee_id INT NOT NULL,
+        lead_id INT NULL,
         visit_date DATETIME NOT NULL,
+        outcome TEXT NULL,
+        follow_up_date DATE NULL,
+        follow_up_type VARCHAR(50) NULL,
+        assigned_to INT NULL,
+        created_by INT NOT NULL,
         location TEXT NULL,
         attachment TEXT NULL,
-        created_by INT NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP NULL DEFAULT NULL,
-        INDEX idx_employee_id (employee_id),
-        INDEX idx_visit_date (visit_date)
+        INDEX idx_lead_id (lead_id),
+        INDEX idx_assigned_to (assigned_to),
+        INDEX idx_visit_date (visit_date),
+        INDEX idx_follow_up_date (follow_up_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
 
     $sql[] = "CREATE TABLE IF NOT EXISTS crm_leads (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
+        company_name VARCHAR(150) NULL,
         phone VARCHAR(20) NULL,
         email VARCHAR(100) NULL,
         source VARCHAR(50) NULL,
         status ENUM('New','Contacted','Converted','Dropped') NOT NULL DEFAULT 'New',
-        assigned_to INT NULL,
         notes TEXT NULL,
+        interests TEXT NULL,
+        follow_up_date DATE NULL,
+        follow_up_type ENUM('Call','Meeting','Visit','Task') NULL,
+        follow_up_created TINYINT(1) NOT NULL DEFAULT 0,
+        last_contacted_at DATETIME NULL,
+        assigned_to INT NULL,
         attachment TEXT NULL,
         location TEXT NULL,
         created_by INT NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP NULL DEFAULT NULL,
+        UNIQUE KEY uniq_leads_phone (phone),
+        UNIQUE KEY uniq_leads_email (email),
         INDEX idx_status (status),
-        INDEX idx_assigned_to (assigned_to)
+        INDEX idx_assigned_to (assigned_to),
+        INDEX idx_follow_up_date (follow_up_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
 
     $ok = true;
+    $error = '';
     foreach ($sql as $q) {
         if (!mysqli_query($conn, $q)) {
             $ok = false;
@@ -140,6 +207,163 @@ function crm_setup_create(): array
             break;
         }
     }
+
+    $warnings = [];
+    if ($ok) {
+        $columnStatements = [
+            'company_name' => "ALTER TABLE crm_leads ADD COLUMN company_name VARCHAR(150) NULL AFTER name",
+            'interests' => "ALTER TABLE crm_leads ADD COLUMN interests TEXT NULL AFTER notes",
+            'follow_up_date' => "ALTER TABLE crm_leads ADD COLUMN follow_up_date DATE NULL AFTER interests",
+            'follow_up_type' => "ALTER TABLE crm_leads ADD COLUMN follow_up_type ENUM('Call','Meeting','Visit','Task') NULL AFTER follow_up_date",
+            'follow_up_created' => "ALTER TABLE crm_leads ADD COLUMN follow_up_created TINYINT(1) NOT NULL DEFAULT 0 AFTER follow_up_type",
+            'last_contacted_at' => "ALTER TABLE crm_leads ADD COLUMN last_contacted_at DATETIME NULL AFTER follow_up_created",
+            'updated_at' => "ALTER TABLE crm_leads ADD COLUMN updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP AFTER created_at",
+            // CRM Tasks columns
+            'tasks_lead_id' => "ALTER TABLE crm_tasks ADD COLUMN lead_id INT NULL AFTER description",
+            'tasks_completion_notes' => "ALTER TABLE crm_tasks ADD COLUMN completion_notes TEXT NULL AFTER status",
+            'tasks_completed_at' => "ALTER TABLE crm_tasks ADD COLUMN completed_at DATETIME NULL AFTER completion_notes",
+            'tasks_closed_by' => "ALTER TABLE crm_tasks ADD COLUMN closed_by INT NULL AFTER completed_at",
+            'tasks_follow_up_date' => "ALTER TABLE crm_tasks ADD COLUMN follow_up_date DATE NULL AFTER due_date",
+            'tasks_follow_up_type' => "ALTER TABLE crm_tasks ADD COLUMN follow_up_type VARCHAR(50) NULL AFTER follow_up_date",
+            'tasks_updated_at' => "ALTER TABLE crm_tasks ADD COLUMN updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP AFTER created_at",
+            // CRM Calls columns
+            'calls_lead_id' => "ALTER TABLE crm_calls ADD COLUMN lead_id INT NULL AFTER summary",
+            'calls_duration' => "ALTER TABLE crm_calls ADD COLUMN duration VARCHAR(50) NULL AFTER call_date",
+            'calls_outcome' => "ALTER TABLE crm_calls ADD COLUMN outcome VARCHAR(100) NULL AFTER duration",
+            'calls_assigned_to' => "ALTER TABLE crm_calls ADD COLUMN assigned_to INT NULL AFTER created_by",
+            'calls_follow_up_date' => "ALTER TABLE crm_calls ADD COLUMN follow_up_date DATE NULL AFTER assigned_to",
+            'calls_follow_up_type' => "ALTER TABLE crm_calls ADD COLUMN follow_up_type VARCHAR(50) NULL AFTER follow_up_date",
+            'calls_updated_at' => "ALTER TABLE crm_calls ADD COLUMN updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP AFTER created_at",
+            // CRM Meetings columns
+            'meetings_lead_id' => "ALTER TABLE crm_meetings ADD COLUMN lead_id INT NULL AFTER agenda",
+            'meetings_outcome' => "ALTER TABLE crm_meetings ADD COLUMN outcome TEXT NULL AFTER meeting_date",
+            'meetings_follow_up_date' => "ALTER TABLE crm_meetings ADD COLUMN follow_up_date DATE NULL AFTER outcome",
+            'meetings_follow_up_type' => "ALTER TABLE crm_meetings ADD COLUMN follow_up_type VARCHAR(50) NULL AFTER follow_up_date",
+            'meetings_assigned_to' => "ALTER TABLE crm_meetings ADD COLUMN assigned_to INT NULL AFTER follow_up_type",
+            'meetings_updated_at' => "ALTER TABLE crm_meetings ADD COLUMN updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP AFTER created_at",
+            // CRM Visits columns
+            'visits_lead_id' => "ALTER TABLE crm_visits ADD COLUMN lead_id INT NULL AFTER notes",
+            'visits_outcome' => "ALTER TABLE crm_visits ADD COLUMN outcome TEXT NULL AFTER visit_date",
+            'visits_follow_up_date' => "ALTER TABLE crm_visits ADD COLUMN follow_up_date DATE NULL AFTER outcome",
+            'visits_follow_up_type' => "ALTER TABLE crm_visits ADD COLUMN follow_up_type VARCHAR(50) NULL AFTER follow_up_date",
+            'visits_assigned_to' => "ALTER TABLE crm_visits ADD COLUMN assigned_to INT NULL AFTER follow_up_type",
+            'visits_updated_at' => "ALTER TABLE crm_visits ADD COLUMN updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP AFTER created_at"
+        ];
+
+        foreach ($columnStatements as $column => $statement) {
+            // If this entry is for crm_calls (key prefix 'calls_'), check crm_calls first
+            if (strpos($column, 'calls_') === 0) {
+                $colName = str_replace('calls_', '', $column);
+                if (!crm_setup_column_exists($conn, 'crm_calls', $colName)) {
+                    if (!mysqli_query($conn, $statement)) {
+                        $ok = false;
+                        $error = mysqli_error($conn);
+                        break;
+                    }
+                }
+            } elseif (strpos($column, 'meetings_') === 0) {
+                // CRM Meetings columns
+                $colName = str_replace('meetings_', '', $column);
+                if (!crm_setup_column_exists($conn, 'crm_meetings', $colName)) {
+                    if (!mysqli_query($conn, $statement)) {
+                        $ok = false;
+                        $error = mysqli_error($conn);
+                        break;
+                    }
+                }
+            } elseif (strpos($column, 'visits_') === 0) {
+                // CRM Visits columns
+                $colName = str_replace('visits_', '', $column);
+                if (!crm_setup_column_exists($conn, 'crm_visits', $colName)) {
+                    if (!mysqli_query($conn, $statement)) {
+                        $ok = false;
+                        $error = mysqli_error($conn);
+                        break;
+                    }
+                }
+            } elseif (strpos($column, 'tasks_') === 0) {
+                // CRM Tasks columns
+                $colName = str_replace('tasks_', '', $column);
+                if (!crm_setup_column_exists($conn, 'crm_tasks', $colName)) {
+                    if (!mysqli_query($conn, $statement)) {
+                        $ok = false;
+                        $error = mysqli_error($conn);
+                        break;
+                    }
+                }
+            } else {
+                // Regular crm_leads columns
+                if (!crm_setup_column_exists($conn, 'crm_leads', $column)) {
+                    if (!mysqli_query($conn, $statement)) {
+                        $ok = false;
+                        $error = mysqli_error($conn);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if ($ok) {
+        $indexStatements = [
+            'uniq_leads_phone' => "ALTER TABLE crm_leads ADD UNIQUE KEY uniq_leads_phone (phone)",
+            'uniq_leads_email' => "ALTER TABLE crm_leads ADD UNIQUE KEY uniq_leads_email (email)",
+            'idx_follow_up_date' => "ALTER TABLE crm_leads ADD INDEX idx_follow_up_date (follow_up_date)",
+            // CRM Tasks indexes
+            'idx_tasks_lead_id' => "ALTER TABLE crm_tasks ADD INDEX idx_lead_id (lead_id)",
+            'idx_tasks_assigned_to' => "ALTER TABLE crm_tasks ADD INDEX idx_assigned_to (assigned_to)",
+            'idx_tasks_follow_up_date' => "ALTER TABLE crm_tasks ADD INDEX idx_follow_up_date (follow_up_date)",
+            'idx_tasks_closed_by' => "ALTER TABLE crm_tasks ADD INDEX idx_closed_by (closed_by)",
+            'idx_calls_lead_id' => "ALTER TABLE crm_calls ADD INDEX idx_lead_id (lead_id)",
+            'idx_calls_assigned_to' => "ALTER TABLE crm_calls ADD INDEX idx_assigned_to (assigned_to)",
+            'idx_calls_outcome' => "ALTER TABLE crm_calls ADD INDEX idx_outcome (outcome)",
+            'idx_calls_follow_up_date' => "ALTER TABLE crm_calls ADD INDEX idx_follow_up_date (follow_up_date)",
+            'idx_meetings_lead_id' => "ALTER TABLE crm_meetings ADD INDEX idx_lead_id (lead_id)",
+            'idx_meetings_assigned_to' => "ALTER TABLE crm_meetings ADD INDEX idx_assigned_to (assigned_to)",
+            'idx_meetings_follow_up_date' => "ALTER TABLE crm_meetings ADD INDEX idx_follow_up_date (follow_up_date)",
+            'idx_visits_lead_id' => "ALTER TABLE crm_visits ADD INDEX idx_lead_id (lead_id)",
+            'idx_visits_assigned_to' => "ALTER TABLE crm_visits ADD INDEX idx_assigned_to (assigned_to)",
+            'idx_visits_follow_up_date' => "ALTER TABLE crm_visits ADD INDEX idx_follow_up_date (follow_up_date)"
+        ];
+
+        foreach ($indexStatements as $index => $statement) {
+            if ($index === 'uniq_leads_phone' && crm_setup_has_duplicates($conn, 'crm_leads', 'phone')) {
+                $warnings[] = 'Duplicate phone numbers found; unique phone constraint skipped.';
+                continue;
+            }
+            if ($index === 'uniq_leads_email' && crm_setup_has_duplicates($conn, 'crm_leads', 'email')) {
+                $warnings[] = 'Duplicate email addresses found; unique email constraint skipped.';
+                continue;
+            }
+
+            // Determine table and index name
+            $table = 'crm_leads';
+            $idxCheckName = $index;
+            
+            if (strpos($index, 'idx_tasks_') === 0) {
+                $table = 'crm_tasks';
+                $idxCheckName = str_replace('idx_tasks_', 'idx_', $index);
+            } elseif (strpos($index, 'idx_calls_') === 0) {
+                $table = 'crm_calls';
+                $idxCheckName = str_replace('idx_calls_', 'idx_', $index);
+            } elseif (strpos($index, 'idx_meetings_') === 0) {
+                $table = 'crm_meetings';
+                $idxCheckName = str_replace('idx_meetings_', 'idx_', $index);
+            } elseif (strpos($index, 'idx_visits_') === 0) {
+                $table = 'crm_visits';
+                $idxCheckName = str_replace('idx_visits_', 'idx_', $index);
+            }
+
+            if (!crm_setup_index_exists($conn, $table, $idxCheckName)) {
+                if (!mysqli_query($conn, $statement)) {
+                    $ok = false;
+                    $error = mysqli_error($conn);
+                    break;
+                }
+            }
+        }
+    }
+
     closeConnection($conn);
 
     if (!$ok) {
@@ -150,7 +374,12 @@ function crm_setup_create(): array
         return ['success' => true, 'message' => 'Tables created, but uploads/crm_attachments directory could not be created. Please create it manually with write permissions.'];
     }
 
-    return ['success' => true, 'message' => 'CRM tables created successfully.'];
+    $message = 'CRM tables created successfully.';
+    if ($warnings) {
+        $message .= ' ' . implode(' ', $warnings);
+    }
+
+    return ['success' => true, 'message' => $message];
 }
 
 $result = null;

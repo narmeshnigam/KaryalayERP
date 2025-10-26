@@ -49,8 +49,9 @@ $nav_items = [
         'icon' => 'crm.png',
         'label' => 'CRM',
         'link' => 'crm/index.php',
-        'active' => ($current_page == 'crm.php')
+        'active' => (strpos($current_path, '/crm/') !== false)
     ],
+    // CRM Dashboard (Managers/Admins only) – insert dynamically below if role permits
     [
         'icon' => 'expenses.png',
         'label' => 'Expenses',
@@ -519,7 +520,12 @@ $has_square_icon = file_exists($square_icon_path);
     <!-- Navigation Menu -->
     <nav class="sidebar-nav">
         <ul>
-            <?php foreach ($nav_items as $item): ?>
+            <?php 
+            // Inject CRM Dashboard link (manager/admin) just after CRM item
+            $injected = false;
+            foreach ($nav_items as $item): 
+                $isCrm = ($item['label'] === 'CRM');
+            ?>
                 <li class="sidebar-nav-item">
                     <a href="<?php echo $item['link']; ?>" 
                        class="sidebar-nav-link <?php echo $item['active'] ? 'active' : ''; ?>"
@@ -557,6 +563,14 @@ $has_square_icon = file_exists($square_icon_path);
                         <span class="nav-text"><?php echo $item['label']; ?></span>
                     </a>
                 </li>
+                <?php if ($isCrm && in_array(strtolower($user_role), ['admin','manager'], true) && !$injected): ?>
+                    <li class="sidebar-nav-item">
+                        <a href="crm/dashboard.php" class="sidebar-nav-link <?php echo (strpos($current_path, '/crm/dashboard.php') !== false) ? 'active' : ''; ?>" data-tooltip="CRM Dashboard">
+                            <span class="nav-icon-fallback">📊</span>
+                            <span class="nav-text">CRM Dashboard</span>
+                        </a>
+                    </li>
+                    <?php $injected = true; endif; ?>
             <?php endforeach; ?>
         </ul>
     </nav>
