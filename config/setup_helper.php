@@ -127,7 +127,7 @@ function updateDatabaseConfig($host, $user, $pass, $name) {
             '',
             '# Application Configuration',
             'APP_NAME=Karyalay ERP',
-            'APP_URL=http://localhost/KaryalayERP',
+            'APP_URL=',
             '',
             '# Session Configuration',
             'SESSION_NAME=karyalay_session',
