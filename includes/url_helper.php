@@ -3,7 +3,8 @@
  * URL Helper Functions
  * 
  * Provides utilities for generating proper URLs throughout the application.
- * Uses APP_URL constant from config to ensure paths work in any environment.
+ * Uses APP_URL constant from config with intelligent auto-detection.
+ * Works in any environment: localhost, subdirectories, production, http/https.
  */
 
 /**
@@ -21,7 +22,7 @@ function url($path, $params = []) {
     // Remove leading slash if present
     $path = ltrim($path, '/');
     
-    // Build base URL
+    // Build base URL (automatically adapts to environment)
     $url = APP_URL . '/public/' . $path;
     
     // Add query parameters if provided
@@ -46,7 +47,26 @@ function asset($path) {
     // Remove leading slash if present
     $path = ltrim($path, '/');
     
+    // Automatically adapts to current server environment
     return APP_URL . '/' . $path;
+}
+
+/**
+ * Get base URL (adapts to environment automatically)
+ * 
+ * @return string Base URL without trailing slash
+ */
+function base_url() {
+    return rtrim(APP_URL, '/');
+}
+
+/**
+ * Get public URL (base + /public)
+ * 
+ * @return string Public directory URL
+ */
+function public_url() {
+    return APP_URL . '/public';
 }
 
 /**
@@ -209,5 +229,120 @@ function to_absolute_url($url) {
     }
     
     return url($url);
+}
+
+/**
+ * Get current server environment type
+ * Uses auto-detection if available
+ * 
+ * @return string 'development', 'staging', or 'production'
+ */
+function get_environment() {
+    if (defined('APP_ENVIRONMENT')) {
+        return APP_ENVIRONMENT;
+    }
+    
+    if (class_exists('ServerDetector')) {
+        return ServerDetector::getEnvironment();
+    }
+    
+    return 'production'; // Safe default
+}
+
+/**
+ * Check if currently on localhost
+ * 
+ * @return bool
+ */
+function is_localhost_environment() {
+    if (class_exists('ServerDetector')) {
+        return ServerDetector::isLocalhost();
+    }
+    
+    $server = $_SERVER['SERVER_NAME'] ?? 'localhost';
+    return in_array($server, ['localhost', '127.0.0.1', '::1']);
+}
+
+/**
+ * Check if running in production
+ * 
+ * @return bool
+ */
+function is_production() {
+    return get_environment() === 'production';
+}
+
+/**
+ * Check if running in development
+ * 
+ * @return bool
+ */
+function is_development() {
+    return get_environment() === 'development';
+}
+
+/**
+ * Get protocol (http or https) automatically
+ * 
+ * @return string 'http' or 'https'
+ */
+function get_protocol() {
+    if (class_exists('ServerDetector')) {
+        $info = ServerDetector::detect();
+        return $info['scheme'];
+    }
+    
+    return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+}
+
+/**
+ * Smart redirect that adapts to environment
+ * Automatically uses correct protocol and base path
+ * 
+ * @param string $path Path to redirect to
+ * @param array $params Query parameters
+ * @param bool $permanent Use 301 instead of 302
+ * @return void
+ */
+function smart_redirect($path, $params = [], $permanent = false) {
+    $status_code = $permanent ? 301 : 302;
+    redirect($path, $params, $status_code);
+}
+
+/**
+ * Generate setup/installation URL
+ * 
+ * @return string Setup URL
+ */
+function setup_url() {
+    return APP_URL . '/setup/index.php';
+}
+
+/**
+ * Generate login URL
+ * 
+ * @param array $params Optional parameters
+ * @return string Login URL
+ */
+function login_url($params = []) {
+    return url('login.php', $params);
+}
+
+/**
+ * Generate logout URL
+ * 
+ * @return string Logout URL
+ */
+function logout_url() {
+    return url('logout.php');
+}
+
+/**
+ * Generate dashboard/home URL
+ * 
+ * @return string Dashboard URL
+ */
+function home_url() {
+    return url('index.php');
 }
 ?>

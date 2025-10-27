@@ -16,6 +16,7 @@ class EnvLoader {
      */
     public static function load($path) {
         if (!file_exists($path)) {
+            // .env doesn't exist - auto-detection will be used
             return false;
         }
         
@@ -85,9 +86,34 @@ class EnvLoader {
         $_ENV[$key] = $value;
         putenv("$key=$value");
     }
+    
+    /**
+     * Check if .env file exists
+     * 
+     * @param string $path Path to check
+     * @return bool
+     */
+    public static function envFileExists($path = null) {
+        $path = $path ?? __DIR__ . '/../.env';
+        return file_exists($path);
+    }
+    
+    /**
+     * Check if key is empty or missing in .env
+     * 
+     * @param string $key Variable name
+     * @return bool True if missing or empty
+     */
+    public static function isMissing($key) {
+        $value = self::get($key);
+        return empty($value);
+    }
 }
 
 // Auto-load .env file from project root
 $env_file = __DIR__ . '/../.env';
-EnvLoader::load($env_file);
+$env_loaded = EnvLoader::load($env_file);
+
+// Store whether .env was loaded for diagnostics
+define('ENV_FILE_LOADED', $env_loaded);
 ?>
