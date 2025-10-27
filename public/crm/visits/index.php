@@ -83,7 +83,7 @@ if ($filter_date_to) {
 }
 
 if ($search) {
-    $where[] = "(c.title LIKE ? OR c.notes LIKE ?)";
+    $where[] = "(c.title LIKE ? OR c.purpose LIKE ?)";
     $types .= 'ss';
     $search_term = "%$search%";
     $params[] = $search_term;

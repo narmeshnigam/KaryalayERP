@@ -56,9 +56,11 @@ $follow_up_types = crm_lead_follow_up_types();
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $call_type = trim($_POST['call_type'] ?? 'Logged');
     $lead_id = isset($_POST['lead_id']) && $_POST['lead_id'] !== '' ? (int)$_POST['lead_id'] : null;
     $title = trim($_POST['title'] ?? '');
     $summary = trim($_POST['summary'] ?? '');
+    $notes = trim($_POST['notes'] ?? '');
     $call_date = trim($_POST['call_date'] ?? '');
     $duration = trim($_POST['duration'] ?? '');
     $outcome = trim($_POST['outcome'] ?? '');
@@ -66,25 +68,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $location = trim($_POST['location'] ?? '');
     $follow_up_date = trim($_POST['follow_up_date'] ?? '');
     $follow_up_type = trim($_POST['follow_up_type'] ?? '');
+    
+    // Capture geo-coordinates
+    $latitude = isset($_POST['latitude']) ? floatval($_POST['latitude']) : null;
+    $longitude = isset($_POST['longitude']) ? floatval($_POST['longitude']) : null;
 
-    // Validation
+    // Store old follow_up_date to check if it changed
+    $old_follow_up_date = crm_call_get($call, 'follow_up_date');
+
+    // Validation based on call_type
+    if ($lead_id === null) {
+        $errors[] = 'Related lead is required.';
+    }
     if ($title === '') {
         $errors[] = 'Call title is required.';
     }
-    if ($summary === '') {
-        $errors[] = 'Call summary is required.';
-    }
-    if ($call_date === '') {
-        $errors[] = 'Call date and time are required.';
+    
+    // Conditional validation based on call_type
+    if ($call_type === 'Logged') {
+        // Logged calls: summary and outcome are required, date must be past/present
+        if ($summary === '') {
+            $errors[] = 'Call summary is required for logged calls.';
+        }
+        if ($outcome === '') {
+            $errors[] = 'Call outcome is required for logged calls.';
+        }
+        if ($call_date !== '') {
+            $call_dt = DateTime::createFromFormat('Y-m-d\TH:i', $call_date);
+            if ($call_dt && $call_dt > new DateTime()) {
+                $errors[] = 'Logged call date cannot be in the future.';
+            }
+        }
     } else {
-        $call_dt = DateTime::createFromFormat('Y-m-d\TH:i', $call_date);
-        if (!$call_dt || $call_dt > new DateTime()) {
-            $errors[] = 'Call date cannot be in the future.';
+        // Scheduled calls: summary and outcome are optional, date should be future
+        if ($call_date !== '') {
+            $call_dt = DateTime::createFromFormat('Y-m-d\TH:i', $call_date);
+            if ($call_dt && $call_dt <= new DateTime()) {
+                $errors[] = 'Scheduled call date should be in the future.';
+            }
+        }
+        // Auto-generate summary if empty for scheduled calls
+        if ($summary === '') {
+            $summary = "Scheduled call: " . $title . " on " . date('Y-m-d H:i', strtotime($call_date));
         }
     }
-    if ($outcome === '') {
-        $errors[] = 'Call outcome is required.';
+    
+    if ($call_date === '') {
+        $errors[] = 'Call date and time are required.';
     }
+    
+    // Follow-up validation: if date is selected, type is required
+    if ($follow_up_date !== '' && $follow_up_type === '') {
+        $errors[] = 'Follow-up type is required when follow-up date is selected.';
+    }
+    
     if ($assigned_to && !crm_employee_exists($conn, $assigned_to)) {
         $errors[] = 'Assigned employee does not exist.';
     }
@@ -138,11 +175,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'summary' => $summary,
             'call_date' => $call_date,
             'duration' => $duration !== '' ? $duration : null,
-            'outcome' => $outcome,
+            'outcome' => $outcome !== '' ? $outcome : null,
             'assigned_to' => $assigned_to,
             'location' => $location !== '' ? $location : null,
             'attachment' => $attachment_path,
         ];
+        
+        // Add notes if column exists
+        if (in_array('notes', $existing_cols, true)) {
+            $data['notes'] = $notes !== '' ? $notes : null;
+        }
+        
+        // Add call_type if column exists
+        if (in_array('call_type', $existing_cols, true)) {
+            $data['call_type'] = $call_type;
+        }
+        
+        // Add geo-coordinates if columns exist (only update if new values provided)
+        if ($latitude !== null && in_array('latitude', $existing_cols, true)) {
+            $data['latitude'] = $latitude;
+        }
+        if ($longitude !== null && in_array('longitude', $existing_cols, true)) {
+            $data['longitude'] = $longitude;
+        }
 
         if (in_array('follow_up_date', $existing_cols, true)) {
             $data['follow_up_date'] = $follow_up_date !== '' ? $follow_up_date : null;
@@ -157,8 +212,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($data as $col => $val) {
             if (in_array($col, $existing_cols, true)) {
                 $set_parts[] = "$col = ?";
-                if (is_int($val)) {
+                if (is_int($val) || ($val !== null && is_numeric($val) && strpos($col, 'latitude') === false && strpos($col, 'longitude') === false)) {
                     $types .= 'i';
+                } elseif ($val !== null && (strpos($col, 'latitude') !== false || strpos($col, 'longitude') !== false)) {
+                    $types .= 'd'; // double for coordinates
                 } else {
                     $types .= 's';
                 }
@@ -176,12 +233,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (mysqli_stmt_execute($stmt)) {
                 mysqli_stmt_close($stmt);
 
-                // Update lead's last_contacted_at if lead changed
-                if ($lead_id && $lead_id != crm_call_get($call, 'lead_id')) {
+                // Update lead's last_contacted_at (only for logged calls and if lead changed)
+                if ($lead_id && $call_type === 'Logged' && $lead_id != crm_call_get($call, 'lead_id')) {
                     crm_update_lead_contact_time($conn, $lead_id);
                 }
+                
+                // If follow-up date was added or changed, create/update task and sync lead
+                if ($follow_up_date !== '' && $lead_id && $follow_up_date !== $old_follow_up_date) {
+                    // Create follow-up task
+                    crm_create_followup_task($conn, $lead_id, $assigned_to, $follow_up_date, $follow_up_type, $title);
+                    
+                    // Update lead's follow_up_date
+                    crm_update_lead_followup_date($conn, $lead_id, $follow_up_date, $follow_up_type);
+                }
 
-                flash_add('success', 'Call updated successfully!', 'crm');
+                flash_add('success', ($call_type === 'Scheduled' ? 'Scheduled call updated' : 'Call updated') . ' successfully!', 'crm');
                 closeConnection($conn);
                 header('Location: view.php?id=' . $call_id);
                 exit;
@@ -209,132 +275,90 @@ require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
 ?>
 
+<!-- Select2 CSS for searchable dropdown -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
 <style>
-.page-header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 24px;
-}
-.page-header-top > div:first-child h1 {
-    margin: 0 0 4px;
-    font-size: 28px;
-}
-.page-header-top > div:first-child p {
-    margin: 0;
-    color: #6c757d;
-    font-size: 14px;
-}
-.button-group {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-.form-grid-3 {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-}
-.card {
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-}
-.card-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #003581;
-    border-bottom: 2px solid #003581;
-    padding-bottom: 12px;
-    margin-bottom: 20px;
-    margin-top: 0;
-}
-.alert {
-    margin-bottom: 20px;
-}
-.form-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-top: 20px;
-}
 .attachment-current {
     margin-bottom: 12px;
     padding: 10px;
     background: #f0f9ff;
     border-radius: 4px;
 }
-@media (max-width: 768px) {
-    .page-header-top {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .button-group {
-        width: 100%;
-    }
-    .button-group a {
-        flex: 1;
-        text-align: center;
-    }
-    .form-grid-3 {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    .card {
-        padding: 12px;
-        margin-bottom: 12px;
-    }
-    .card-title {
-        font-size: 14px;
-    }
-    .form-actions {
-        flex-direction: column;
-    }
-    .form-actions a, .form-actions button {
-        width: 100%;
-    }
+/* Select2 Custom Styling */
+.select2-container .select2-selection--single {
+    height: 40px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 38px;
+    color: #1b2a57;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 38px;
+}
+.select2-dropdown {
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+}
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+    background-color: #0b5ed7;
 }
 </style>
 
 <div class="main-wrapper">
   <div class="main-content">
-    <div class="page-header-top">
-      <div>
-        <h1>✏️ Edit Call</h1>
-        <p>Update call details, ownership, and follow-up.</p>
-      </div>
-      <div class="button-group">
-        <a class="btn" href="view.php?id=<?php echo $call_id; ?>" style="text-decoration: none;">View Call</a>
-        <a class="btn btn-accent" href="index.php" style="text-decoration: none;">All Calls</a>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+        <div>
+          <h1>✏️ Edit Call</h1>
+          <p>Update call details, ownership, and follow-up</p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
+          <a href="index.php" class="btn btn-secondary">← All Calls</a>
+        </div>
       </div>
     </div>
 
-    <?php echo flash_render(); ?>
-
     <?php if (!empty($errors)): ?>
-        <div class="alert alert-error">
-            <strong>Please correct the following:</strong>
-            <ul style="margin:8px 0 0 20px;">
-                <?php foreach ($errors as $err): ?>
-                    <li><?php echo htmlspecialchars($err); ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
+      <div class="alert alert-error">
+        <strong>❌ Error:</strong><br>
+        <?php foreach ($errors as $err): ?>
+          • <?php echo htmlspecialchars($err); ?><br>
+        <?php endforeach; ?>
+      </div>
     <?php endif; ?>
+
+    <?php echo flash_render(); ?>
 
     <form method="post" enctype="multipart/form-data">
         <!-- Call Information -->
-        <div class="card">
-            <h2 class="card-title">📞 Call Information</h2>
-            <div class="form-grid-3">
+        <div class="card" style="margin-bottom: 25px;">
+            <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+                📞 Call Information
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
                 <div class="form-group">
-                    <label for="lead_id">Related Lead</label>
-                    <select id="lead_id" name="lead_id" class="form-control">
-                        <option value="">-- Select Lead (Optional) --</option>
+                    <label for="call_type">Call Type <span style="color: #dc3545;">*</span></label>
+                    <select id="call_type" name="call_type" class="form-control" required>
+                        <?php $current_call_type = isset($_POST['call_type']) ? $_POST['call_type'] : (crm_call_get($call, 'call_type') ?: 'Logged'); ?>
+                        <option value="Logged" <?php echo $current_call_type === 'Logged' ? 'selected' : ''; ?>>
+                            📝 Logged (Past Call)
+                        </option>
+                        <option value="Scheduled" <?php echo $current_call_type === 'Scheduled' ? 'selected' : ''; ?>>
+                            📅 Scheduled (Future Call)
+                        </option>
+                    </select>
+                    <small style="color: #6c757d; font-size: 12px;">Select whether this is a logged past call or scheduled future call</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="lead_id">Related Lead <span style="color: #dc3545;">*</span></label>
+                    <select id="lead_id" name="lead_id" class="form-control select2-lead" required>
+                        <option value="">-- Select Lead --</option>
                         <?php foreach ($leads as $l): ?>
                             <?php
                                 $l_id = (int)$l['id'];
@@ -351,19 +375,21 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <small style="color: #6c757d; font-size: 12px;">Search and select a lead</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="title">Call Title <span style="color:red;">*</span></label>
+                    <label for="title">Call Title <span style="color: #dc3545;">*</span></label>
                     <input type="text" id="title" name="title" class="form-control" 
                            value="<?php echo htmlspecialchars($_POST['title'] ?? crm_call_get($call, 'title')); ?>" 
                            placeholder="e.g., Follow-up on product demo" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="call_date">Call Date & Time <span style="color:red;">*</span></label>
+                    <label for="call_date">Call Date & Time <span style="color: #dc3545;">*</span></label>
                     <input type="datetime-local" id="call_date" name="call_date" class="form-control"
                            value="<?php echo htmlspecialchars($_POST['call_date'] ?? $call_date_formatted); ?>" required>
+                    <small id="call_date_hint" style="color: #6c757d; font-size: 12px;"></small>
                 </div>
 
                 <div class="form-group">
@@ -374,7 +400,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                 </div>
 
                 <div class="form-group">
-                    <label for="outcome">Call Outcome <span style="color:red;">*</span></label>
+                    <label for="outcome">Call Outcome <span id="outcome_required" style="color: #dc3545;">*</span></label>
                     <select id="outcome" name="outcome" class="form-control" required>
                         <option value="">-- Select Outcome --</option>
                         <?php foreach ($outcomes as $o): ?>
@@ -386,11 +412,13 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <small id="outcome_hint" style="color: #6c757d; font-size: 12px;"></small>
                 </div>
 
                 <div class="form-group">
-                    <label for="assigned_to">Assigned To <span style="color:red;">*</span></label>
-                    <select id="assigned_to" name="assigned_to" class="form-control" required>
+                    <label for="assigned_to">Assigned To <span style="color: #dc3545;">*</span></label>
+                    <select id="assigned_to" name="assigned_to" class="form-control select2-employee" required>
+                        <option value="">-- Select Employee --</option>
                         <?php foreach ($employees as $emp): ?>
                             <?php
                                 $emp_id = (int)$emp['id'];
@@ -402,35 +430,50 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <small style="color: #6c757d; font-size: 12px;">Search and select employee</small>
+                </div>
+
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label for="summary">Call Summary <span id="summary_required" style="color: #dc3545;">*</span></label>
+                    <textarea id="summary" name="summary" class="form-control" rows="4" 
+                              placeholder="Brief notes on discussion points and outcomes..." required><?php echo htmlspecialchars($_POST['summary'] ?? crm_call_get($call, 'summary')); ?></textarea>
+                    <small id="summary_hint" style="color: #6c757d; font-size: 12px;"></small>
+                </div>
+
+                <div class="form-group">
+                    <label for="location">Location / GPS</label>
+                    <input type="text" id="location" name="location" class="form-control"
+                           value="<?php echo htmlspecialchars($_POST['location'] ?? crm_call_get($call, 'location')); ?>"
+                           placeholder="Optional location or coordinates">
                 </div>
             </div>
-
-            <div class="form-group">
-                <label for="summary">Call Summary <span style="color:red;">*</span></label>
-                <textarea id="summary" name="summary" class="form-control" rows="4" 
-                          placeholder="Brief notes on discussion points and outcomes..." required><?php echo htmlspecialchars($_POST['summary'] ?? crm_call_get($call, 'summary')); ?></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="location">Location / GPS</label>
-                <input type="text" id="location" name="location" class="form-control"
-                       value="<?php echo htmlspecialchars($_POST['location'] ?? crm_call_get($call, 'location')); ?>"
-                       placeholder="Optional location or coordinates">
-            </div>
+            
+            <!-- Hidden fields for existing geo-coordinates (will be replaced if new coordinates captured) -->
+            <?php 
+                $existing_lat = crm_call_get($call, 'latitude');
+                $existing_lon = crm_call_get($call, 'longitude');
+                if ($existing_lat !== null && $existing_lon !== null):
+            ?>
+            <input type="hidden" name="latitude" value="<?php echo htmlspecialchars($existing_lat); ?>">
+            <input type="hidden" name="longitude" value="<?php echo htmlspecialchars($existing_lon); ?>">
+            <?php endif; ?>
         </div>
 
         <!-- Follow-Up & Additional Details -->
-        <div class="card">
-            <h2 class="card-title">📅 Follow-Up & Additional Details</h2>
-            <div class="form-grid-3">
+        <div class="card" style="margin-bottom: 25px;">
+            <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+                📅 Follow-Up & Additional Details
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
                 <div class="form-group">
                     <label for="follow_up_date">Follow-Up Date</label>
                     <input type="date" id="follow_up_date" name="follow_up_date" class="form-control"
                            value="<?php echo htmlspecialchars($_POST['follow_up_date'] ?? crm_call_get($call, 'follow_up_date')); ?>">
+                    <small style="color: #6c757d; font-size: 12px;">Optional - schedule a follow-up activity</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="follow_up_type">Follow-Up Type</label>
+                    <label for="follow_up_type">Follow-Up Type <span id="followup_required" style="color: #dc3545;display:none;">*</span></label>
                     <select id="follow_up_type" name="follow_up_type" class="form-control">
                         <option value="">-- None --</option>
                         <?php foreach ($follow_up_types as $ft): ?>
@@ -442,6 +485,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <small style="color: #6c757d; font-size: 12px;">Required if follow-up date is selected</small>
                 </div>
 
                 <div class="form-group">
@@ -456,21 +500,209 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                         </div>
                     <?php endif; ?>
                     <input type="file" id="attachment" name="attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
-                    <small style="color:#6b7280;margin-top:4px;display:block;">Upload a new file to replace the existing attachment</small>
+                    <small style="color:#6b7280;">Upload a new file to replace the existing attachment. Accepted: PDF, JPG, PNG. Max 3MB.</small>
+                </div>
+
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label for="notes">Internal Notes</label>
+                    <textarea id="notes" name="notes" class="form-control" rows="3" placeholder="Internal notes for your reference (not visible to leads)..."><?php echo htmlspecialchars($_POST['notes'] ?? crm_call_get($call, 'notes')); ?></textarea>
+                    <small style="color: #6c757d; font-size: 12px;">Optional - Add any internal notes or reminders for your team</small>
                 </div>
             </div>
         </div>
 
-        <!-- Actions -->
-        <div class="form-actions">
-            <a href="view.php?id=<?php echo $call_id; ?>" class="btn btn-secondary" style="text-decoration: none;">Cancel</a>
-            <button type="submit" class="btn">Update Call</button>
+        <!-- Submit Buttons -->
+        <div style="text-align: center; padding: 20px 0;">
+            <button type="submit" class="btn" id="submit_btn" style="padding: 15px 60px; font-size: 16px;">
+                ✅ Update Call
+            </button>
+            <a href="view.php?id=<?php echo $call_id; ?>" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; margin-left: 15px; text-decoration: none;">
+                ❌ Cancel
+            </a>
         </div>
     </form>
   </div>
 </div>
 
+<!-- jQuery (required for Select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize Select2 for lead dropdown
+    $('.select2-lead').select2({
+        placeholder: '-- Select Lead --',
+        allowClear: true,
+        width: '100%'
+    });
+    
+    // Initialize Select2 for employee dropdown
+    $('.select2-employee').select2({
+        placeholder: '-- Select Employee --',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Update form behavior based on call_type
+    function updateFormBasedOnType() {
+        const callType = $('#call_type').val();
+        const outcomeField = $('#outcome');
+        const outcomeRequired = $('#outcome_required');
+        const outcomeHint = $('#outcome_hint');
+        const summaryField = $('#summary');
+        const summaryRequired = $('#summary_required');
+        const summaryHint = $('#summary_hint');
+        const callDateHint = $('#call_date_hint');
+        const callDateField = $('#call_date');
+        const submitBtn = $('#submit_btn');
+
+        if (callType === 'Scheduled') {
+            // Scheduled call: outcome and summary are optional, date should be future
+            outcomeField.removeAttr('required');
+            outcomeRequired.hide();
+            outcomeHint.text('Optional for scheduled calls');
+            
+            summaryField.removeAttr('required');
+            summaryRequired.hide();
+            summaryHint.text('Optional - will auto-generate if left empty');
+            
+            callDateHint.text('Must be a future date/time');
+            
+            // Set min to current datetime for scheduled calls
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+            callDateField.attr('min', minDateTime);
+            callDateField.removeAttr('max');
+            
+            submitBtn.html('✅ Update Scheduled Call');
+        } else {
+            // Logged call: outcome and summary are required, date should be past/present
+            outcomeField.attr('required', 'required');
+            outcomeRequired.show();
+            outcomeHint.text('Required for logged calls');
+            
+            summaryField.attr('required', 'required');
+            summaryRequired.show();
+            summaryHint.text('Required - describe what was discussed');
+            
+            callDateHint.text('Must be a past or current date/time');
+            
+            // Set max to current datetime for logged calls
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const maxDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+            callDateField.attr('max', maxDateTime);
+            callDateField.removeAttr('min');
+            
+            submitBtn.html('✅ Update Call');
+        }
+    }
+
+    // Run on page load
+    updateFormBasedOnType();
+
+    // Run when call_type changes
+    $('#call_type').on('change', updateFormBasedOnType);
+    
+    // Follow-up date validation
+    $('#follow_up_date').on('change', function() {
+        const followUpType = $('#follow_up_type');
+        const followUpRequired = $('#followup_required');
+        
+        if ($(this).val() !== '') {
+            followUpType.attr('required', 'required');
+            followUpRequired.show();
+            if (followUpType.val() === '') {
+                followUpType.focus();
+            }
+        } else {
+            followUpType.removeAttr('required');
+            followUpRequired.hide();
+        }
+    });
+    
+    $('#follow_up_type').on('change', function() {
+        const followUpDate = $('#follow_up_date');
+        if ($(this).val() !== '' && followUpDate.val() === '') {
+            followUpDate.focus();
+        }
+    });
+    
+    // Initialize follow-up validation on page load
+    if ($('#follow_up_date').val() !== '') {
+        $('#follow_up_type').attr('required', 'required');
+        $('#followup_required').show();
+    }
+    
+    // Geolocation capture on form submit
+    $('form').on('submit', function(e) {
+        // Check if geolocation is already captured
+        if ($('input[name="latitude"]').length > 0 && $('input[name="latitude"]').val() !== '') {
+            return true; // Already have coordinates, proceed
+        }
+        
+        // Try to get geolocation
+        if (navigator.geolocation) {
+            e.preventDefault();
+            const form = this;
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    // Success: add or update coordinates in form
+                    const latInput = $('input[name="latitude"]');
+                    const lonInput = $('input[name="longitude"]');
+                    
+                    if (latInput.length > 0) {
+                        latInput.val(position.coords.latitude);
+                    } else {
+                        $('<input>').attr({
+                            type: 'hidden',
+                            name: 'latitude',
+                            value: position.coords.latitude
+                        }).appendTo(form);
+                    }
+                    
+                    if (lonInput.length > 0) {
+                        lonInput.val(position.coords.longitude);
+                    } else {
+                        $('<input>').attr({
+                            type: 'hidden',
+                            name: 'longitude',
+                            value: position.coords.longitude
+                        }).appendTo(form);
+                    }
+                    
+                    // Submit the form
+                    form.submit();
+                },
+                function(error) {
+                    // Error or denied: proceed without updating coordinates
+                    console.warn('Geolocation error:', error.message);
+                    form.submit();
+                },
+                {
+                    timeout: 5000,
+                    maximumAge: 60000
+                }
+            );
+        }
+    });
+});
+</script>
+
 <?php
 closeConnection($conn);
 require_once __DIR__ . '/../../../includes/footer_sidebar.php';
 ?>
+

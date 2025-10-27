@@ -161,7 +161,7 @@ function crm_calls_select_columns(mysqli $conn): string {
     // Build column list only from columns that actually exist in the table
     $base = ['id', 'lead_id', 'title', 'summary', 'call_date', 'duration', 'outcome',
              'created_by', 'assigned_to', 'location', 'attachment', 'created_at', 'updated_at'];
-    $optional = ['follow_up_date', 'follow_up_type'];
+    $optional = ['notes', 'follow_up_date', 'follow_up_type', 'call_type', 'latitude', 'longitude'];
 
     $columns = [];
     foreach ($base as $col) {
@@ -193,6 +193,40 @@ function crm_calls_has_columns(mysqli $conn, array $columns): bool {
         }
     }
     return true;
+}
+
+/**
+ * Create a follow-up activity when a call is scheduled with follow-up
+ * Creates the activity in the appropriate module based on follow_up_type
+ * @param mysqli $conn Database connection
+ * @param int $lead_id Lead ID
+ * @param int $assigned_to Employee ID to assign the activity to
+ * @param string $follow_up_date Follow-up date (YYYY-MM-DD format)
+ * @param string $follow_up_type Type of follow-up ('Call', 'Email', 'Meeting', 'Task', 'Visit')
+ * @param string $call_title Original call title for context
+ * @return bool Success status
+ */
+/**
+ * Create follow-up task/activity for a lead
+ * @deprecated Use crm_create_followup_activity() from helpers.php instead
+ * This wrapper is kept for backward compatibility
+ */
+function crm_create_followup_task(mysqli $conn, int $lead_id, int $assigned_to, string $follow_up_date, string $follow_up_type, string $call_title): bool {
+    return crm_create_followup_activity($conn, $lead_id, $assigned_to, $follow_up_date, $follow_up_type, $call_title);
+}
+
+/**
+ * Update lead's follow_up_date when a call with follow-up is scheduled
+ * @deprecated Use crm_update_lead_followup_date() from helpers.php instead
+ * This wrapper is kept for backward compatibility
+ * @param mysqli $conn Database connection
+ * @param int $lead_id Lead ID
+ * @param string $follow_up_date Follow-up date (YYYY-MM-DD format)
+ * @param string $follow_up_type Type of follow-up for notes
+ * @return bool Success status
+ */
+function crm_update_lead_followup_date_calls(mysqli $conn, int $lead_id, string $follow_up_date, string $follow_up_type): bool {
+    return crm_update_lead_followup_date($conn, $lead_id, $follow_up_date, $follow_up_type);
 }
 
 ?>

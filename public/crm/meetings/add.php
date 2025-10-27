@@ -6,8 +6,8 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$user_id = (int)$_SESSION['user_id'];
 $user_role = $_SESSION['role'] ?? 'employee';
+$user_id = (int)$_SESSION['user_id'];
 
 $conn = createConnection(true);
 if (!$conn) {
@@ -21,65 +21,107 @@ if (!crm_tables_exist($conn)) {
 }
 
 $current_employee_id = crm_current_employee_id($conn, $user_id);
+if (!$current_employee_id && !crm_role_can_manage($user_role)) {
+    closeConnection($conn);
+    die('Unable to identify your employee record.');
+}
 
-// Detect available columns
-$has_lead_id = crm_meetings_has_column($conn, 'lead_id');
-$has_outcome = crm_meetings_has_column($conn, 'outcome');
-$has_assigned_to = crm_meetings_has_column($conn, 'assigned_to');
-$has_follow_up_date = crm_meetings_has_column($conn, 'follow_up_date');
-$has_follow_up_type = crm_meetings_has_column($conn, 'follow_up_type');
-$has_created_by = crm_meetings_has_column($conn, 'created_by');
-$has_location = crm_meetings_has_column($conn, 'location');
-$has_attachment = crm_meetings_has_column($conn, 'attachment');
+$employees = crm_fetch_employees($conn);
+$leads = crm_fetch_active_leads_for_meetings($conn);
+$meeting_statuses = ['Scheduled', 'Completed', 'Cancelled', 'Rescheduled'];
+$follow_up_types = crm_meeting_follow_up_types();
 
 $errors = [];
-$success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Validate inputs
-    $title = isset($_POST['title']) ? trim($_POST['title']) : '';
-    $agenda = isset($_POST['agenda']) ? trim($_POST['agenda']) : '';
-    $meeting_date = isset($_POST['meeting_date']) ? trim($_POST['meeting_date']) : '';
-    $outcome = isset($_POST['outcome']) ? trim($_POST['outcome']) : '';
-    $lead_id = isset($_POST['lead_id']) && is_numeric($_POST['lead_id']) ? (int)$_POST['lead_id'] : 0;
-    $assigned_to = isset($_POST['assigned_to']) && is_numeric($_POST['assigned_to']) ? (int)$_POST['assigned_to'] : $current_employee_id;
-    $follow_up_date = isset($_POST['follow_up_date']) ? trim($_POST['follow_up_date']) : '';
-    $follow_up_type = isset($_POST['follow_up_type']) ? trim($_POST['follow_up_type']) : '';
-    $location = isset($_POST['location']) ? trim($_POST['location']) : '';
+    $lead_id = isset($_POST['lead_id']) && $_POST['lead_id'] !== '' ? (int)$_POST['lead_id'] : null;
+    $title = trim($_POST['title'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $notes = trim($_POST['notes'] ?? '');
+    $meeting_date = trim($_POST['meeting_date'] ?? '');
+    $meeting_type = trim($_POST['meeting_type'] ?? 'Scheduled'); // Logged or Scheduled
+    $outcome = trim($_POST['outcome'] ?? '');
+    $status = trim($_POST['status'] ?? 'Scheduled');
+    $assigned_to = isset($_POST['assigned_to']) && $_POST['assigned_to'] !== '' ? (int)$_POST['assigned_to'] : $current_employee_id;
+    $location = trim($_POST['location'] ?? '');
+    $follow_up_date = trim($_POST['follow_up_date'] ?? '');
+    $follow_up_type = trim($_POST['follow_up_type'] ?? '');
+    
+    // Capture geo-coordinates
+    $latitude = isset($_POST['latitude']) ? floatval($_POST['latitude']) : null;
+    $longitude = isset($_POST['longitude']) ? floatval($_POST['longitude']) : null;
 
-    if (!$title) {
-        $errors[] = 'Meeting title is required';
+    // Validation
+    if ($lead_id === null) {
+        $errors[] = 'Related lead is required.';
     }
-    if (!$agenda) {
-        $errors[] = 'Meeting agenda is required';
+    if ($title === '') {
+        $errors[] = 'Meeting title is required.';
     }
-    if (!$meeting_date) {
-        $errors[] = 'Meeting date and time are required';
-    } elseif (!crm_meeting_validate_date($meeting_date)) {
-        $errors[] = 'Meeting date must be today or in the future';
+    if ($meeting_date === '') {
+        $errors[] = 'Meeting date and time are required.';
+    } else {
+        $meeting_dt = DateTime::createFromFormat('Y-m-d\TH:i', $meeting_date);
+        if (!$meeting_dt) {
+            $errors[] = 'Invalid meeting date format.';
+        } else {
+            // For logged meetings, date cannot be in future
+            // For scheduled meetings, date must be in future
+            $now = new DateTime();
+            if ($meeting_type === 'Logged' && $meeting_dt > $now) {
+                $errors[] = 'Logged meeting date cannot be in the future. Use "Scheduled" type for future meetings.';
+            } elseif ($meeting_type === 'Scheduled' && $meeting_dt <= $now) {
+                $errors[] = 'Scheduled meeting date must be in the future. Use "Logged" type for past meetings.';
+            }
+        }
     }
     
-    if ($follow_up_date && !crm_meeting_validate_followup_date($follow_up_date)) {
-        $errors[] = 'Follow-up date must be today or in the future';
+    // Description and outcome validation based on meeting type
+    if ($meeting_type === 'Logged') {
+        if ($description === '') {
+            $errors[] = 'Meeting description is required for logged meetings.';
+        }
+        if ($outcome === '') {
+            $errors[] = 'Meeting outcome is required for logged meetings.';
+        }
+        $status = 'Completed'; // Auto-set status for logged meetings
+    } else {
+        // Scheduled meetings - outcome is optional
+        if ($description === '') {
+            $description = 'Scheduled meeting - ' . $title; // Auto-generate basic description
+        }
     }
     
-    if ($follow_up_type && !in_array($follow_up_type, crm_meeting_follow_up_types())) {
-        $errors[] = 'Invalid follow-up type';
+    // Follow-up validation: if date is selected, type is required
+    if ($follow_up_date !== '' && $follow_up_type === '') {
+        $errors[] = 'Follow-up type is required when follow-up date is selected.';
+    }
+    
+    if ($lead_id !== null) {
+        $stmt = mysqli_prepare($conn, "SELECT id FROM crm_leads WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+        mysqli_stmt_bind_param($stmt, 'i', $lead_id);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        if (!mysqli_fetch_assoc($res)) {
+            $errors[] = 'Selected lead does not exist.';
+        }
+        mysqli_free_result($res);
+        mysqli_stmt_close($stmt);
     }
 
     // Handle file upload
     $attachment_filename = '';
-    if ($has_attachment && isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+    if (crm_meetings_has_column($conn, 'attachment') && isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = __DIR__ . '/../../../uploads/crm_attachments/';
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0755, true);
         }
 
         $file_ext = strtolower(pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION));
-        $allowed_exts = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+        $allowed_exts = ['pdf', 'jpg', 'jpeg', 'png'];
         
         if (!in_array($file_ext, $allowed_exts)) {
-            $errors[] = 'Invalid file type. Allowed: PDF, JPG, PNG, DOC, DOCX';
+            $errors[] = 'Invalid file type. Allowed: PDF, JPG, PNG';
         } elseif ($_FILES['attachment']['size'] > 3 * 1024 * 1024) {
             $errors[] = 'File size must be less than 3MB';
         } else {
@@ -94,89 +136,120 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        // Build dynamic INSERT
-        $columns = ['title', 'agenda', 'meeting_date'];
-        $placeholders = ['?', '?', '?'];
-        $types = 'sss';
-        $values = [$title, $agenda, $meeting_date];
-
-        if ($has_lead_id && $lead_id > 0) {
-            $columns[] = 'lead_id';
-            $placeholders[] = '?';
-            $types .= 'i';
-            $values[] = $lead_id;
+        // Get existing columns
+        $existing_cols = [];
+        $cols_res = mysqli_query($conn, "SHOW COLUMNS FROM crm_meetings");
+        if ($cols_res) {
+            while ($c = mysqli_fetch_assoc($cols_res)) {
+                $existing_cols[] = $c['Field'];
+            }
+            mysqli_free_result($cols_res);
         }
 
-        if ($has_outcome && $outcome) {
-            $columns[] = 'outcome';
-            $placeholders[] = '?';
-            $types .= 's';
-            $values[] = $outcome;
+        // Build dynamic data array
+        $data = [
+            'title' => $title,
+            'meeting_date' => $meeting_date
+        ];
+
+        if (in_array('description', $existing_cols, true)) {
+            $data['description'] = $description !== '' ? $description : null;
         }
 
-        if ($has_assigned_to && $assigned_to > 0) {
-            $columns[] = 'assigned_to';
-            $placeholders[] = '?';
-            $types .= 'i';
-            $values[] = $assigned_to;
+        if (in_array('notes', $existing_cols, true)) {
+            $data['notes'] = $notes !== '' ? $notes : null;
         }
 
-        if ($has_created_by && $current_employee_id > 0) {
-            $columns[] = 'created_by';
-            $placeholders[] = '?';
-            $types .= 'i';
-            $values[] = $current_employee_id;
+        if (in_array('lead_id', $existing_cols, true)) {
+            $data['lead_id'] = $lead_id > 0 ? $lead_id : null;
         }
 
-        if ($has_follow_up_date && $follow_up_date) {
-            $columns[] = 'follow_up_date';
-            $placeholders[] = '?';
-            $types .= 's';
-            $values[] = $follow_up_date;
+        if (in_array('outcome', $existing_cols, true)) {
+            $data['outcome'] = $outcome !== '' ? $outcome : null;
         }
 
-        if ($has_follow_up_type && $follow_up_type) {
-            $columns[] = 'follow_up_type';
-            $placeholders[] = '?';
-            $types .= 's';
-            $values[] = $follow_up_type;
+        if (in_array('status', $existing_cols, true)) {
+            $data['status'] = $status;
         }
 
-        if ($has_location && $location) {
-            $columns[] = 'location';
-            $placeholders[] = '?';
-            $types .= 's';
-            $values[] = $location;
+        if (in_array('assigned_to', $existing_cols, true)) {
+            $data['assigned_to'] = $assigned_to > 0 ? $assigned_to : null;
         }
 
-        if ($has_attachment && $attachment_filename) {
-            $columns[] = 'attachment';
-            $placeholders[] = '?';
-            $types .= 's';
-            $values[] = $attachment_filename;
+        if (in_array('created_by', $existing_cols, true)) {
+            $data['created_by'] = $current_employee_id > 0 ? $current_employee_id : null;
         }
+
+        if (in_array('location', $existing_cols, true)) {
+            $data['location'] = $location !== '' ? $location : null;
+        }
+
+        if (in_array('latitude', $existing_cols, true)) {
+            $data['latitude'] = $latitude;
+        }
+
+        if (in_array('longitude', $existing_cols, true)) {
+            $data['longitude'] = $longitude;
+        }
+
+        if (in_array('follow_up_date', $existing_cols, true)) {
+            $data['follow_up_date'] = $follow_up_date !== '' ? $follow_up_date : null;
+        }
+
+        if (in_array('follow_up_type', $existing_cols, true)) {
+            $data['follow_up_type'] = $follow_up_type !== '' ? $follow_up_type : null;
+        }
+
+        if (in_array('attachment', $existing_cols, true)) {
+            $data['attachment'] = $attachment_filename !== '' ? $attachment_filename : null;
+        }
+
+        $columns = array_keys($data);
+        $placeholders = array_fill(0, count($columns), '?');
+        $types = str_repeat('s', count($columns));
+        
+        // Adjust types for integers and floats
+        $type_arr = str_split($types);
+        foreach ($columns as $idx => $col) {
+            if (in_array($col, ['lead_id', 'assigned_to', 'created_by'])) {
+                $type_arr[$idx] = 'i';
+            } elseif (in_array($col, ['latitude', 'longitude'])) {
+                $type_arr[$idx] = 'd';
+            }
+        }
+        $types = implode('', $type_arr);
 
         $sql = "INSERT INTO crm_meetings (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
         $stmt = mysqli_prepare($conn, $sql);
         
         if ($stmt) {
+            $values = array_values($data);
             mysqli_stmt_bind_param($stmt, $types, ...$values);
             
             if (mysqli_stmt_execute($stmt)) {
                 $new_id = mysqli_insert_id($conn);
                 
-                // Update lead's last contact time
-                if ($has_lead_id && $lead_id > 0) {
+                // Update lead's last contact time (only for logged meetings)
+                if ($lead_id > 0 && $meeting_type === 'Logged') {
                     crm_update_lead_contact_after_meeting($conn, $lead_id);
                 }
                 
+                // If follow-up is scheduled, create the follow-up activity and update lead's follow_up_date
+                if ($follow_up_date !== '' && $lead_id > 0) {
+                    // Create follow-up activity (Call, Meeting, Visit, or Task)
+                    crm_create_followup_activity($conn, $lead_id, $assigned_to, $follow_up_date, $follow_up_type, $title);
+                    
+                    // Update lead's follow_up_date
+                    crm_update_lead_followup_date($conn, $lead_id, $follow_up_date, $follow_up_type);
+                }
+                
                 mysqli_stmt_close($stmt);
-                flash_add('success', 'Meeting scheduled successfully!', 'crm');
+                flash_add('success', 'Meeting ' . ($meeting_type === 'Logged' ? 'logged' : 'scheduled') . ' successfully!', 'crm');
                 closeConnection($conn);
                 header('Location: view.php?id=' . $new_id);
                 exit;
             } else {
-                $errors[] = 'Failed to schedule meeting: ' . mysqli_error($conn);
+                $errors[] = 'Failed to save meeting: ' . mysqli_error($conn);
             }
             mysqli_stmt_close($stmt);
         } else {
@@ -185,183 +258,362 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch employees for assignment
-$employees = [];
-if ($has_assigned_to) {
-  $emp_sql = "SELECT id, employee_code, first_name, last_name FROM employees";
-  $emp_where = [];
-  if (function_exists('crm_meetings_has_column_in_table')) {
-    if (crm_meetings_has_column_in_table($conn, 'employees', 'is_active')) {
-      $emp_where[] = 'is_active = 1';
-    } elseif (crm_meetings_has_column_in_table($conn, 'employees', 'active')) {
-      $emp_where[] = 'active = 1';
-    }
-  }
-  if ($emp_where) {
-    $emp_sql .= ' WHERE ' . implode(' AND ', $emp_where);
-  }
-  $emp_sql .= ' ORDER BY first_name, last_name';
-
-  $emp_res = mysqli_query($conn, $emp_sql);
-  if ($emp_res) {
-    while ($row = mysqli_fetch_assoc($emp_res)) {
-      $employees[] = $row;
-    }
-    mysqli_free_result($emp_res);
-  }
-}
-
-// Fetch leads
-$leads = [];
-if ($has_lead_id) {
-    $leads = crm_fetch_active_leads_for_meetings($conn);
-}
-
-$page_title = 'Schedule New Meeting - CRM - ' . APP_NAME;
+$page_title = 'Add Meeting - CRM - ' . APP_NAME;
 require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
 ?>
 
+<!-- Select2 CSS for searchable dropdown -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<style>
+/* Select2 Custom Styling */
+.select2-container .select2-selection--single {
+    height: 40px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 38px;
+    color: #1b2a57;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 38px;
+}
+.select2-dropdown {
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+}
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+    background-color: #0b5ed7;
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
+    <!-- Page Header -->
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
         <div>
-          <h1>➕ Schedule New Meeting</h1>
-          <p>Create a new meeting entry</p>
+          <h1>🤝 Add Meeting</h1>
+          <p>Log a past meeting or schedule a future meeting with a lead</p>
         </div>
-        <div>
-          <a href="<?php echo crm_role_can_manage($user_role) ? 'index.php' : 'my.php'; ?>" class="btn btn-accent">← Back to List</a>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
+          <a href="index.php" class="btn btn-secondary">← All Meetings</a>
         </div>
       </div>
     </div>
 
     <?php if (!empty($errors)): ?>
       <div class="alert alert-error">
-        <strong>Please fix the following errors:</strong>
-        <ul style="margin:8px 0 0 20px;">
-          <?php foreach ($errors as $error): ?>
-            <li><?php echo htmlspecialchars($error); ?></li>
-          <?php endforeach; ?>
-        </ul>
+        <strong>❌ Error:</strong><br>
+        <?php foreach ($errors as $err): ?>
+          • <?php echo htmlspecialchars($err); ?><br>
+        <?php endforeach; ?>
       </div>
     <?php endif; ?>
 
-    <div class="card">
-      <form method="POST" enctype="multipart/form-data">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;">
-          <!-- Left Column -->
-          <div>
-            <div class="form-group">
-              <label class="form-label">Meeting Title <span style="color:red;">*</span></label>
-              <input type="text" name="title" class="form-control" required 
-                     value="<?php echo isset($_POST['title']) ? htmlspecialchars($_POST['title']) : ''; ?>"
-                     placeholder="e.g., Product Demo with Client">
-            </div>
+    <?php echo flash_render(); ?>
 
-            <div class="form-group">
-              <label class="form-label">Meeting Date & Time <span style="color:red;">*</span></label>
-              <input type="datetime-local" name="meeting_date" class="form-control" required
-                     value="<?php echo isset($_POST['meeting_date']) ? htmlspecialchars($_POST['meeting_date']) : ''; ?>"
-                     min="<?php echo date('Y-m-d\TH:i'); ?>">
-            </div>
+    <form method="post" enctype="multipart/form-data">
+        <!-- Meeting Information -->
+        <div class="card" style="margin-bottom: 25px;">
+            <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+                🤝 Meeting Information
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div class="form-group">
+                    <label for="meeting_type">Meeting Type <span style="color: #dc3545;">*</span></label>
+                    <select id="meeting_type" name="meeting_type" class="form-control" required>
+                        <option value="Logged" <?php echo (isset($_POST['meeting_type']) && $_POST['meeting_type'] === 'Logged') || !isset($_POST['meeting_type']) ? 'selected' : ''; ?>>
+                            📝 Logged (Past Meeting)
+                        </option>
+                        <option value="Scheduled" <?php echo (isset($_POST['meeting_type']) && $_POST['meeting_type'] === 'Scheduled') ? 'selected' : ''; ?>>
+                            📅 Scheduled (Future Meeting)
+                        </option>
+                    </select>
+                    <small style="color: #6c757d; font-size: 12px;">Select whether you're logging a past meeting or scheduling a future one</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="lead_id">Related Lead <span style="color: #dc3545;">*</span></label>
+                    <select id="lead_id" name="lead_id" class="form-control select2-lead" required>
+                        <option value="">-- Select Lead --</option>
+                        <?php $prefilled_lead = isset($_POST['lead_id']) ? (int)$_POST['lead_id'] : (isset($_GET['lead_id']) ? (int)$_GET['lead_id'] : 0); ?>
+                        <?php foreach ($leads as $l): ?>
+                            <option value="<?php echo (int)$l['id']; ?>"
+                                <?php echo $prefilled_lead === (int)$l['id'] ? 'selected' : ''; ?>>
+                                <?php 
+                                    $lbl = htmlspecialchars($l['name']);
+                                    if (!empty($l['company_name'])) {
+                                        $lbl .= ' (' . htmlspecialchars($l['company_name']) . ')';
+                                    }
+                                    echo $lbl;
+                                ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="color: #6c757d; font-size: 12px;">Search and select a lead</small>
+                </div>
 
-            <?php if ($has_lead_id): ?>
-            <div class="form-group">
-              <label class="form-label">Related Lead (Optional)</label>
-              <select name="lead_id" class="form-control">
-                <option value="">-- Select Lead --</option>
-                <?php $prefilled_lead = isset($_POST['lead_id']) ? (int)$_POST['lead_id'] : (isset($_GET['lead_id']) ? (int)$_GET['lead_id'] : 0); ?>
-                <?php foreach ($leads as $lead): ?>
-                  <option value="<?php echo $lead['id']; ?>" <?php echo $prefilled_lead == $lead['id'] ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars($lead['name'] . (isset($lead['company_name']) && $lead['company_name'] ? ' (' . $lead['company_name'] . ')' : '')); ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-            <?php endif; ?>
+                <div class="form-group">
+                    <label for="title">Meeting Title <span style="color: #dc3545;">*</span></label>
+                    <input type="text" id="title" name="title" class="form-control" 
+                           value="<?php echo htmlspecialchars($_POST['title'] ?? ''); ?>" 
+                           placeholder="e.g., Product Demo and Q&A" required>
+                </div>
 
-            <?php if ($has_assigned_to && crm_role_can_manage($user_role)): ?>
-            <div class="form-group">
-              <label class="form-label">Assign To</label>
-              <select name="assigned_to" class="form-control">
-                <?php foreach ($employees as $emp): ?>
-                  <option value="<?php echo $emp['id']; ?>" 
-                          <?php echo (isset($_POST['assigned_to']) ? $_POST['assigned_to'] == $emp['id'] : $current_employee_id == $emp['id']) ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars(trim($emp['employee_code'] . ' - ' . $emp['first_name'] . ' ' . $emp['last_name'])); ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-            <?php endif; ?>
+                <div class="form-group">
+                    <label for="meeting_date">Meeting Date & Time <span style="color: #dc3545;">*</span></label>
+                    <input type="datetime-local" id="meeting_date" name="meeting_date" class="form-control"
+                           value="<?php echo htmlspecialchars($_POST['meeting_date'] ?? ''); ?>" required>
+                    <small id="meeting_date_hint" style="color: #6c757d; font-size: 12px;"></small>
+                </div>
 
-            <?php if ($has_location): ?>
-            <div class="form-group">
-              <label class="form-label">Location / Meeting Link</label>
-              <input type="text" name="location" class="form-control"
-                     value="<?php echo isset($_POST['location']) ? htmlspecialchars($_POST['location']) : ''; ?>"
-                     placeholder="e.g., Conference Room A or Zoom link">
-            </div>
-            <?php endif; ?>
-          </div>
+                <div class="form-group">
+                    <label for="status">Status <span style="color: #dc3545;">*</span></label>
+                    <select id="status" name="status" class="form-control" required>
+                        <?php foreach ($meeting_statuses as $s): ?>
+                            <option value="<?php echo htmlspecialchars($s); ?>"
+                                <?php echo (isset($_POST['status']) && $_POST['status'] === $s) || (!isset($_POST['status']) && $s === 'Scheduled') ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($s); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small id="status_hint" style="color: #6c757d; font-size: 12px;"></small>
+                </div>
 
-          <!-- Right Column -->
-          <div>
-            <div class="form-group">
-              <label class="form-label">Agenda <span style="color:red;">*</span></label>
-              <textarea name="agenda" class="form-control" rows="5" required
-                        placeholder="Meeting discussion points and objectives..."><?php echo isset($_POST['agenda']) ? htmlspecialchars($_POST['agenda']) : ''; ?></textarea>
-            </div>
+                <div class="form-group">
+                    <label for="outcome">Meeting Outcome <span id="outcome_required" style="color: #dc3545;">*</span></label>
+                    <input type="text" id="outcome" name="outcome" class="form-control"
+                           value="<?php echo htmlspecialchars($_POST['outcome'] ?? ''); ?>"
+                           placeholder="e.g., Agreed to proceed with trial">
+                    <small id="outcome_hint" style="color: #6c757d; font-size: 12px;"></small>
+                </div>
 
-            <?php if ($has_outcome): ?>
-            <div class="form-group">
-              <label class="form-label">Outcome / Notes (Optional)</label>
-              <textarea name="outcome" class="form-control" rows="4"
-                        placeholder="Meeting summary and decisions (can be added after the meeting)..."><?php echo isset($_POST['outcome']) ? htmlspecialchars($_POST['outcome']) : ''; ?></textarea>
-            </div>
-            <?php endif; ?>
+                <div class="form-group">
+                    <label for="assigned_to">Assigned To <span style="color: #dc3545;">*</span></label>
+                    <select id="assigned_to" name="assigned_to" class="form-control select2-employee" required>
+                        <option value="">-- Select Employee --</option>
+                        <?php foreach ($employees as $emp): ?>
+                            <?php
+                                $emp_id = (int)$emp['id'];
+                                $emp_label = htmlspecialchars(trim($emp['first_name'] . ' ' . $emp['last_name']));
+                                $selected = (isset($_POST['assigned_to']) && (int)$_POST['assigned_to'] === $emp_id) 
+                                            || (!isset($_POST['assigned_to']) && $emp_id === $current_employee_id);
+                            ?>
+                            <option value="<?php echo $emp_id; ?>" <?php echo $selected ? 'selected' : ''; ?>>
+                                <?php echo $emp_label; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="color: #6c757d; font-size: 12px;">Search and select employee</small>
+                </div>
 
-            <?php if ($has_follow_up_date): ?>
-            <div class="form-group">
-              <label class="form-label">Follow-Up Date (Optional)</label>
-              <input type="date" name="follow_up_date" class="form-control"
-                     value="<?php echo isset($_POST['follow_up_date']) ? htmlspecialchars($_POST['follow_up_date']) : ''; ?>"
-                     min="<?php echo date('Y-m-d'); ?>">
-            </div>
-            <?php endif; ?>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label for="description">Meeting Description <span id="description_required" style="color: #dc3545;">*</span></label>
+                    <textarea id="description" name="description" class="form-control" rows="4" 
+                              placeholder="Meeting agenda and key discussion points..." required><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
+                    <small id="description_hint" style="color: #6c757d; font-size: 12px;"></small>
+                </div>
 
-            <?php if ($has_follow_up_type): ?>
-            <div class="form-group">
-              <label class="form-label">Follow-Up Type</label>
-              <select name="follow_up_type" class="form-control">
-                <option value="">-- None --</option>
-                <?php foreach (crm_meeting_follow_up_types() as $type): ?>
-                  <option value="<?php echo $type; ?>" <?php echo (isset($_POST['follow_up_type']) && $_POST['follow_up_type'] === $type) ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars($type); ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
+                <div class="form-group">
+                    <label for="location">Location / Meeting Link</label>
+                    <input type="text" id="location" name="location" class="form-control"
+                           value="<?php echo htmlspecialchars($_POST['location'] ?? ''); ?>"
+                           placeholder="e.g., Conference Room A or Zoom link">
+                    <input type="hidden" id="latitude" name="latitude" value="<?php echo htmlspecialchars($_POST['latitude'] ?? ''); ?>">
+                    <input type="hidden" id="longitude" name="longitude" value="<?php echo htmlspecialchars($_POST['longitude'] ?? ''); ?>">
+                </div>
             </div>
-            <?php endif; ?>
-
-            <?php if ($has_attachment): ?>
-            <div class="form-group">
-              <label class="form-label">Attachment (Optional)</label>
-              <input type="file" name="attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-              <small style="color:#6c757d;font-size:12px;">Max 3MB. Allowed: PDF, JPG, PNG, DOC, DOCX</small>
-            </div>
-            <?php endif; ?>
-          </div>
         </div>
 
-        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #dee2e6;display:flex;gap:12px;justify-content:flex-end;">
-          <a href="<?php echo crm_role_can_manage($user_role) ? 'index.php' : 'my.php'; ?>" class="btn btn-secondary">Cancel</a>
-          <button type="submit" class="btn">📅 Schedule Meeting</button>
+        <!-- Follow-Up & Additional Details -->
+        <div class="card" style="margin-bottom: 25px;">
+            <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+                📅 Follow-Up & Additional Details
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div class="form-group">
+                    <label for="follow_up_date">Follow-Up Date</label>
+                    <input type="date" id="follow_up_date" name="follow_up_date" class="form-control"
+                           value="<?php echo htmlspecialchars($_POST['follow_up_date'] ?? ''); ?>">
+                    <small style="color: #6c757d; font-size: 12px;">Optional - schedule a follow-up activity</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="follow_up_type">Follow-Up Type <span id="followup_required" style="color: #dc3545;display:none;">*</span></label>
+                    <select id="follow_up_type" name="follow_up_type" class="form-control">
+                        <option value="">-- None --</option>
+                        <?php foreach ($follow_up_types as $ft): ?>
+                            <option value="<?php echo htmlspecialchars($ft); ?>"
+                                <?php echo (isset($_POST['follow_up_type']) && $_POST['follow_up_type'] === $ft) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($ft); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="color: #6c757d; font-size: 12px;">Required if follow-up date is selected</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="attachment">Attachment (PDF, JPG, PNG - Max 3MB)</label>
+                    <input type="file" id="attachment" name="attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                    <small style="color:#6b7280;">Accepted: PDF, JPG, PNG. Max 3MB.</small>
+                </div>
+                
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label for="notes">Internal Notes</label>
+                    <textarea id="notes" name="notes" class="form-control" rows="3" 
+                              placeholder="Internal notes for your reference (not visible to leads)..."><?php echo htmlspecialchars($_POST['notes'] ?? ''); ?></textarea>
+                    <small style="color: #6c757d; font-size: 12px;">Optional - Add any internal notes or reminders for your team</small>
+                </div>
+            </div>
         </div>
-      </form>
-    </div>
+
+        <!-- Submit Buttons -->
+        <div style="text-align: center; padding: 20px 0;">
+            <button type="submit" class="btn" id="submit_btn" style="padding: 15px 60px; font-size: 16px;">
+                ✅ Save Meeting
+            </button>
+            <a href="index.php" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; margin-left: 15px; text-decoration: none;">
+                ❌ Cancel
+            </a>
+        </div>
+    </form>
   </div>
 </div>
+
+<!-- jQuery (required for Select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize Select2 for lead dropdown
+    $('.select2-lead').select2({
+        placeholder: '-- Select Lead --',
+        allowClear: true,
+        width: '100%'
+    });
+    
+    // Initialize Select2 for employee dropdown
+    $('.select2-employee').select2({
+        placeholder: '-- Select Employee --',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Update form behavior based on meeting_type
+    function updateFormBasedOnType() {
+        const meetingType = $('#meeting_type').val();
+        const outcomeField = $('#outcome');
+        const outcomeRequired = $('#outcome_required');
+        const outcomeHint = $('#outcome_hint');
+        const descriptionField = $('#description');
+        const descriptionRequired = $('#description_required');
+        const descriptionHint = $('#description_hint');
+        const meetingDateHint = $('#meeting_date_hint');
+        const meetingDateField = $('#meeting_date');
+        const statusField = $('#status');
+        const statusHint = $('#status_hint');
+        const submitBtn = $('#submit_btn');
+
+        if (meetingType === 'Scheduled') {
+            // Scheduled meeting: outcome is optional, description optional, date should be future
+            outcomeField.removeAttr('required');
+            outcomeRequired.hide();
+            outcomeHint.text('Optional for scheduled meetings');
+            
+            descriptionField.removeAttr('required');
+            descriptionRequired.hide();
+            descriptionHint.text('Optional - will auto-generate if left empty');
+            
+            meetingDateHint.text('Must be a future date/time');
+            statusHint.text('Auto-set to Scheduled');
+            statusField.val('Scheduled');
+            
+            // Set min to current datetime for scheduled meetings
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+            meetingDateField.attr('min', minDateTime);
+            meetingDateField.removeAttr('max');
+            
+            submitBtn.html('✅ Schedule Meeting');
+        } else {
+            // Logged meeting: outcome and description are required, date should be past/present
+            outcomeField.attr('required', 'required');
+            outcomeRequired.show();
+            outcomeHint.text('Required for logged meetings');
+            
+            descriptionField.attr('required', 'required');
+            descriptionRequired.show();
+            descriptionHint.text('Required - describe what was discussed');
+            
+            meetingDateHint.text('Must be a past or current date/time');
+            statusHint.text('Auto-set to Completed');
+            statusField.val('Completed');
+            
+            // Set max to current datetime for logged meetings
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const maxDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+            meetingDateField.attr('max', maxDateTime);
+            meetingDateField.removeAttr('min');
+            
+            submitBtn.html('✅ Save Meeting');
+        }
+    }
+
+    // Run on page load
+    updateFormBasedOnType();
+
+    // Run when meeting_type changes
+    $('#meeting_type').on('change', updateFormBasedOnType);
+    
+    // Follow-up date validation
+    $('#follow_up_date').on('change', function() {
+        const followUpType = $('#follow_up_type');
+        const followUpRequired = $('#followup_required');
+        
+        if ($(this).val() !== '') {
+            followUpType.attr('required', 'required');
+            followUpRequired.show();
+        } else {
+            followUpType.removeAttr('required');
+            followUpRequired.hide();
+        }
+    });
+
+    // Capture geolocation if available
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                $('#latitude').val(position.coords.latitude);
+                $('#longitude').val(position.coords.longitude);
+            },
+            function(error) {
+                console.log('Geolocation error:', error.message);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
+    }
+});
+</script>
 
 <?php
 closeConnection($conn);

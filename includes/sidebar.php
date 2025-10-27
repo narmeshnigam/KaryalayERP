@@ -43,6 +43,12 @@ $nav_items = [
         'active' => ($current_page == 'index.php' && strpos($current_path, '/public/index.php') !== false)
     ],
     [
+        'icon' => 'search.png',
+        'label' => 'Search',
+        'link' => APP_URL . '/public/search.php',
+        'active' => ($current_page == 'search.php' && strpos($current_path, '/public/search.php') !== false)
+    ],
+    [
         'icon' => 'employees.png',
         'label' => 'Employees',
         'link' => APP_URL . '/public/employee/index.php',
@@ -587,12 +593,13 @@ if ($conn_branding) {
                                 // Simple icon fallback based on label
                                 $icon_map = [
                                     'Dashboard' => '🏠',
+                                    'Search' => '🔍',
                                     'Employees' => '👥',
                                     'Attendance' => '📅',
-                                    'Reimbursements' => '�',
-                                    'CRM' => '�',
-                                    'Expenses' => '�',
-                                    'Salary' => '�',
+                                    'Reimbursements' => '📤',
+                                    'CRM' => '📈',
+                                    'Expenses' => '💰',
+                                    'Salary' => '💵',
                                     'Documents' => '📂',
                                     'Visitor Log' => '📋',
                                     'Branding' => '🎨'

@@ -35,8 +35,8 @@ function crm_visits_has_column(mysqli $conn, string $column): bool {
  * Build safe SELECT column list for visits based on existing columns
  */
 function crm_visits_select_columns(mysqli $conn): string {
-    $base = ['c.id', 'c.title', 'c.notes', 'c.visit_date', 'c.created_at'];
-    $optional = ['lead_id', 'outcome', 'assigned_to', 'follow_up_date', 'follow_up_type', 'location', 'attachment', 'created_by', 'updated_at'];
+    $base = ['c.id', 'c.title', 'c.visit_date', 'c.created_at'];
+    $optional = ['purpose', 'description', 'notes', 'lead_id', 'outcome', 'assigned_to', 'follow_up_date', 'follow_up_type', 'location', 'attachment', 'created_by', 'updated_at', 'status', 'latitude', 'longitude', 'visit_proof_image'];
     
     foreach ($optional as $col) {
         if (crm_visits_has_column($conn, $col)) {

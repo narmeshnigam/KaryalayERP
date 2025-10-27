@@ -1037,4 +1037,185 @@ function crm_column_exists(mysqli $conn, string $table, string $column): bool {
     return $exists;
 }
 
+/**
+ * Create a follow-up activity (Call, Meeting, Visit, or Task) for a lead
+ * @param mysqli $conn Database connection
+ * @param int $lead_id Lead ID
+ * @param int $assigned_to Employee ID to assign to
+ * @param string $follow_up_date Follow-up date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS format)
+ * @param string $follow_up_type Type of follow-up (Call, Meeting, Visit, Task)
+ * @param string $source_title Title of the source activity (call/meeting title)
+ * @return bool Success status
+ */
+function crm_create_followup_activity(mysqli $conn, int $lead_id, int $assigned_to, string $follow_up_date, string $follow_up_type, string $source_title): bool {
+    // Determine which table to insert into based on follow_up_type
+    $table_map = [
+        'Call' => 'crm_calls',
+        'Meeting' => 'crm_meetings',
+        'Visit' => 'crm_visits',
+        'Task' => 'crm_tasks',
+        'Email' => 'crm_tasks', // Email goes to tasks
+    ];
+    
+    // Default to tasks if type not recognized
+    $table_name = $table_map[$follow_up_type] ?? 'crm_tasks';
+    
+    // Check if table exists
+    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table_name'");
+    if (!$res || mysqli_num_rows($res) === 0) {
+        return true; // Table doesn't exist, skip activity creation
+    }
+    mysqli_free_result($res);
+    
+    // Build activity title and description
+    $activity_title = "Follow-up: " . $follow_up_type;
+    $activity_description = "Follow-up for: " . $source_title . "\nScheduled follow-up type: " . $follow_up_type;
+    
+    // Check available columns in target table
+    $res = mysqli_query($conn, "SHOW COLUMNS FROM $table_name");
+    $available_cols = [];
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $available_cols[$row['Field']] = true;
+        }
+        mysqli_free_result($res);
+    }
+    
+    // Build INSERT data based on table type and available columns
+    $data = [];
+    
+    // Common fields
+    if (isset($available_cols['lead_id'])) {
+        $data['lead_id'] = $lead_id;
+    }
+    if (isset($available_cols['assigned_to'])) {
+        $data['assigned_to'] = $assigned_to;
+    }
+    if (isset($available_cols['created_by'])) {
+        $data['created_by'] = $assigned_to;
+    }
+    if (isset($available_cols['title'])) {
+        $data['title'] = $activity_title;
+    }
+    
+    // Table-specific fields
+    if ($table_name === 'crm_tasks') {
+        if (isset($available_cols['description'])) {
+            $data['description'] = $activity_description;
+        }
+        if (isset($available_cols['due_date'])) {
+            $data['due_date'] = $follow_up_date;
+        }
+        if (isset($available_cols['status'])) {
+            $data['status'] = 'Pending';
+        }
+    } elseif ($table_name === 'crm_calls') {
+        if (isset($available_cols['summary'])) {
+            $data['summary'] = $activity_description;
+        }
+        if (isset($available_cols['call_date'])) {
+            // If only date provided, add time
+            $call_datetime = (strpos($follow_up_date, ' ') === false) ? $follow_up_date . ' 10:00:00' : $follow_up_date;
+            $data['call_date'] = $call_datetime;
+        }
+        if (isset($available_cols['call_type'])) {
+            $data['call_type'] = 'Scheduled';
+        }
+    } elseif ($table_name === 'crm_meetings') {
+        if (isset($available_cols['description'])) {
+            $data['description'] = $activity_description;
+        }
+        if (isset($available_cols['meeting_date'])) {
+            // If only date provided, add time
+            $meeting_datetime = (strpos($follow_up_date, ' ') === false) ? $follow_up_date . ' 10:00:00' : $follow_up_date;
+            $data['meeting_date'] = $meeting_datetime;
+        }
+        if (isset($available_cols['start_time'])) {
+            $data['start_time'] = '10:00:00';
+        }
+        if (isset($available_cols['end_time'])) {
+            $data['end_time'] = '11:00:00';
+        }
+        if (isset($available_cols['status'])) {
+            $data['status'] = 'Scheduled';
+        }
+    } elseif ($table_name === 'crm_visits') {
+        if (isset($available_cols['purpose'])) {
+            $data['purpose'] = $activity_description;
+        }
+        if (isset($available_cols['visit_date'])) {
+            // If only date provided, add time
+            $visit_datetime = (strpos($follow_up_date, ' ') === false) ? $follow_up_date . ' 10:00:00' : $follow_up_date;
+            $data['visit_date'] = $visit_datetime;
+        }
+        if (isset($available_cols['status'])) {
+            $data['status'] = 'Planned';
+        }
+    }
+    
+    $cols = [];
+    $vals = [];
+    $types = '';
+    $params = [];
+    
+    foreach ($data as $col => $val) {
+        $cols[] = $col;
+        $vals[] = '?';
+        if (is_int($val)) {
+            $types .= 'i';
+        } else {
+            $types .= 's';
+        }
+        $params[] = $val;
+    }
+    
+    if (empty($cols)) {
+        return true; // No columns to insert, skip
+    }
+    
+    $sql = "INSERT INTO $table_name (" . implode(',', $cols) . ") VALUES (" . implode(',', $vals) . ")";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) return false;
+    
+    mysqli_stmt_bind_param($stmt, $types, ...$params);
+    $result = mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+    return $result;
+}
+
+/**
+ * Update lead's follow_up_date when an activity with follow-up is scheduled
+ * @param mysqli $conn Database connection
+ * @param int $lead_id Lead ID
+ * @param string $follow_up_date Follow-up date (YYYY-MM-DD format)
+ * @param string $follow_up_type Type of follow-up for notes
+ * @return bool Success status
+ */
+function crm_update_lead_followup_date(mysqli $conn, int $lead_id, string $follow_up_date, string $follow_up_type): bool {
+    // Check if follow_up_date column exists in crm_leads
+    $res = mysqli_query($conn, "SHOW COLUMNS FROM crm_leads WHERE Field = 'follow_up_date'");
+    if (!$res || mysqli_num_rows($res) === 0) {
+        if ($res) mysqli_free_result($res);
+        return true; // Column doesn't exist, skip
+    }
+    mysqli_free_result($res);
+    
+    // Check if follow_up_type column exists
+    $has_type_col = crm_column_exists($conn, 'crm_leads', 'follow_up_type');
+    
+    if ($has_type_col) {
+        $stmt = mysqli_prepare($conn, "UPDATE crm_leads SET follow_up_date = ?, follow_up_type = ? WHERE id = ?");
+        if (!$stmt) return false;
+        mysqli_stmt_bind_param($stmt, 'ssi', $follow_up_date, $follow_up_type, $lead_id);
+    } else {
+        $stmt = mysqli_prepare($conn, "UPDATE crm_leads SET follow_up_date = ? WHERE id = ?");
+        if (!$stmt) return false;
+        mysqli_stmt_bind_param($stmt, 'si', $follow_up_date, $lead_id);
+    }
+    
+    $result = mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+    return $result;
+}
+
 ?>

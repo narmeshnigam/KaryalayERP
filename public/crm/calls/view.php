@@ -157,6 +157,32 @@ function safeValue($value, $fallback = '—') {
       </div>
     </div>
 
+    <!-- Related Lead -->
+    <?php if ($has_lead_id && crm_call_get($call, 'lead_id')): ?>
+    <div class="card" style="margin-top:20px;">
+      <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">👤 Related Lead</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;font-size:14px;">
+        <div>
+          <strong>Lead Name:</strong><br>
+          <a href="../leads/view.php?id=<?php echo (int)$call['lead_id']; ?>" style="color:#003581;text-decoration:none;font-weight:600;">
+            <?php echo safeValue(crm_call_get($call, 'lead_name'), 'Unknown Lead'); ?>
+          </a>
+        </div>
+        <?php if (crm_call_get($call, 'lead_company')): ?>
+          <div><strong>Company:</strong><br><?php echo safeValue(crm_call_get($call, 'lead_company')); ?></div>
+        <?php endif; ?>
+        <?php if (crm_call_get($call, 'lead_phone')): ?>
+          <div>
+            <strong>Phone:</strong><br>
+            <a href="tel:<?php echo htmlspecialchars(crm_call_get($call, 'lead_phone')); ?>" style="color:#003581;">
+              <?php echo safeValue(crm_call_get($call, 'lead_phone')); ?>
+            </a>
+          </div>
+        <?php endif; ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
     <!-- Details Grid -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin-top:20px;">
       <!-- Call Information -->
@@ -208,28 +234,12 @@ function safeValue($value, $fallback = '—') {
       </div>
     </div>
 
-    <!-- Related Lead -->
-    <?php if ($has_lead_id && crm_call_get($call, 'lead_id')): ?>
+    <!-- Internal Notes -->
+    <?php if (crm_calls_has_column($conn, 'notes') && crm_call_get($call, 'notes')): ?>
     <div class="card" style="margin-top:20px;">
-      <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">👤 Related Lead</h3>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;font-size:14px;">
-        <div>
-          <strong>Lead Name:</strong><br>
-          <a href="../leads/view.php?id=<?php echo (int)$call['lead_id']; ?>" style="color:#003581;text-decoration:none;font-weight:600;">
-            <?php echo safeValue(crm_call_get($call, 'lead_name'), 'Unknown Lead'); ?>
-          </a>
-        </div>
-        <?php if (crm_call_get($call, 'lead_company')): ?>
-          <div><strong>Company:</strong><br><?php echo safeValue(crm_call_get($call, 'lead_company')); ?></div>
-        <?php endif; ?>
-        <?php if (crm_call_get($call, 'lead_phone')): ?>
-          <div>
-            <strong>Phone:</strong><br>
-            <a href="tel:<?php echo htmlspecialchars(crm_call_get($call, 'lead_phone')); ?>" style="color:#003581;">
-              <?php echo safeValue(crm_call_get($call, 'lead_phone')); ?>
-            </a>
-          </div>
-        <?php endif; ?>
+      <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">🔒 Internal Notes</h3>
+      <div style="font-size:14px;color:#495057;line-height:1.6;white-space:pre-wrap;background:#f8f9fa;padding:12px;border-radius:8px;">
+        <?php echo nl2br(htmlspecialchars(crm_call_get($call, 'notes'))); ?>
       </div>
     </div>
     <?php endif; ?>
@@ -237,18 +247,80 @@ function safeValue($value, $fallback = '—') {
     <!-- Attachment -->
     <?php if (crm_call_get($call, 'attachment')): ?>
     <div class="card" style="margin-top:20px;">
-      <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">📎 Attachment</h3>
+      <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">� Attachment</h3>
       <div style="font-size:14px;">
         <a href="../../../uploads/crm_attachments/<?php echo htmlspecialchars(crm_call_get($call, 'attachment')); ?>" 
            target="_blank" 
            style="background:#e3f2fd;color:#003581;padding:8px 16px;border-radius:12px;text-decoration:none;display:inline-block;">
-          📄 Download Attachment
+          � Download Attachment
+        </a>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Geo-Location -->
+    <?php
+      $has_latitude = crm_calls_has_column($conn, 'latitude');
+      $has_longitude = crm_calls_has_column($conn, 'longitude');
+      $latitude = crm_call_get($call, 'latitude');
+      $longitude = crm_call_get($call, 'longitude');
+    ?>
+    <?php if ($has_latitude && $has_longitude && $latitude !== null && $longitude !== null && $latitude !== '' && $longitude !== ''): ?>
+    <div class="card" style="margin-top:20px;">
+      <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">📍 Employee Location</h3>
+      <div style="font-size:14px;">
+        <strong>Coordinates:</strong> <?php echo number_format((float)$latitude, 6); ?>, <?php echo number_format((float)$longitude, 6); ?>
+        <a href="javascript:void(0)" 
+           onclick="showLocationMap(<?php echo (float)$latitude; ?>, <?php echo (float)$longitude; ?>, 'Call Location')"
+           style="margin-left:12px;background:#e3f2fd;color:#003581;padding:6px 12px;border-radius:8px;text-decoration:none;display:inline-block;font-size:13px;">
+          📍 View on Map
         </a>
       </div>
     </div>
     <?php endif; ?>
   </div>
 </div>
+
+<!-- Location Map Modal -->
+<div id="locationMapModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:12px;padding:0;max-width:900px;width:90%;max-height:90vh;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+    <div style="padding:20px;border-bottom:1px solid #dee2e6;display:flex;justify-content:space-between;align-items:center;background:#003581;color:white;">
+      <h3 style="margin:0;" id="locationTitle">📍 Location</h3>
+      <button onclick="closeLocationMap()" style="background:none;border:none;color:white;font-size:24px;cursor:pointer;padding:0;line-height:1;">&times;</button>
+    </div>
+    <div style="height:500px;">
+      <iframe id="mapFrame" width="100%" height="100%" frameborder="0" style="border:0;" allowfullscreen></iframe>
+    </div>
+    <div style="padding:15px;background:#f8f9fa;text-align:center;font-size:13px;color:#6c757d;">
+      <span id="locationCoords"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+function showLocationMap(lat, lon, title) {
+  document.getElementById('locationTitle').textContent = '📍 ' + title;
+  document.getElementById('locationCoords').textContent = `Coordinates: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+  
+  // Google Maps embed URL
+  const mapUrl = `https://www.google.com/maps?q=${lat},${lon}&z=15&output=embed`;
+  document.getElementById('mapFrame').src = mapUrl;
+  
+  document.getElementById('locationMapModal').style.display = 'flex';
+}
+
+function closeLocationMap() {
+  document.getElementById('locationMapModal').style.display = 'none';
+  document.getElementById('mapFrame').src = '';
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeLocationMap();
+  }
+});
+</script>
 
 <?php
 closeConnection($conn);
