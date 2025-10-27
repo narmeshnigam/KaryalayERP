@@ -63,6 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($assigned_to <= 0) {
         $errors[] = 'Assigned employee is required.';
+    } else {
+        // Verify assigned employee exists
+        if (!crm_employee_exists($conn, $assigned_to)) {
+            $errors[] = 'Assigned employee does not exist.';
+        }
     }
     if ($visit_date === '') {
         $errors[] = 'Visit date and time are required.';
@@ -248,31 +253,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $visit_id = mysqli_insert_id($conn);
                 mysqli_stmt_close($stmt);
 
-                // Create follow-up activity if specified
-                if (!empty($follow_up_date) && !empty($follow_up_type) && function_exists('crm_create_followup_activity')) {
-          crm_create_followup_activity(
-            $conn,
-            $follow_up_type,
-            (int)$lead_id,
-            $assigned_to,
-            $follow_up_date,
-            "Follow-up from visit: $title"
-          );
-                }
-
-                // Update lead's follow-up date
-                if (!empty($follow_up_date) && !empty($follow_up_type) && function_exists('crm_update_lead_followup_date')) {
-                    crm_update_lead_followup_date($conn, $lead_id, $follow_up_date, $follow_up_type);
-                }
-
                 // Update lead contact time for logged visits
                 if ($visit_type === 'Logged' && $lead_id && function_exists('crm_update_lead_contact_after_visit')) {
                     crm_update_lead_contact_after_visit($conn, $lead_id);
                 }
 
-                flash_add('success', 'Visit created successfully!', 'crm');
+                // If follow-up is scheduled, create the follow-up activity and update lead's follow_up_date
+                if ($follow_up_date !== '' && $lead_id && $follow_up_type !== '') {
+                    // Create follow-up activity (Call, Meeting, Visit, or Task)
+                    if (function_exists('crm_create_followup_activity')) {
+                        crm_create_followup_activity(
+                            $conn,
+                            (int)$lead_id,
+                            $assigned_to,
+                            $follow_up_date,
+                            $follow_up_type,
+                            "Follow-up from visit: $title"
+                        );
+                    }
+                    
+                    // Update lead's follow_up_date
+                    if (function_exists('crm_update_lead_followup_date')) {
+                        crm_update_lead_followup_date($conn, $lead_id, $follow_up_date, $follow_up_type);
+                    }
+                }
+
+                flash_add('success', ($visit_type === 'Scheduled' ? 'Visit scheduled' : 'Visit logged') . ' successfully!', 'crm');
                 closeConnection($conn);
-                header('Location: index.php');
+                header('Location: view.php?id=' . $visit_id);
                 exit;
             } else {
                 $errors[] = 'Failed to create visit: ' . mysqli_stmt_error($stmt);
@@ -501,7 +509,10 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
             <select id="follow_up_type" name="follow_up_type" class="form-control">
               <option value="">-- Select Type --</option>
               <?php foreach ($follow_up_types as $type): ?>
-                <option value="<?php echo htmlspecialchars($type); ?>"><?php echo htmlspecialchars($type); ?></option>
+                <option value="<?php echo htmlspecialchars($type); ?>" 
+                    <?php echo (isset($_POST['follow_up_type']) && $_POST['follow_up_type'] === $type) ? 'selected' : ''; ?>>
+                  <?php echo htmlspecialchars($type); ?>
+                </option>
               <?php endforeach; ?>
             </select>
             <small style="color: #6c757d; font-size: 12px;">Required if follow-up date is set</small>
@@ -560,10 +571,12 @@ $(document).ready(function() {
         $('#visited_longitude').val(position.coords.longitude.toFixed(6));
       }
     }, function(error) {
-      console.log('Geolocation error:', error);
+      console.warn('Geolocation error:', error.message);
+      // Don't show error to user yet, we'll capture again on submit if needed
     }, {
       timeout: 5000,
-      enableHighAccuracy: true
+      enableHighAccuracy: true,
+      maximumAge: 60000
     });
   }
 
@@ -625,14 +638,78 @@ $(document).ready(function() {
     if ($(this).val()) {
       $('.followup-required').show();
       $('#follow_up_type').prop('required', true);
+      if ($('#follow_up_type').val() === '') {
+        $('#follow_up_type').focus();
+      }
     } else {
       $('.followup-required').hide();
       $('#follow_up_type').prop('required', false);
     }
   });
+  
+  // Follow-up type change handler
+  $('#follow_up_type').on('change', function() {
+    if ($(this).val() !== '' && $('#follow_up_date').val() === '') {
+      $('#follow_up_date').focus();
+    }
+  });
+  
+  // Initialize follow-up validation on page load
+  if ($('#follow_up_date').val() !== '') {
+    $('.followup-required').show();
+    $('#follow_up_type').prop('required', true);
+  }
 
   // Initialize on page load
   updateFormBasedOnType();
+  
+  // Form submission handler - ensure geolocation is captured for logged visits
+  $('#visitForm').on('submit', function(e) {
+    const visitType = $('#visit_type').val();
+    
+    // For logged visits, ensure we have geolocation
+    if (visitType === 'Logged') {
+      const lat = $('#visited_latitude').val();
+      const lon = $('#visited_longitude').val();
+      
+      // If no coordinates, try to capture one last time
+      if (!lat || !lon) {
+        e.preventDefault();
+        
+        if (navigator.geolocation) {
+          const form = this;
+          
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              $('#latitude').val(position.coords.latitude.toFixed(6));
+              $('#longitude').val(position.coords.longitude.toFixed(6));
+              $('#visited_latitude').val(position.coords.latitude.toFixed(6));
+              $('#visited_longitude').val(position.coords.longitude.toFixed(6));
+              
+              // Submit form
+              form.submit();
+            },
+            function(error) {
+              alert('⚠️ Location Error: ' + error.message + '\n\nFor logged visits, location capture is required. Please enable location services and try again.');
+              console.error('Geolocation error:', error);
+            },
+            {
+              timeout: 10000,
+              enableHighAccuracy: true,
+              maximumAge: 0
+            }
+          );
+          
+          return false;
+        } else {
+          alert('⚠️ Geolocation is not supported by your browser.\n\nFor logged visits, location information is required.');
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  });
 });
 </script>
 

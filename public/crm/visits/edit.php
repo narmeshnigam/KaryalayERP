@@ -118,6 +118,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Follow-up type is required when follow-up date is selected.';
     }
     
+    // Validate assigned employee exists
+    if ($assigned_to && !crm_employee_exists($conn, $assigned_to)) {
+        $errors[] = 'Assigned employee does not exist.';
+    }
+    
     if ($lead_id !== null) {
         $stmt = mysqli_prepare($conn, "SELECT id FROM crm_leads WHERE id = ? AND deleted_at IS NULL LIMIT 1");
         mysqli_stmt_bind_param($stmt, 'i', $lead_id);
@@ -316,20 +321,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_close($stmt);
                 
                 // Update lead's last contact time (only for logged visits)
-                if ($lead_id && $visit_type === 'Logged') {
+                if ($lead_id && $visit_type === 'Logged' && function_exists('crm_update_lead_contact_after_visit')) {
                     crm_update_lead_contact_after_visit($conn, $lead_id);
                 }
                 
                 // If follow-up date changed and is set, create/update follow-up activity
-                if ($follow_up_date !== '' && $follow_up_date !== $old_follow_up_date && $lead_id) {
+                if ($follow_up_date !== '' && $follow_up_date !== $old_follow_up_date && $lead_id && $follow_up_type !== '') {
                     // Create follow-up activity
-                    crm_create_followup_activity($conn, $follow_up_type, $lead_id, $assigned_to, $follow_up_date, "Follow-up from visit: $title");
+                    if (function_exists('crm_create_followup_activity')) {
+                        crm_create_followup_activity($conn, $lead_id, $assigned_to, $follow_up_date, $follow_up_type, "Follow-up from visit: $title");
+                    }
                     
                     // Update lead's follow_up_date
-                    crm_update_lead_followup_date($conn, $lead_id, $follow_up_date, $follow_up_type);
+                    if (function_exists('crm_update_lead_followup_date')) {
+                        crm_update_lead_followup_date($conn, $lead_id, $follow_up_date, $follow_up_type);
+                    }
                 }
                 
-                flash_add('success', 'Visit updated successfully!', 'crm');
+                flash_add('success', ($visit_type === 'Scheduled' ? 'Scheduled visit updated' : 'Visit updated') . ' successfully!', 'crm');
                 closeConnection($conn);
                 header('Location: view.php?id=' . $visit_id);
                 exit;
@@ -368,6 +377,12 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 <style>
+.attachment-current {
+    margin-bottom: 12px;
+    padding: 10px;
+    background: #f0f9ff;
+    border-radius: 4px;
+}
 /* Select2 Custom Styling */
 .select2-container .select2-selection--single {
     height: 40px;
@@ -445,7 +460,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                         <?php foreach ($leads as $l): ?>
                             <?php
                                 $l_id = (int)$l['id'];
-                                $selected = (isset($_POST['lead_id']) ? (int)$_POST['lead_id'] === $l_id : (int)crm_meeting_get($meeting, 'lead_id') === $l_id);
+                                $selected = (isset($_POST['lead_id']) ? (int)$_POST['lead_id'] === $l_id : (int)crm_visit_get($visit, 'lead_id') === $l_id);
                             ?>
                             <option value="<?php echo $l_id; ?>" <?php echo $selected ? 'selected' : ''; ?>>
                                 <?php 
@@ -464,7 +479,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                 <div class="form-group">
                     <label for="title">Visit Title <span style="color: #dc3545;">*</span></label>
                     <input type="text" id="title" name="title" class="form-control" 
-                           value="<?php echo htmlspecialchars($_POST['title'] ?? crm_meeting_get($visit, 'title')); ?>" 
+                           value="<?php echo htmlspecialchars($_POST['title'] ?? crm_visit_get($visit, 'title')); ?>" 
                            placeholder="e.g., Client Site Visit - Product Demo" required>
                 </div>
 
@@ -480,7 +495,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                     <select id="status" name="status" class="form-control" required>
                         <?php foreach ($visit_statuses as $s): ?>
                             <?php
-                                $selected = (isset($_POST['status']) ? $_POST['status'] === $s : crm_meeting_get($visit, 'status') === $s);
+                                $selected = (isset($_POST['status']) ? $_POST['status'] === $s : crm_visit_get($visit, 'status') === $s);
                             ?>
                             <option value="<?php echo htmlspecialchars($s); ?>" <?php echo $selected ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($s); ?>
@@ -493,7 +508,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                 <div class="form-group">
                     <label for="outcome">Visit Outcome <span id="outcome_required" style="color: #dc3545;">*</span></label>
                     <input type="text" id="outcome" name="outcome" class="form-control"
-                           value="<?php echo htmlspecialchars($_POST['outcome'] ?? crm_meeting_get($visit, 'outcome')); ?>"
+                           value="<?php echo htmlspecialchars($_POST['outcome'] ?? crm_visit_get($visit, 'outcome')); ?>"
                            placeholder="e.g., Order placed for 50 units">
                     <small id="outcome_hint" style="color: #6c757d; font-size: 12px;"></small>
                 </div>
@@ -506,7 +521,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                             <?php
                                 $emp_id = (int)$emp['id'];
                                 $emp_label = htmlspecialchars(trim($emp['first_name'] . ' ' . $emp['last_name']));
-                                $selected = (isset($_POST['assigned_to']) ? (int)$_POST['assigned_to'] === $emp_id : (int)crm_meeting_get($visit, 'assigned_to') === $emp_id);
+                                $selected = (isset($_POST['assigned_to']) ? (int)$_POST['assigned_to'] === $emp_id : (int)crm_visit_get($visit, 'assigned_to') === $emp_id);
                             ?>
                             <option value="<?php echo $emp_id; ?>" <?php echo $selected ? 'selected' : ''; ?>>
                                 <?php echo $emp_label; ?>
@@ -519,17 +534,17 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                 <div class="form-group" style="grid-column: 1 / -1;">
                     <label for="description">Visit Description <span id="description_required" style="color: #dc3545;">*</span></label>
                     <textarea id="description" name="description" class="form-control" rows="4" 
-                              placeholder="Visit purpose, activities, and key discussion points..." required><?php echo htmlspecialchars($_POST['description'] ?? crm_meeting_get($visit, 'description')); ?></textarea>
+                              placeholder="Visit purpose, activities, and key discussion points..." required><?php echo htmlspecialchars($_POST['description'] ?? crm_visit_get($visit, 'description')); ?></textarea>
                     <small id="description_hint" style="color: #6c757d; font-size: 12px;"></small>
                 </div>
 
                 <div class="form-group">
                     <label for="location">Visit Location</label>
                     <input type="text" id="location" name="location" class="form-control"
-                           value="<?php echo htmlspecialchars($_POST['location'] ?? crm_meeting_get($visit, 'location')); ?>"
+                           value="<?php echo htmlspecialchars($_POST['location'] ?? crm_visit_get($visit, 'location')); ?>"
                            placeholder="e.g., Client office address">
-                    <input type="hidden" id="latitude" name="latitude" value="<?php echo htmlspecialchars($_POST['latitude'] ?? crm_meeting_get($visit, 'latitude')); ?>">
-                    <input type="hidden" id="longitude" name="longitude" value="<?php echo htmlspecialchars($_POST['longitude'] ?? crm_meeting_get($visit, 'longitude')); ?>">
+                    <input type="hidden" id="latitude" name="latitude" value="<?php echo htmlspecialchars($_POST['latitude'] ?? crm_visit_get($visit, 'latitude')); ?>">
+                    <input type="hidden" id="longitude" name="longitude" value="<?php echo htmlspecialchars($_POST['longitude'] ?? crm_visit_get($visit, 'longitude')); ?>">
                 </div>
             </div>
         </div>
@@ -549,12 +564,12 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                 <div class="form-group">
                     <label for="visit_proof_image">Visit Proof Image <span id="visit_proof_required" style="color: #dc3545;">*</span></label>
                     <?php 
-                    $current_proof = crm_meeting_get($visit, 'visit_proof_image');
+                    $current_proof = crm_visit_get($visit, 'visit_proof_image');
                     if ($current_proof): 
                     ?>
                         <div style="margin-bottom: 10px; padding: 10px; background-color: #e8f4f8; border-radius: 4px;">
                             <small style="color: #003581;">
-                                📎 Current: <a href="<?php echo htmlspecialchars($current_proof); ?>" target="_blank" style="color: #003581;">View Image</a>
+                                📎 Current: <a href="../../../uploads/crm_attachments/<?php echo htmlspecialchars($current_proof); ?>" target="_blank" style="color: #003581;">View Image</a>
                             </small>
                         </div>
                     <?php endif; ?>
@@ -566,7 +581,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                 <div class="form-group">
                     <label for="visited_latitude">Visited Latitude <span id="visited_lat_required" style="color: #dc3545;">*</span></label>
                     <input type="text" id="visited_latitude" name="visited_latitude" class="form-control" 
-                           value="<?php echo htmlspecialchars($_POST['visited_latitude'] ?? crm_meeting_get($visit, 'latitude')); ?>" 
+                           value="<?php echo htmlspecialchars($_POST['visited_latitude'] ?? crm_visit_get($visit, 'latitude')); ?>" 
                            readonly placeholder="Auto-captured">
                     <small style="color: #6c757d; font-size: 12px;">Automatically captured</small>
                 </div>
@@ -574,7 +589,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                 <div class="form-group">
                     <label for="visited_longitude">Visited Longitude <span id="visited_long_required" style="color: #dc3545;">*</span></label>
                     <input type="text" id="visited_longitude" name="visited_longitude" class="form-control" 
-                           value="<?php echo htmlspecialchars($_POST['visited_longitude'] ?? crm_meeting_get($visit, 'longitude')); ?>" 
+                           value="<?php echo htmlspecialchars($_POST['visited_longitude'] ?? crm_visit_get($visit, 'longitude')); ?>" 
                            readonly placeholder="Auto-captured">
                     <small style="color: #6c757d; font-size: 12px;">Automatically captured</small>
                 </div>
@@ -590,7 +605,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                 <div class="form-group">
                     <label for="follow_up_date">Follow-Up Date</label>
                     <input type="date" id="follow_up_date" name="follow_up_date" class="form-control"
-                           value="<?php echo htmlspecialchars($_POST['follow_up_date'] ?? crm_meeting_get($visit, 'follow_up_date')); ?>">
+                           value="<?php echo htmlspecialchars($_POST['follow_up_date'] ?? crm_visit_get($visit, 'follow_up_date')); ?>">
                     <small style="color: #6c757d; font-size: 12px;">Optional - schedule a follow-up activity</small>
                 </div>
 
@@ -600,7 +615,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                         <option value="">-- None --</option>
                         <?php foreach ($follow_up_types as $ft): ?>
                             <?php
-                                $selected = (isset($_POST['follow_up_type']) ? $_POST['follow_up_type'] === $ft : crm_meeting_get($visit, 'follow_up_type') === $ft);
+                                $selected = (isset($_POST['follow_up_type']) ? $_POST['follow_up_type'] === $ft : crm_visit_get($visit, 'follow_up_type') === $ft);
                             ?>
                             <option value="<?php echo htmlspecialchars($ft); ?>" <?php echo $selected ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($ft); ?>
@@ -612,12 +627,12 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
 
                 <div class="form-group">
                     <label for="attachment">Attachment (PDF, JPG, PNG - Max 3MB)</label>
-                    <?php if (crm_meeting_get($visit, 'attachment')): ?>
+                    <?php if (crm_visit_get($visit, 'attachment')): ?>
                         <div class="attachment-current">
                             <strong>Current:</strong> 
-                            <a href="../../../uploads/crm_attachments/<?php echo htmlspecialchars(crm_meeting_get($visit, 'attachment')); ?>" 
+                            <a href="../../../uploads/crm_attachments/<?php echo htmlspecialchars(crm_visit_get($visit, 'attachment')); ?>" 
                                target="_blank" style="color:#003581;text-decoration:none;">
-                                <?php echo htmlspecialchars(crm_meeting_get($visit, 'attachment')); ?>
+                                <?php echo htmlspecialchars(crm_visit_get($visit, 'attachment')); ?>
                             </a>
                         </div>
                     <?php endif; ?>
@@ -628,7 +643,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                 <div class="form-group" style="grid-column: 1 / -1;">
                     <label for="notes">Internal Notes</label>
                     <textarea id="notes" name="notes" class="form-control" rows="3" 
-                              placeholder="Internal notes for your reference (not visible to leads)..."><?php echo htmlspecialchars($_POST['notes'] ?? crm_meeting_get($visit, 'notes')); ?></textarea>
+                              placeholder="Internal notes for your reference (not visible to leads)..."><?php echo htmlspecialchars($_POST['notes'] ?? crm_visit_get($visit, 'notes')); ?></textarea>
                     <small style="color: #6c757d; font-size: 12px;">Optional - Add any internal notes or reminders for your team</small>
                 </div>
             </div>
@@ -667,22 +682,6 @@ $(document).ready(function() {
         allowClear: true,
         width: '100%'
     });
-
-    // Capture geolocation on page load
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                $('#latitude').val(position.coords.latitude);
-                $('#longitude').val(position.coords.longitude);
-                $('#visited_latitude').val(position.coords.latitude);
-                $('#visited_longitude').val(position.coords.longitude);
-            },
-            function(error) {
-                console.log('Geolocation error:', error);
-            },
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-        );
-    }
 
     // Update form behavior based on visit_type
     function updateFormBasedOnType() {
@@ -785,29 +784,95 @@ $(document).ready(function() {
         if ($(this).val() !== '') {
             followUpType.attr('required', 'required');
             followUpRequired.show();
+            if (followUpType.val() === '') {
+                followUpType.focus();
+            }
         } else {
             followUpType.removeAttr('required');
             followUpRequired.hide();
         }
     });
-
-    // Capture geolocation if available
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                $('#latitude').val(position.coords.latitude);
-                $('#longitude').val(position.coords.longitude);
-            },
-            function(error) {
-                console.log('Geolocation error:', error.message);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0
-            }
-        );
+    
+    $('#follow_up_type').on('change', function() {
+        const followUpDate = $('#follow_up_date');
+        if ($(this).val() !== '' && followUpDate.val() === '') {
+            followUpDate.focus();
+        }
+    });
+    
+    // Initialize follow-up validation on page load
+    if ($('#follow_up_date').val() !== '') {
+        $('#follow_up_type').attr('required', 'required');
+        $('#followup_required').show();
     }
+
+    // Capture geolocation on page load and continuously
+    function captureGeolocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    $('#latitude').val(position.coords.latitude);
+                    $('#longitude').val(position.coords.longitude);
+                    $('#visited_latitude').val(position.coords.latitude);
+                    $('#visited_longitude').val(position.coords.longitude);
+                },
+                function(error) {
+                    console.log('Geolocation error:', error.message);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            );
+        }
+    }
+    
+    // Capture on page load
+    captureGeolocation();
+    
+    // Geolocation capture on form submit (final capture)
+    $('form').on('submit', function(e) {
+        const visitType = $('#visit_type').val();
+        
+        // For logged visits, ensure we have current geolocation
+        if (visitType === 'Logged') {
+            // Check if geolocation is already captured
+            if ($('#visited_latitude').val() !== '' && $('#visited_longitude').val() !== '') {
+                return true; // Already have coordinates, proceed
+            }
+            
+            // Try to get geolocation one last time
+            if (navigator.geolocation) {
+                e.preventDefault();
+                const form = this;
+                
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        // Success: add coordinates
+                        $('#latitude').val(position.coords.latitude);
+                        $('#longitude').val(position.coords.longitude);
+                        $('#visited_latitude').val(position.coords.latitude);
+                        $('#visited_longitude').val(position.coords.longitude);
+                        
+                        // Submit the form
+                        form.submit();
+                    },
+                    function(error) {
+                        // Error: show warning but allow submission
+                        console.warn('Geolocation error:', error.message);
+                        if (confirm('Could not capture location. Continue anyway?')) {
+                            form.submit();
+                        }
+                    },
+                    {
+                        timeout: 5000,
+                        maximumAge: 60000
+                    }
+                );
+            }
+        }
+    });
 });
 </script>
 

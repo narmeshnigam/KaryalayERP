@@ -18,11 +18,18 @@ if ($id <= 0) {
     exit;
 }
 
-$page_title = "Edit Employee - " . APP_NAME;
-require_once __DIR__ . '/../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../includes/sidebar.php';
-
 $conn = createConnection(true);
+
+// Get available users for linking
+$available_users = [];
+$users_result = mysqli_query($conn, "SELECT u.id, u.username, u.full_name, u.email, u.role, 
+                                      (SELECT COUNT(*) FROM employees WHERE user_id = u.id) as is_linked 
+                                      FROM users u 
+                                      WHERE u.is_active = 1 
+                                      ORDER BY u.username");
+while ($row = mysqli_fetch_assoc($users_result)) {
+    $available_users[] = $row;
+}
 
 $departments = [];
 $dept_result = mysqli_query($conn, "SELECT department_name FROM departments WHERE status='Active' ORDER BY department_name");
@@ -140,6 +147,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ? $_POST['total_experience_years']
             : null;
 
+        // Handle user account linking
+        $is_user_created = isset($_POST['is_user_created']) && $_POST['is_user_created'] == '1' ? 1 : 0;
+        $user_id_to_link = null;
+        
+        if ($is_user_created && !empty($_POST['user_id'])) {
+            $user_id_to_link = (int)$_POST['user_id'];
+            
+            // Check if this user is already linked to another employee
+            $check_stmt = mysqli_prepare($conn, "SELECT id FROM employees WHERE user_id = ? AND id != ?");
+            mysqli_stmt_bind_param($check_stmt, 'ii', $user_id_to_link, $id);
+            mysqli_stmt_execute($check_stmt);
+            $check_result = mysqli_stmt_get_result($check_stmt);
+            
+            if (mysqli_num_rows($check_result) > 0) {
+                $errors[] = 'This user account is already linked to another employee';
+                mysqli_stmt_close($check_stmt);
+            } else {
+                mysqli_stmt_close($check_stmt);
+            }
+        }
+
+        if (count($errors) === 0) {
         $update_data = [
             'first_name' => trim($_POST['first_name']),
             'middle_name' => trim($_POST['middle_name'] ?? '') ?: null,
@@ -209,6 +238,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'skills' => trim($_POST['skills'] ?? '') ?: null,
             'certifications' => trim($_POST['certifications'] ?? '') ?: null,
             'notes' => trim($_POST['notes'] ?? '') ?: null,
+            'is_user_created' => $is_user_created,
+            'user_id' => $user_id_to_link,
             'updated_by' => (string)$_SESSION['user_id']
         ];
 
@@ -255,6 +286,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $emp['aadhar_document_path'] = $aadhar_doc_path;
         $emp['pan_document_path'] = $pan_doc_path;
     }
+    }
+}
+
+// Get current linked user info (fetch before closing connection)
+$linked_user = null;
+if ($emp['user_id']) {
+    $user_stmt = mysqli_prepare($conn, "SELECT username, full_name, email, role FROM users WHERE id = ?");
+    mysqli_stmt_bind_param($user_stmt, 'i', $emp['user_id']);
+    mysqli_stmt_execute($user_stmt);
+    $user_result = mysqli_stmt_get_result($user_stmt);
+    $linked_user = mysqli_fetch_assoc($user_result);
+    mysqli_stmt_close($user_stmt);
 }
 
 closeConnection($conn);
@@ -268,6 +311,11 @@ function safe($value) {
 }
 
 $gross_display = '₹ ' . number_format((float)($emp['gross_salary'] ?? 0), 2);
+
+// Include headers after form processing to allow redirects
+$page_title = "Edit Employee - " . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
 <div class="main-wrapper">
@@ -670,6 +718,118 @@ $gross_display = '₹ ' . number_format((float)($emp['gross_salary'] ?? 0), 2);
         </div>
       </div>
 
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">🔐 User Account & Login Access</h3>
+        
+        <?php if ($linked_user): ?>
+          <!-- Already Linked User -->
+          <div style="background:#d4edda;border-left:4px solid #28a745;padding:16px;border-radius:6px;margin-bottom:16px;">
+            <h4 style="margin:0 0 10px 0;color:#155724;">✅ User Account Linked</h4>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;font-size:14px;color:#155724;">
+              <div><strong>Username:</strong> <?php echo safe($linked_user['username']); ?></div>
+              <div><strong>Full Name:</strong> <?php echo safe($linked_user['full_name']); ?></div>
+              <div><strong>Email:</strong> <?php echo safe($linked_user['email']); ?></div>
+              <div><strong>Role:</strong> <span style="text-transform:uppercase;font-weight:600;"><?php echo safe($linked_user['role']); ?></span></div>
+            </div>
+          </div>
+          
+          <div style="display:grid;gap:16px;">
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" name="is_user_created" value="1" id="enableUserCheckbox" <?php echo $emp['is_user_created'] ? 'checked' : ''; ?> style="width:18px;height:18px;">
+                <span style="font-weight:600;">Keep User Account Enabled for Login</span>
+              </label>
+              <small style="color:#6c757d;display:block;margin-top:4px;">Uncheck to disable login access for this employee</small>
+            </div>
+
+            <div id="userSelectSection" style="display:<?php echo $emp['is_user_created'] ? 'block' : 'none'; ?>;">
+              <div class="form-group">
+                <label>Change Linked User Account</label>
+                <select name="user_id" id="userSelect" class="form-control">
+                  <option value="">-- Keep Current User --</option>
+                  <?php foreach ($available_users as $user): ?>
+                    <?php 
+                    $is_current = ($emp['user_id'] == $user['id']);
+                    $is_linked_elsewhere = ($user['is_linked'] > 0 && !$is_current);
+                    ?>
+                    <option value="<?php echo $user['id']; ?>" 
+                            <?php echo $is_current ? 'selected' : ''; ?>
+                            <?php echo $is_linked_elsewhere ? 'disabled' : ''; ?>>
+                      <?php echo safe($user['username']); ?> 
+                      - <?php echo safe($user['full_name']); ?> 
+                      (<?php echo safe($user['role']); ?>)
+                      <?php if ($is_current): ?>
+                        [CURRENT]
+                      <?php elseif ($is_linked_elsewhere): ?>
+                        [Already Linked]
+                      <?php endif; ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+                <small style="color:#6c757d;display:block;margin-top:4px;">
+                  Search and select a different user account to link. Users already linked to other employees are disabled.
+                </small>
+              </div>
+            </div>
+          </div>
+
+        <?php else: ?>
+          <!-- No User Linked Yet -->
+          <div style="background:#fff3cd;border-left:4px solid #faa718;padding:16px;border-radius:6px;margin-bottom:16px;">
+            <h4 style="margin:0 0 8px 0;color:#856404;">⚠️ No User Account Linked</h4>
+            <p style="margin:0;color:#856404;font-size:14px;">This employee doesn't have login access. Enable user account to grant system access.</p>
+          </div>
+
+          <div style="display:grid;gap:16px;">
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" name="is_user_created" value="1" id="enableUserCheckbox" <?php echo $emp['is_user_created'] ? 'checked' : ''; ?> style="width:18px;height:18px;">
+                <span style="font-weight:600;">Enable User Account for Login</span>
+              </label>
+              <small style="color:#6c757d;display:block;margin-top:4px;">Check this box to grant login access to this employee</small>
+            </div>
+
+            <div id="userSelectSection" style="display:<?php echo $emp['is_user_created'] ? 'block' : 'none'; ?>;">
+              <div class="form-group">
+                <label>Search & Select User Account <span style="color:#dc3545;">*</span></label>
+                <input type="text" id="userSearch" class="form-control" placeholder="Type to search by username or name..." style="margin-bottom:8px;">
+                <select name="user_id" id="userSelect" class="form-control" size="8">
+                  <option value="">-- Select a User Account --</option>
+                  <?php foreach ($available_users as $user): ?>
+                    <?php $is_linked = ($user['is_linked'] > 0); ?>
+                    <option value="<?php echo $user['id']; ?>" 
+                            data-username="<?php echo strtolower($user['username']); ?>"
+                            data-fullname="<?php echo strtolower($user['full_name']); ?>"
+                            data-email="<?php echo strtolower($user['email']); ?>"
+                            <?php echo $is_linked ? 'disabled' : ''; ?>>
+                      <?php echo safe($user['username']); ?> 
+                      - <?php echo safe($user['full_name']); ?> 
+                      (<?php echo safe($user['role']); ?>)
+                      <?php if ($is_linked): ?>
+                        [Already Linked to Another Employee]
+                      <?php endif; ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+                <small style="color:#6c757d;display:block;margin-top:4px;">
+                  Select a user account to link with this employee. Only unlinked users are available.
+                </small>
+              </div>
+            </div>
+          </div>
+        <?php endif; ?>
+
+        <div style="background:#e7f3ff;border-left:4px solid #0066cc;padding:12px;border-radius:6px;margin-top:16px;">
+          <strong style="color:#0066cc;">ℹ️ Note:</strong>
+          <ul style="margin:8px 0 0 20px;color:#004085;font-size:13px;line-height:1.6;">
+            <li>Linking a user account allows the employee to log in to the system</li>
+            <li>Each user account can only be linked to one employee at a time</li>
+            <li>If you need to create a new user account, go to Settings → User Management (if available)</li>
+            <li>Changing the linked user will immediately update login access</li>
+          </ul>
+        </div>
+      </div>
+
       <div style="text-align:center;padding:16px 0;">
         <button type="submit" class="btn" style="padding:12px 40px;">✅ Save Changes</button>
         <a href="view_employee.php?id=<?php echo $id; ?>" class="btn btn-accent" style="padding:12px 40px;margin-left:10px;text-decoration:none;">❌ Cancel</a>
@@ -702,6 +862,49 @@ $gross_display = '₹ ' . number_format((float)($emp['gross_salary'] ?? 0), 2);
   });
 
   calculateGross();
+
+  // User account section toggle
+  const enableUserCheckbox = document.getElementById('enableUserCheckbox');
+  const userSelectSection = document.getElementById('userSelectSection');
+  
+  if (enableUserCheckbox && userSelectSection) {
+    enableUserCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        userSelectSection.style.display = 'block';
+      } else {
+        userSelectSection.style.display = 'none';
+      }
+    });
+  }
+
+  // User search functionality
+  const userSearch = document.getElementById('userSearch');
+  const userSelect = document.getElementById('userSelect');
+  
+  if (userSearch && userSelect) {
+    userSearch.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase().trim();
+      const options = userSelect.options;
+      
+      for (let i = 0; i < options.length; i++) {
+        const option = options[i];
+        if (i === 0) continue; // Skip the first "Select" option
+        
+        const username = option.getAttribute('data-username') || '';
+        const fullname = option.getAttribute('data-fullname') || '';
+        const email = option.getAttribute('data-email') || '';
+        
+        if (searchTerm === '' || 
+            username.includes(searchTerm) || 
+            fullname.includes(searchTerm) || 
+            email.includes(searchTerm)) {
+          option.style.display = '';
+        } else {
+          option.style.display = 'none';
+        }
+      }
+    });
+  }
 })();
 </script>
 

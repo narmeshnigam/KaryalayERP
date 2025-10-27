@@ -19,17 +19,22 @@ $user_role = $_SESSION['role'] ?? 'user';
 $current_employee_id = null;
 $conn_sidebar = @createConnection(true);
 if ($conn_sidebar) {
-    $stmt = @mysqli_prepare($conn_sidebar, 'SELECT id FROM employees WHERE user_id = ? LIMIT 1');
-    if ($stmt) {
-        $uid = (int)$_SESSION['user_id'];
-        @mysqli_stmt_bind_param($stmt, 'i', $uid);
-        @mysqli_stmt_execute($stmt);
-        $result = @mysqli_stmt_get_result($stmt);
-        if ($result && $row = @mysqli_fetch_assoc($result)) {
-            $current_employee_id = (int)$row['id'];
+    // Check if employees table exists
+    $table_check = @mysqli_query($conn_sidebar, "SHOW TABLES LIKE 'employees'");
+    if ($table_check && mysqli_num_rows($table_check) > 0) {
+        $stmt = @mysqli_prepare($conn_sidebar, 'SELECT id FROM employees WHERE user_id = ? LIMIT 1');
+        if ($stmt) {
+            $uid = (int)$_SESSION['user_id'];
+            @mysqli_stmt_bind_param($stmt, 'i', $uid);
+            @mysqli_stmt_execute($stmt);
+            $result = @mysqli_stmt_get_result($stmt);
+            if ($result && $row = @mysqli_fetch_assoc($result)) {
+                $current_employee_id = (int)$row['id'];
+            }
+            @mysqli_stmt_close($stmt);
         }
-        @mysqli_stmt_close($stmt);
     }
+    if ($table_check) @mysqli_free_result($table_check);
     @closeConnection($conn_sidebar);
 }
 
@@ -101,19 +106,17 @@ $nav_items = [
         'label' => 'Branding',
         'link' => APP_URL . '/public/branding/view.php',
         'active' => (strpos($current_path, '/branding/') !== false)
+    ],
+    [
+        'icon' => 'settings.png',
+        'label' => 'Roles & Permissions',
+        'link' => APP_URL . '/public/settings/roles/index.php',
+        'active' => (strpos($current_path, '/settings/roles/') !== false || strpos($current_path, '/settings/permissions/') !== false)
     ]
 ];
 
 // Employee-specific menu items (always shown at bottom)
 $employee_items = [];
-if ($current_employee_id) {
-    $employee_items[] = [
-        'icon' => 'employees.png',
-        'label' => 'My Profile',
-        'link' => APP_URL . '/public/employee/view_employee.php?id=' . $current_employee_id,
-        'active' => ($current_page == 'view_employee.php' && isset($_GET['id']) && (int)$_GET['id'] === $current_employee_id)
-    ];
-}
 $employee_items[] = [
     'icon' => 'attendance.png',
     'label' => 'My Attendance',
@@ -132,6 +135,14 @@ $employee_items[] = [
     'link' => APP_URL . '/public/employee_portal/salary/index.php',
     'active' => (strpos($current_path, '/employee_portal/salary/') !== false)
 ];
+if ($current_employee_id) {
+    $employee_items[] = [
+        'icon' => 'employees.png',
+        'label' => 'My Profile',
+        'link' => APP_URL . '/public/employee/view_employee.php?id=' . $current_employee_id,
+        'active' => ($current_page == 'view_employee.php' && isset($_GET['id']) && (int)$_GET['id'] === $current_employee_id)
+    ];
+}
 
 // Check if icon file exists, otherwise use SVG fallback
 function getIconPath($icon_name) {

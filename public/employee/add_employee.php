@@ -16,10 +16,6 @@ if (!isset($_SESSION['user_id'])) {
 // Page title
 $page_title = "Add New Employee - " . APP_NAME;
 
-// Include header with sidebar
-require_once __DIR__ . '/../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../includes/sidebar.php';
-
 $conn = createConnection(true);
 
 // Get departments and designations for dropdowns
@@ -270,6 +266,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 closeConnection($conn);
+
+// Include header with sidebar AFTER all processing logic
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
 <div class="main-wrapper">
