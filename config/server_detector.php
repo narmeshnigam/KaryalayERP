@@ -90,11 +90,11 @@ class ServerDetector {
      * @return string Base path without trailing slash
      */
     private static function detectBasePath($script_name) {
-        // Get the script directory
-        $script_dir = dirname($script_name);
+    // Get the script directory
+    $script_dir = dirname($script_name);
         
-        // Remove /public if present (we want the project root in URL)
-        $base_path = preg_replace('#/public(/.*)?$#', '', $script_dir);
+    // Remove known web entry directories (public, setup) from the end so we point to project root
+    $base_path = preg_replace('#/(public|setup)(/.*)?$#', '', $script_dir);
         
         // Remove trailing slash
         $base_path = rtrim($base_path, '/');
