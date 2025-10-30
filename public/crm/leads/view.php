@@ -3,6 +3,9 @@ require_once __DIR__ . '/common.php';
 
 crm_leads_require_login();
 
+// Enforce permission to view leads
+$leads_permissions = authz_get_permission_set($conn, 'crm_leads');
+
 $lead_id = (int)($_GET['id'] ?? 0);
 if ($lead_id <= 0) {
     flash_add('error', 'Lead not specified.', 'crm');
@@ -10,24 +13,19 @@ if ($lead_id <= 0) {
     exit;
 }
 
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to database.</div></div></div>';
-    exit;
-}
-
 crm_leads_require_tables($conn);
 
 $lead = crm_lead_fetch($conn, $lead_id);
 if (!$lead) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     flash_add('error', 'Lead not found.', 'crm');
     header('Location: index.php');
     exit;
 }
 
-$user_role = $_SESSION['role'] ?? 'employee';
-$can_manage = crm_role_can_manage($user_role);
+$can_manage = $IS_SUPER_ADMIN || $leads_permissions['can_edit_all'];
 
 $assigned_label = crm_lead_employee_label($lead['assigned_code'] ?? '', $lead['assigned_first'] ?? '', $lead['assigned_last'] ?? '');
 $creator_label = crm_lead_employee_label($lead['creator_code'] ?? '', $lead['creator_first'] ?? '', $lead['creator_last'] ?? '');
@@ -354,4 +352,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 </div>
 
 <?php require_once __DIR__ . '/../../../includes/footer_sidebar.php'; ?>
-<?php closeConnection($conn); ?>
+<?php 
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn); 
+}
+?>

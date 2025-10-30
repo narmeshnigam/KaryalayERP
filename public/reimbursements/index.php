@@ -3,15 +3,13 @@
  * Admin - Reimbursements Overview
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/module_dependencies.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+authz_require_permission($conn, 'reimbursements', 'view_all');
+$reimbursement_permissions = authz_get_permission_set($conn, 'reimbursements');
+$can_review = !empty($reimbursement_permissions['can_edit_all']);
+$can_export = !empty($reimbursement_permissions['can_export']);
 
 // Check reimbursements module prerequisites
 $conn_check = createConnection(true);
@@ -24,24 +22,11 @@ if ($conn_check) {
     closeConnection($conn_check);
 }
 
-$user_role = $_SESSION['role'] ?? 'user';
-if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../index.php');
-    exit;
-}
-
 $page_title = 'Reimbursements - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content">';
-    echo '<div class="alert alert-error">Unable to connect to the database.</div>';
-    echo '</div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
+$conn = $conn ?? createConnection(true);
 
 function tableExists($conn, $table) {
     $table = mysqli_real_escape_string($conn, $table);
@@ -54,7 +39,9 @@ function tableExists($conn, $table) {
 }
 
 if (!tableExists($conn, 'reimbursements')) {
+  if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
     closeConnection($conn);
+  }
     echo '<div class="main-wrapper"><div class="main-content">';
     echo '<div class="card" style="max-width:760px;margin:0 auto;">';
     echo '<h2 style="margin-top:0;color:#003581;">Reimbursement module not set up</h2>';
@@ -139,11 +126,13 @@ mysqli_stmt_execute($stats_stmt);
 $stats_res = mysqli_stmt_get_result($stats_stmt);
 $stats = ['Pending' => 0, 'Approved' => 0, 'Rejected' => 0];
 while ($row = mysqli_fetch_assoc($stats_res)) {
-    $stats[$row['status']] = (int) $row['total'];
+  $stats[$row['status']] = (int) $row['total'];
 }
 mysqli_stmt_close($stats_stmt);
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+  closeConnection($conn);
+}
 ?>
 
 <div class="main-wrapper">
@@ -155,7 +144,9 @@ closeConnection($conn);
           <p>Review, approve, or reject employee reimbursement requests.</p>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <a href="export.php?<?php echo http_build_query($_GET); ?>" class="btn">📥 Export CSV</a>
+          <?php if ($can_export): ?>
+            <a href="export.php?<?php echo http_build_query($_GET); ?>" class="btn">📥 Export CSV</a>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -278,7 +269,11 @@ closeConnection($conn);
                     <?php endif; ?>
                   </td>
                   <td style="padding:12px;text-align:center;white-space:nowrap;">
-                    <a href="review.php?id=<?php echo (int) $claim['id']; ?>" class="btn btn-accent" style="padding:6px 16px;font-size:13px;">Review</a>
+                    <?php if ($can_review): ?>
+                      <a href="review.php?id=<?php echo (int) $claim['id']; ?>" class="btn btn-accent" style="padding:6px 16px;font-size:13px;">Review</a>
+                    <?php else: ?>
+                      <span style="color:#6c757d;font-size:13px;">No access</span>
+                    <?php endif; ?>
                   </td>
                 </tr>
               <?php endforeach; ?>

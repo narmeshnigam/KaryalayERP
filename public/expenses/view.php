@@ -3,26 +3,17 @@
  * Expense Tracker - View Expense Details
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'user';
-if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../index.php');
-    exit;
-}
+authz_require_permission($conn, 'office_expenses', 'view_all');
+$expense_permissions = authz_get_permission_set($conn, 'office_expenses');
+$can_edit_expense = !empty($expense_permissions['can_edit_all']);
 
 $page_title = 'Expense Details - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = createConnection(true);
+$conn = $conn ?? createConnection(true);
 if (!$conn) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
@@ -41,7 +32,9 @@ function tableExists($conn, $table)
 }
 
 if (!tableExists($conn, 'office_expenses')) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content">';
     echo '<div class="card" style="max-width:720px;margin:0 auto;">';
     echo '<h2 style="margin-top:0;color:#003581;">Expense Tracker module not ready</h2>';
@@ -54,7 +47,9 @@ if (!tableExists($conn, 'office_expenses')) {
 
 $expense_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($expense_id <= 0) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Invalid expense identifier supplied.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
@@ -67,7 +62,9 @@ $sql = 'SELECT e.*, emp.employee_code, emp.first_name, emp.last_name, emp.depart
         LIMIT 1';
 $statement = mysqli_prepare($conn, $sql);
 if (!$statement) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to load the expense record.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
@@ -77,7 +74,9 @@ mysqli_stmt_execute($statement);
 $result = mysqli_stmt_get_result($statement);
 $expense = mysqli_fetch_assoc($result);
 mysqli_stmt_close($statement);
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 
 if (!$expense) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Expense record not found.</div></div></div>';
@@ -108,7 +107,9 @@ if (!empty($expense['receipt_file'])) {
                     <p>Detailed breakdown for <?php echo htmlspecialchars(date('d M Y', strtotime($expense['date'])), ENT_QUOTES); ?>.</p>
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                    <a href="edit.php?id=<?php echo (int) $expense['id']; ?>" class="btn" style="background:#17a2b8;">✏️ Edit</a>
+                    <?php if ($can_edit_expense): ?>
+                        <a href="edit.php?id=<?php echo (int) $expense['id']; ?>" class="btn" style="background:#17a2b8;">✏️ Edit</a>
+                    <?php endif; ?>
                     <a href="index.php" class="btn btn-secondary">← Back to Expenses</a>
                 </div>
             </div>

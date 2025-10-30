@@ -3,31 +3,15 @@
  * Expense Tracker - Add Expense Entry
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'user';
-if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../index.php');
-    exit;
-}
+authz_require_permission($conn, 'office_expenses', 'create');
 
 $page_title = 'Add Expense - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database. Please try again later.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
+$conn = $conn ?? createConnection(true);
 
 function tableExists($conn, $table)
 {
@@ -41,7 +25,9 @@ function tableExists($conn, $table)
 }
 
 if (!tableExists($conn, 'office_expenses')) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content">';
     echo '<div class="card" style="max-width:760px;margin:0 auto;">';
     echo '<h2 style="margin-top:0;color:#003581;">Expense Tracker module not ready</h2>';
@@ -52,10 +38,12 @@ if (!tableExists($conn, 'office_expenses')) {
     exit;
 }
 
-$user_id = (int) $_SESSION['user_id'];
+$user_id = (int) $CURRENT_USER_ID;
 $emp_stmt = mysqli_prepare($conn, 'SELECT * FROM employees WHERE user_id = ? LIMIT 1');
 if (!$emp_stmt) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to load employee details.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
@@ -67,7 +55,9 @@ $employee = mysqli_fetch_assoc($emp_result);
 mysqli_stmt_close($emp_stmt);
 
 if (!$employee) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">No employee record linked to your account. Please contact HR.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
@@ -193,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $amount_param = sprintf('%.2f', $amount_value);
             $receipt_param = $receipt_path ?: null;
             mysqli_stmt_bind_param($stmt, 'sssssssi', $date, $category, $vendor_name, $description, $amount_param, $payment_mode, $receipt_param, $employee['id']);
-            if (mysqli_stmt_execute($stmt)) {
+                if (mysqli_stmt_execute($stmt)) {
                 $success = 'Expense recorded successfully.';
                 $date = date('Y-m-d');
                 $category = $category_options[0] ?? '';
@@ -223,7 +213,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 ?>
 <div class="main-wrapper">
     <div class="main-content">

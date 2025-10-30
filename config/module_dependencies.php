@@ -12,6 +12,7 @@ function get_module_dependencies(): array {
     return [
         'employees' => [],  // No dependencies - base module
         'users' => [],      // No dependencies - base module
+        'clients' => [],    // No dependencies - base module
         'attendance' => ['employees'],
         'salary' => ['employees'],
         'documents' => ['employees'],
@@ -19,7 +20,8 @@ function get_module_dependencies(): array {
         'office_expenses' => ['employees'],
         'visitors' => ['employees'],
         'crm' => ['employees'],
-        'branding' => []  // Optional dependency on employees for created_by FK
+        'branding' => [],  // Optional dependency on employees for created_by FK
+        'projects' => ['clients']  // Requires clients module
     ];
 }
 
@@ -30,6 +32,7 @@ function get_module_display_names(): array {
     return [
         'employees' => 'Employee Management',
         'users' => 'User Management',
+        'clients' => 'Client Management',
         'attendance' => 'Attendance Management',
         'salary' => 'Salary Records',
         'documents' => 'Document Management',
@@ -37,7 +40,8 @@ function get_module_display_names(): array {
         'office_expenses' => 'Office Expenses',
         'visitors' => 'Visitor Logs',
         'crm' => 'CRM (Customer Relationship Management)',
-        'branding' => 'Branding Settings'
+        'branding' => 'Branding Settings',
+        'projects' => 'Projects Management'
     ];
 }
 
@@ -47,6 +51,7 @@ function get_module_display_names(): array {
 function get_module_setup_paths(): array {
     return [
         'employees' => 'scripts/setup_employees_table.php',
+        'clients' => 'scripts/setup_clients_tables.php',
         'attendance' => 'scripts/setup_attendance_table.php',
         'salary' => 'scripts/setup_salary_records_table.php',
         'documents' => 'scripts/setup_documents_table.php',
@@ -54,7 +59,8 @@ function get_module_setup_paths(): array {
         'office_expenses' => 'scripts/setup_office_expenses_table.php',
         'visitors' => 'scripts/setup_visitor_logs_table.php',
         'crm' => 'scripts/setup_crm_tables.php',
-        'branding' => 'scripts/setup_branding_table.php'
+        'branding' => 'scripts/setup_branding_table.php',
+        'projects' => 'scripts/setup_projects_tables.php'
     ];
 }
 

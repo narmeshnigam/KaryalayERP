@@ -3,27 +3,16 @@
  * Expense Tracker - Analytics & Reports
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'user';
-if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../index.php');
-    exit;
-}
+authz_require_permission($conn, 'office_expenses', 'view_all');
 
 $page_title = 'Expense Reports - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 require_once __DIR__ . '/../../includes/date_range_selector.php';
 
-$conn = createConnection(true);
+$conn = $conn ?? createConnection(true);
 if (!$conn) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
@@ -83,7 +72,9 @@ function fetchSingleRow($conn, $sql, $types = '', array $params = [])
 }
 
 if (!tableExists($conn, 'office_expenses')) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content">';
     echo '<div class="card" style="max-width:760px;margin:0 auto;">';
     echo '<h2 style="margin-top:0;color:#003581;">Expense Tracker module not ready</h2>';
@@ -177,7 +168,9 @@ if (empty($errors)) {
     $expense_list = fetchAllRows($conn, $expense_list_sql, $types, $params);
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 
 $total_amount = isset($summary['total_amount']) ? (float) $summary['total_amount'] : 0.0;
 $total_entries = isset($summary['total_entries']) ? (int) $summary['total_entries'] : 0;

@@ -3,28 +3,27 @@
  * Salary Viewer - Upload form for admins/accountants.
  */
 
-require_once __DIR__ . '/../../includes/bootstrap.php';
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
 require_once __DIR__ . '/helpers.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+authz_require_permission($conn, 'salary_records', 'create');
 
-$user_role = $_SESSION['role'] ?? 'employee';
-if (!salary_role_can_manage($user_role)) {
-    flash_add('error', 'You do not have permission to upload salaries.', 'salary');
-    header('Location: admin.php');
-    exit;
+$conn_check = createConnection(true);
+if ($conn_check) {
+    $prereq_check = get_prerequisite_check_result($conn_check, 'salary');
+    if (!$prereq_check['allowed']) {
+        closeConnection($conn_check);
+        display_prerequisite_error('salary', $prereq_check['missing_modules']);
+    }
+    closeConnection($conn_check);
 }
 
 $page_title = 'Upload Salary Record - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = createConnection(true);
+$conn = $conn ?? createConnection(true);
 if (!$conn) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
@@ -32,12 +31,14 @@ if (!$conn) {
 }
 
 if (!salary_table_exists($conn)) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
 
-$current_employee_id = salary_current_employee_id($conn, (int) $_SESSION['user_id']);
+$current_employee_id = salary_current_employee_id($conn, (int) $CURRENT_USER_ID);
 $employees = salary_fetch_employees($conn);
 
 $errors = [];
@@ -193,7 +194,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 salary_notify_salary_uploaded($conn, $new_id);
                 mysqli_stmt_close($insert);
                 flash_add('success', 'Salary record created successfully.', 'salary');
-                closeConnection($conn);
+                if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+                    closeConnection($conn);
+                }
                 header('Location: admin.php');
                 exit;
             }
@@ -223,7 +226,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 ?>
 <div class="main-wrapper">
     <div class="main-content">

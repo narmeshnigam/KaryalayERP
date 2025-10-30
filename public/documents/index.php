@@ -3,16 +3,15 @@
  * Document Vault - Listing and overview page.
  */
 
-require_once __DIR__ . '/../../includes/bootstrap.php';
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/module_dependencies.php';
 require_once __DIR__ . '/helpers.php';
 
-if (!isset($_SESSION['user_id'])) {
-		header('Location: ../login.php');
-		exit;
-}
+authz_require_permission($conn, 'documents', 'view_all');
+$document_permissions = authz_get_permission_set($conn, 'documents');
+$can_create_document = !empty($document_permissions['can_create']);
+$can_edit_document = !empty($document_permissions['can_edit_all']);
+$can_delete_document = !empty($document_permissions['can_delete_all']);
 
 // Check documents module prerequisites
 $conn_check = createConnection(true);
@@ -25,13 +24,12 @@ if ($conn_check) {
     closeConnection($conn_check);
 }
 
-$user_role = $_SESSION['role'] ?? 'employee';
 $page_title = 'Document Vault - ' . APP_NAME;
 
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = createConnection(true);
+$conn = $conn ?? createConnection(true);
 if (!$conn) {
 		echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
 		require_once __DIR__ . '/../../includes/footer_sidebar.php';
@@ -39,13 +37,15 @@ if (!$conn) {
 }
 
 if (!documents_table_exists($conn)) {
-		closeConnection($conn);
+		if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+				closeConnection($conn);
+		}
 		require_once __DIR__ . '/onboarding.php';
 		exit;
 }
 
-$current_employee_id = documents_current_employee_id($conn, (int) $_SESSION['user_id']);
-$accessible_visibilities = documents_allowed_visibilities($user_role);
+$current_employee_id = documents_current_employee_id($conn, (int) $CURRENT_USER_ID);
+$accessible_visibilities = documents_allowed_visibilities_for_permissions($document_permissions);
 
 $from_date = isset($_GET['from_date']) ? trim($_GET['from_date']) : '';
 $to_date = isset($_GET['to_date']) ? trim($_GET['to_date']) : '';
@@ -60,7 +60,7 @@ $base_conditions = ['d.deleted_at IS NULL'];
 $base_params = [];
 $base_types = '';
 
-if ($user_role !== 'admin') {
+if (!$IS_SUPER_ADMIN && !$document_permissions['can_view_all']) {
 		$placeholders = implode(',', array_fill(0, count($accessible_visibilities), '?'));
 		$clause = 'd.visibility IN (' . $placeholders . ')';
 		foreach ($accessible_visibilities as $visibility) {
@@ -88,7 +88,7 @@ if ($doc_type_filter !== '') {
 }
 
 if ($visibility_filter !== '') {
-		$can_filter_visibility = $user_role === 'admin' || in_array($visibility_filter, $accessible_visibilities, true);
+		$can_filter_visibility = $IS_SUPER_ADMIN || $document_permissions['can_view_all'] || in_array($visibility_filter, $accessible_visibilities, true);
 		if ($can_filter_visibility) {
 				$list_conditions[] = 'd.visibility = ?';
 				$list_params[] = $visibility_filter;
@@ -270,7 +270,9 @@ if ($type_stmt) {
 
 $employees = documents_fetch_employees($conn);
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+		closeConnection($conn);
+}
 ?>
 <div class="main-wrapper">
 	<div class="main-content">
@@ -281,7 +283,9 @@ closeConnection($conn);
 					<p>Store and share official records with visibility controls.</p>
 				</div>
 						<div style="display:flex;gap:10px;flex-wrap:wrap;">
-							<a href="upload.php" class="btn" style="background:#003581;color:#fff;">＋ Upload Document</a>
+							<?php if ($can_create_document): ?>
+								<a href="upload.php" class="btn" style="background:#003581;color:#fff;">＋ Upload Document</a>
+							<?php endif; ?>
 							<?php if ($scope === 'mine'): ?>
 								<a href="index.php?scope=mine" class="btn" style="background:#fff;color:#003581;border:1px solid #003581;">📄 My Workspace</a>
 							<?php else: ?>
@@ -424,14 +428,14 @@ closeConnection($conn);
 									<td style="padding:12px;white-space:nowrap;">
 										<?php echo $created_display; ?>
 									</td>
-													<td style="padding:12px;text-align:center;white-space:nowrap;">
-														<?php $can_edit_doc = in_array($user_role, ['admin','manager'], true) || ($current_employee_id && (int)$document['uploaded_by'] === (int)$current_employee_id); ?>
-														<?php if ($can_edit_doc): ?>
-															<a href="edit.php?id=<?php echo (int) $document['id']; ?>" class="btn" style="padding:6px 14px;font-size:13px;background:#003581;color:#fff;margin-right:6px;">Edit</a>
-														<?php endif; ?>
-														<a href="view.php?id=<?php echo (int) $document['id']; ?>" class="btn btn-accent" style="padding:6px 14px;font-size:13px;">View</a>
-														<a href="<?php echo $download_url; ?>" class="btn" style="padding:6px 14px;font-size:13px;background:#17a2b8;color:#fff;" target="_blank" rel="noopener">Download</a>
-													</td>
+												<td style="padding:12px;text-align:center;white-space:nowrap;">
+													<?php $can_edit_this_doc = $can_edit_document || ($current_employee_id && (int)$document['uploaded_by'] === (int)$current_employee_id); ?>
+													<?php if ($can_edit_this_doc): ?>
+														<a href="edit.php?id=<?php echo (int) $document['id']; ?>" class="btn" style="padding:6px 14px;font-size:13px;background:#003581;color:#fff;margin-right:6px;">Edit</a>
+													<?php endif; ?>
+													<a href="view.php?id=<?php echo (int) $document['id']; ?>" class="btn btn-accent" style="padding:6px 14px;font-size:13px;">View</a>
+													<a href="<?php echo $download_url; ?>" class="btn" style="padding:6px 14px;font-size:13px;background:#17a2b8;color:#fff;" target="_blank" rel="noopener">Download</a>
+												</td>
 								</tr>
 							<?php endforeach; ?>
 						</tbody>

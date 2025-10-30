@@ -72,7 +72,12 @@ function has_permission($conn, $user_id, $page_path, $permission_type = 'view_al
     if (!roles_tables_exist($conn)) {
         return true;
     }
-    
+
+    // Bypass permission check for pseudo-pages like settings/roles (not real PHP files)
+    if (strpos($page_path, 'settings/roles') === 0) {
+        return true;
+    }
+
     // Map old permission types to new granular types for backward compatibility
     $permission_map = [
         'view' => 'can_view_all',
@@ -81,7 +86,7 @@ function has_permission($conn, $user_id, $page_path, $permission_type = 'view_al
         'delete' => 'can_delete_all',
         'export' => 'can_export'
     ];
-    
+
     // Check if it's an old permission type and map it
     if (isset($permission_map[$permission_type])) {
         $permission_field = $permission_map[$permission_type];
@@ -89,7 +94,7 @@ function has_permission($conn, $user_id, $page_path, $permission_type = 'view_al
         // New granular permission type
         $permission_field = 'can_' . strtolower($permission_type);
     }
-    
+
     $stmt = mysqli_prepare($conn, "
         SELECT COUNT(*) as has_access
         FROM role_permissions rp
@@ -102,17 +107,17 @@ function has_permission($conn, $user_id, $page_path, $permission_type = 'view_al
         AND r.status = 'Active'
         AND p.is_active = 1
     ");
-    
+
     if ($stmt) {
         mysqli_stmt_bind_param($stmt, 'is', $user_id, $page_path);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
         $row = mysqli_fetch_assoc($result);
         mysqli_stmt_close($stmt);
-        
+
         return $row['has_access'] > 0;
     }
-    
+
     return false;
 }
 

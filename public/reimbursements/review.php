@@ -3,20 +3,9 @@
  * Admin - Review Reimbursement Claim
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'user';
-if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../index.php');
-    exit;
-}
+authz_require_permission($conn, 'reimbursements', 'edit_all');
 
 $claim_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($claim_id <= 0) {
@@ -28,14 +17,7 @@ $page_title = 'Review Reimbursement - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content">';
-    echo '<div class="alert alert-error">Unable to connect to the database.</div>';
-    echo '</div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
+$conn = $conn ?? createConnection(true);
 
 function tableExists($conn, $table) {
     $table = mysqli_real_escape_string($conn, $table);
@@ -48,7 +30,9 @@ function tableExists($conn, $table) {
 }
 
 if (!tableExists($conn, 'reimbursements')) {
+  if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
     closeConnection($conn);
+  }
     echo '<div class="main-wrapper"><div class="main-content">';
     echo '<div class="alert alert-error">Reimbursement module is not set up.</div>';
     echo '<a href="index.php" class="btn" style="margin-top:20px;">← Back</a>';
@@ -71,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $update_sql = 'UPDATE reimbursements SET status = ?, admin_remarks = ?, action_date = NOW() WHERE id = ?';
         $stmt = mysqli_prepare($conn, $update_sql);
         mysqli_stmt_bind_param($stmt, 'ssi', $decision, $remarks, $claim_id);
-        if (mysqli_stmt_execute($stmt) && mysqli_stmt_affected_rows($stmt) >= 0) {
+    if (mysqli_stmt_execute($stmt) && mysqli_stmt_affected_rows($stmt) >= 0) {
             $message = 'Claim updated successfully.';
         } else {
             $error = 'Failed to update claim. Please try again.';
@@ -88,7 +72,9 @@ $result = mysqli_stmt_get_result($detail_stmt);
 $claim = mysqli_fetch_assoc($result);
 mysqli_stmt_close($detail_stmt);
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+  closeConnection($conn);
+}
 
 if (!$claim) {
     echo '<div class="main-wrapper"><div class="main-content">';

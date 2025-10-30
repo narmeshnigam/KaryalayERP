@@ -2,12 +2,9 @@
 require_once __DIR__ . '/common.php';
 
 crm_leads_require_login();
-$user_role = $_SESSION['role'] ?? 'employee';
-if (!crm_role_can_manage($user_role)) {
-    flash_add('error', 'Only managers or admins can edit leads.', 'crm');
-    header('Location: index.php');
-    exit;
-}
+
+// Enforce permission to edit leads
+authz_require_permission($conn, 'crm_leads', 'edit_all');
 
 $lead_id = (int)($_GET['id'] ?? 0);
 if ($lead_id <= 0) {
@@ -16,17 +13,13 @@ if ($lead_id <= 0) {
     exit;
 }
 
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Database connection error.</div></div></div>';
-    exit;
-}
-
 crm_leads_require_tables($conn);
 
 $lead = crm_lead_fetch($conn, $lead_id);
 if (!$lead) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     flash_add('error', 'Lead not found.', 'crm');
     header('Location: index.php');
     exit;
@@ -369,4 +362,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 </div>
 
 <?php require_once __DIR__ . '/../../../includes/footer_sidebar.php'; ?>
-<?php closeConnection($conn); ?>
+<?php 
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn); 
+}
+?>

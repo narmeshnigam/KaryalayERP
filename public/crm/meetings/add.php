@@ -1,28 +1,22 @@
 <?php
 require_once __DIR__ . '/common.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'employee';
-$user_id = (int)$_SESSION['user_id'];
-
-$conn = createConnection(true);
-if (!$conn) {
-    die('Database connection failed');
-}
+// Enforce permission to create meetings
+authz_require_permission($conn, 'crm_meetings', 'create');
 
 if (!crm_tables_exist($conn)) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     require_once __DIR__ . '/../onboarding.php';
     exit;
 }
 
-$current_employee_id = crm_current_employee_id($conn, $user_id);
-if (!$current_employee_id && !crm_role_can_manage($user_role)) {
-    closeConnection($conn);
+$current_employee_id = crm_current_employee_id($conn, (int)$CURRENT_USER_ID);
+if (!$current_employee_id && !$IS_SUPER_ADMIN) {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     die('Unable to identify your employee record.');
 }
 
@@ -245,7 +239,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 mysqli_stmt_close($stmt);
                 flash_add('success', 'Meeting ' . ($meeting_type === 'Logged' ? 'logged' : 'scheduled') . ' successfully!', 'crm');
-                closeConnection($conn);
+                if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+                    closeConnection($conn);
+                }
                 header('Location: view.php?id=' . $new_id);
                 exit;
             } else {
@@ -616,6 +612,8 @@ $(document).ready(function() {
 </script>
 
 <?php
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 require_once __DIR__ . '/../../../includes/footer_sidebar.php';
 ?>

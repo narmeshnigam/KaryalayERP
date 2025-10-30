@@ -1,26 +1,17 @@
 <?php
 require_once __DIR__ . '/common.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'employee';
-$user_id = (int)$_SESSION['user_id'];
-
-$conn = createConnection(true);
-if (!$conn) {
-    die('Database connection failed');
-}
+authz_require_permission($conn, 'crm_meetings', 'view_own');
 
 if (!crm_tables_exist($conn)) {
-    closeConnection($conn);
     require_once __DIR__ . '/../onboarding.php';
     exit;
 }
 
-$current_employee_id = crm_current_employee_id($conn, $user_id);
+$current_employee_id = crm_current_employee_id($conn, $CURRENT_USER_ID);
+
+// Get permissions
+$meetings_permissions = authz_get_permission_set($conn, 'crm_meetings');
 
 // Detect available columns
 $has_assigned_to = crm_meetings_has_column($conn, 'assigned_to');
@@ -346,6 +337,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 </div>
 
 <?php
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 require_once __DIR__ . '/../../../includes/footer_sidebar.php';
 ?>

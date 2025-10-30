@@ -3,28 +3,11 @@
  * Visitor Log Module - CSV Export
  */
 
-session_start();
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'user';
-if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../index.php');
-    exit;
-}
-
-$conn = createConnection(true);
-if (!$conn) {
-    header('Content-Type: text/plain');
-    http_response_code(500);
-    echo 'Database connection failed.';
-    exit;
-}
+// Enforce permission to export visitor logs
+authz_require_permission($conn, 'visitor_logs', 'export');
 
 function tableExists($conn, $table)
 {
@@ -38,7 +21,9 @@ function tableExists($conn, $table)
 }
 
 if (!tableExists($conn, 'visitor_logs')) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     header('Content-Type: text/plain');
     http_response_code(503);
     echo 'Visitor Log module not initialised.';
@@ -115,5 +100,7 @@ while ($row = mysqli_fetch_assoc($result)) {
 
 fclose($output);
 mysqli_stmt_close($stmt);
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 exit;

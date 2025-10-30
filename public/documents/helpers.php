@@ -61,6 +61,22 @@ if (!function_exists('documents_allowed_visibilities')) {
     }
 }
 
+if (!function_exists('documents_allowed_visibilities_for_permissions')) {
+    function documents_allowed_visibilities_for_permissions(array $permissions): array
+    {
+        // Map permission levels to visibility access
+        // If user can view_all, they get admin-level visibility
+        // If only view_assigned or view_own, they get employee-level visibility
+        if (!empty($permissions['can_view_all'])) {
+            return ['employee', 'manager', 'admin'];
+        }
+        if (!empty($permissions['can_view_assigned'])) {
+            return ['employee', 'manager'];
+        }
+        return ['employee'];
+    }
+}
+
 if (!function_exists('documents_fetch_employees')) {
     function documents_fetch_employees(mysqli $conn): array
     {

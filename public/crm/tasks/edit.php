@@ -1,28 +1,15 @@
 <?php
 require_once __DIR__ . '/common.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'employee';
-$user_id = (int)$_SESSION['user_id'];
-
-$conn = createConnection(true);
-if (!$conn) {
-    die('Database connection failed');
-}
+authz_require_permission($conn, 'crm_tasks', 'edit_all');
 
 if (!crm_tables_exist($conn)) {
-    closeConnection($conn);
     require_once __DIR__ . '/../onboarding.php';
     exit;
 }
 
-$current_employee_id = crm_current_employee_id($conn, $user_id);
-if (!$current_employee_id && !crm_role_can_manage($user_role)) {
-    closeConnection($conn);
+$current_employee_id = crm_current_employee_id($conn, $CURRENT_USER_ID);
+if (!$current_employee_id && !$IS_SUPER_ADMIN) {
     die('Unable to identify your employee record.');
 }
 
@@ -30,7 +17,9 @@ if (!$current_employee_id && !crm_role_can_manage($user_role)) {
 $task_id = isset($_GET['id']) && is_numeric($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($task_id <= 0) {
     flash_add('error', 'Invalid task ID', 'crm');
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     header('Location: index.php');
     exit;
 }
@@ -52,20 +41,28 @@ mysqli_stmt_close($stmt);
 
 if (!$task) {
     flash_add('error', 'Task not found', 'crm');
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     header('Location: index.php');
     exit;
 }
 
-// Check permissions
-if (!crm_role_can_manage($user_role)) {
-    // Non-managers can only edit their own tasks
-    $assigned_to = isset($task['assigned_to']) ? (int)$task['assigned_to'] : 0;
-    if ($assigned_to !== $current_employee_id) {
-        flash_add('error', 'You do not have permission to edit this task', 'crm');
-        closeConnection($conn);
-        header('Location: view.php?id=' . $task_id);
-        exit;
+// Check permissions - non-super-admins and non-edit_all users cannot edit
+$has_assigned_to = crm_tasks_has_column($conn, 'assigned_to');
+if ($has_assigned_to && !$IS_SUPER_ADMIN) {
+    $tasks_permissions = authz_get_permission_set($conn, 'crm_tasks');
+    // If user doesn't have edit_all, they can only edit their own tasks
+    if (!$tasks_permissions['can_edit_all']) {
+        $assigned_to = isset($task['assigned_to']) ? (int)$task['assigned_to'] : 0;
+        if ($assigned_to !== $current_employee_id) {
+            flash_add('error', 'You do not have permission to edit this task', 'crm');
+            if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+                closeConnection($conn);
+            }
+            header('Location: view.php?id=' . $task_id);
+            exit;
+        }
     }
 }
 
@@ -446,7 +443,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 flash_add('success', 'Task updated successfully!', 'crm');
-                closeConnection($conn);
+                if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+                    closeConnection($conn);
+                }
                 header('Location: view.php?id=' . $task_id);
                 exit;
             } else {
@@ -1034,6 +1033,8 @@ $(document).ready(function() {
 </script>
 
 <?php
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 require_once __DIR__ . '/../../../includes/footer_sidebar.php';
 ?>

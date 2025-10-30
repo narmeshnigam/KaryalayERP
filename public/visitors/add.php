@@ -3,32 +3,16 @@
  * Visitor Log Module - Add Visitor Entry
  */
 
-session_start();
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/flash.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'user';
-$allowed_roles = ['admin', 'manager', 'guard'];
-if (!in_array($user_role, $allowed_roles, true)) {
-    header('Location: ../index.php');
-    exit;
-}
+// Enforce permission to create visitor logs
+authz_require_permission($conn, 'visitor_logs', 'create');
 
 $page_title = 'Add Visitor - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
-
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database. Please try again later.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
 
 function tableExists($conn, $table)
 {
@@ -42,27 +26,32 @@ function tableExists($conn, $table)
 }
 
 if (!tableExists($conn, 'visitor_logs')) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
 
-$user_id = (int) $_SESSION['user_id'];
 $employee_stmt = mysqli_prepare($conn, 'SELECT id FROM employees WHERE user_id = ? LIMIT 1');
 if (!$employee_stmt) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to load employee details.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
 }
-mysqli_stmt_bind_param($employee_stmt, 'i', $user_id);
+mysqli_stmt_bind_param($employee_stmt, 'i', $CURRENT_USER_ID);
 mysqli_stmt_execute($employee_stmt);
 $employee_result = mysqli_stmt_get_result($employee_stmt);
 $current_employee = mysqli_fetch_assoc($employee_result);
 mysqli_stmt_close($employee_stmt);
 
 if (!$current_employee) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">No employee record linked to your account. Please contact HR.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
@@ -181,7 +170,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 ?>
 <div class="main-wrapper">
   <div class="main-content">

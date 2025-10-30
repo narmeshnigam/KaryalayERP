@@ -1,9 +1,10 @@
 <?php
 /**
- * CRM Tasks - Common Helpers
+ * CRM Tasks - Common Utilities
  */
 
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../../../includes/auth_check.php';
 
 /** Task statuses */
 function crm_task_statuses(): array {

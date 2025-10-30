@@ -145,15 +145,15 @@ if ($q !== '' && strlen($q) >= 2 && $conn) {
     
     // Search CRM Meetings
     if (($filter === 'all' || $filter === 'meetings') && tableExists($conn, 'crm_meetings')) {
-        $sql = "SELECT m.id, m.title, m.meeting_date, m.location, m.outcome,
-                       l.name as lead_name, l.company_name
-                FROM crm_meetings m
-                LEFT JOIN crm_leads l ON m.lead_id = l.id
-                WHERE (m.title LIKE '$like' OR m.agenda LIKE '$like' OR m.location LIKE '$like' 
-                   OR l.name LIKE '$like' OR l.company_name LIKE '$like')
-                  AND m.deleted_at IS NULL
-                ORDER BY m.meeting_date DESC
-                LIMIT 30";
+                $sql = "SELECT m.id, m.title, m.meeting_date, m.location, m.outcome,
+                                             l.name as lead_name, l.company_name
+                                FROM crm_meetings m
+                                LEFT JOIN crm_leads l ON m.lead_id = l.id
+                                WHERE (m.title LIKE '$like' OR m.description LIKE '$like' OR m.location LIKE '$like' 
+                                     OR l.name LIKE '$like' OR l.company_name LIKE '$like')
+                                    AND m.deleted_at IS NULL
+                                ORDER BY m.meeting_date DESC
+                                LIMIT 30";
         $r = mysqli_query($conn, $sql);
         while ($r && $row = mysqli_fetch_assoc($r)) {
             $results['meetings'][] = $row;

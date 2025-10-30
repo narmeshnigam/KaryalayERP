@@ -4,6 +4,7 @@
  * Creates tables for role-based access control system
  */
 
+
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/db_connect.php';
 
@@ -14,9 +15,14 @@ if (!$conn) {
 
 echo "🔐 Setting up Roles & Permissions Module Tables...\n\n";
 
-// ===========================
+// Drop tables if they exist (in correct order for FKs)
+mysqli_query($conn, "DROP TABLE IF EXISTS role_permissions");
+mysqli_query($conn, "DROP TABLE IF EXISTS user_roles");
+mysqli_query($conn, "DROP TABLE IF EXISTS permission_audit_log");
+mysqli_query($conn, "DROP TABLE IF EXISTS permissions");
+mysqli_query($conn, "DROP TABLE IF EXISTS roles");
+
 // 1. ROLES TABLE
-// ===========================
 $roles_table = "
 CREATE TABLE IF NOT EXISTS roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -27,66 +33,70 @@ CREATE TABLE IF NOT EXISTS roles (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     created_by INT,
-    
     INDEX idx_name (name),
     INDEX idx_status (status),
     INDEX idx_system_role (is_system_role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ";
-
 if (mysqli_query($conn, $roles_table)) {
     echo "✅ Table 'roles' created successfully.\n";
 } else {
     echo "❌ Error creating 'roles' table: " . mysqli_error($conn) . "\n";
 }
 
-// ===========================
-// 2. PERMISSIONS TABLE
-// ===========================
+// 2. PERMISSIONS TABLE (table-based granular)
 $permissions_table = "
 CREATE TABLE IF NOT EXISTS permissions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    page_name VARCHAR(150) NOT NULL UNIQUE COMMENT 'Page identifier (e.g., crm/leads, employees/add)',
-    module VARCHAR(50) COMMENT 'Module grouping (CRM, HR, Settings, etc.)',
-    display_name VARCHAR(150) COMMENT 'Human-readable page name',
-    can_view TINYINT(1) DEFAULT 0 COMMENT 'Permission to view the page',
-    can_create TINYINT(1) DEFAULT 0 COMMENT 'Permission to create entries',
-    can_edit TINYINT(1) DEFAULT 0 COMMENT 'Permission to edit entries',
-    can_delete TINYINT(1) DEFAULT 0 COMMENT 'Permission to delete entries',
-    can_export TINYINT(1) DEFAULT 0 COMMENT 'Permission to export data',
-    can_approve TINYINT(1) DEFAULT 0 COMMENT 'Permission to approve actions',
-    fallback_page VARCHAR(150) DEFAULT '/public/unauthorized.php' COMMENT 'Redirect route if unauthorized',
+    table_name VARCHAR(100) NOT NULL UNIQUE COMMENT 'Database table name (e.g., employees, crm_leads, attendance)',
+    module VARCHAR(100) NOT NULL COMMENT 'Module grouping (HR, CRM, Finance, etc.)',
+    display_name VARCHAR(150) NOT NULL COMMENT 'Human-readable name (e.g., Employees, CRM Leads)',
+    description TEXT NULL COMMENT 'Description of what this table contains',
+    can_create TINYINT(1) DEFAULT 0 COMMENT 'Can create new records',
+    can_view_all TINYINT(1) DEFAULT 0 COMMENT 'Can view all records',
+    can_view_assigned TINYINT(1) DEFAULT 0 COMMENT 'Can view records assigned to user',
+    can_view_own TINYINT(1) DEFAULT 0 COMMENT 'Can view records created by user',
+    can_edit_all TINYINT(1) DEFAULT 0 COMMENT 'Can edit all records',
+    can_edit_assigned TINYINT(1) DEFAULT 0 COMMENT 'Can edit records assigned to user',
+    can_edit_own TINYINT(1) DEFAULT 0 COMMENT 'Can edit records created by user',
+    can_delete_all TINYINT(1) DEFAULT 0 COMMENT 'Can delete all records',
+    can_delete_assigned TINYINT(1) DEFAULT 0 COMMENT 'Can delete records assigned to user',
+    can_delete_own TINYINT(1) DEFAULT 0 COMMENT 'Can delete records created by user',
+    can_export TINYINT(1) DEFAULT 0 COMMENT 'Can export data',
+    is_active TINYINT(1) DEFAULT 1 COMMENT 'Whether table exists in database',
+    last_scanned TIMESTAMP NULL COMMENT 'Last time table was detected in scan',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    
-    INDEX idx_page_name (page_name),
-    INDEX idx_module (module)
+    INDEX idx_table_name (table_name),
+    INDEX idx_module (module),
+    INDEX idx_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ";
-
 if (mysqli_query($conn, $permissions_table)) {
     echo "✅ Table 'permissions' created successfully.\n";
 } else {
     echo "❌ Error creating 'permissions' table: " . mysqli_error($conn) . "\n";
 }
 
-// ===========================
-// 3. ROLE_PERMISSIONS TABLE
-// ===========================
+// 3. ROLE_PERMISSIONS TABLE (granular)
 $role_permissions_table = "
 CREATE TABLE IF NOT EXISTS role_permissions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     role_id INT NOT NULL,
     permission_id INT NOT NULL,
-    can_view TINYINT(1) DEFAULT 0,
     can_create TINYINT(1) DEFAULT 0,
-    can_edit TINYINT(1) DEFAULT 0,
-    can_delete TINYINT(1) DEFAULT 0,
+    can_view_all TINYINT(1) DEFAULT 0,
+    can_view_assigned TINYINT(1) DEFAULT 0,
+    can_view_own TINYINT(1) DEFAULT 0,
+    can_edit_all TINYINT(1) DEFAULT 0,
+    can_edit_assigned TINYINT(1) DEFAULT 0,
+    can_edit_own TINYINT(1) DEFAULT 0,
+    can_delete_all TINYINT(1) DEFAULT 0,
+    can_delete_assigned TINYINT(1) DEFAULT 0,
+    can_delete_own TINYINT(1) DEFAULT 0,
     can_export TINYINT(1) DEFAULT 0,
-    can_approve TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
     FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE,
     UNIQUE KEY unique_role_permission (role_id, permission_id),
@@ -94,16 +104,13 @@ CREATE TABLE IF NOT EXISTS role_permissions (
     INDEX idx_permission_id (permission_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ";
-
 if (mysqli_query($conn, $role_permissions_table)) {
     echo "✅ Table 'role_permissions' created successfully.\n";
 } else {
     echo "❌ Error creating 'role_permissions' table: " . mysqli_error($conn) . "\n";
 }
 
-// ===========================
 // 4. USER_ROLES TABLE
-// ===========================
 $user_roles_table = "
 CREATE TABLE IF NOT EXISTS user_roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -111,23 +118,19 @@ CREATE TABLE IF NOT EXISTS user_roles (
     role_id INT NOT NULL,
     assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     assigned_by INT COMMENT 'Admin who assigned the role',
-    
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
     UNIQUE KEY unique_user_role (user_id, role_id),
     INDEX idx_user_id (user_id),
     INDEX idx_role_id (role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ";
-
 if (mysqli_query($conn, $user_roles_table)) {
     echo "✅ Table 'user_roles' created successfully.\n";
 } else {
     echo "❌ Error creating 'user_roles' table: " . mysqli_error($conn) . "\n";
 }
 
-// ===========================
 // 5. PERMISSION_AUDIT_LOG TABLE
-// ===========================
 $audit_log_table = "
 CREATE TABLE IF NOT EXISTS permission_audit_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -138,14 +141,12 @@ CREATE TABLE IF NOT EXISTS permission_audit_log (
     changes TEXT COMMENT 'JSON of what changed',
     ip_address VARCHAR(45),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
     INDEX idx_user_id (user_id),
     INDEX idx_action (action),
     INDEX idx_entity (entity_type, entity_id),
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ";
-
 if (mysqli_query($conn, $audit_log_table)) {
     echo "✅ Table 'permission_audit_log' created successfully.\n";
 } else {
@@ -183,83 +184,59 @@ mysqli_stmt_close($stmt);
 echo "\n";
 
 // ===========================
-// INSERT DEFAULT PERMISSIONS
+// INSERT DEFAULT PERMISSIONS (Table-Based)
 // ===========================
-echo "📝 Inserting default permissions...\n";
+echo "📝 Inserting default table-based permissions...\n";
 
 $default_permissions = [
-    // Dashboard
-    ['dashboard/index', 'Dashboard', 'Dashboard Home', 1, 0, 0, 0, 0, 0],
+    // HR Module Tables
+    ['employees', 'HR', 'Employees', 'Employee records and profiles'],
+    ['departments', 'HR', 'Departments', 'Department structure and hierarchy'],
+    ['designations', 'HR', 'Designations', 'Job titles and positions'],
+    ['attendance', 'HR', 'Attendance', 'Daily attendance records'],
+    ['leave_types', 'HR', 'Leave Types', 'Leave categories and policies'],
+    ['holidays', 'HR', 'Holidays', 'Public holidays calendar'],
     
-    // Employees Module
-    ['employees/index', 'HR', 'Employee List', 1, 0, 0, 0, 1, 0],
-    ['employees/add', 'HR', 'Add Employee', 1, 1, 0, 0, 0, 0],
-    ['employees/edit', 'HR', 'Edit Employee', 1, 0, 1, 0, 0, 0],
-    ['employees/delete', 'HR', 'Delete Employee', 1, 0, 0, 1, 0, 0],
-    ['employees/view', 'HR', 'View Employee Details', 1, 0, 0, 0, 0, 0],
+    // CRM Module Tables
+    ['crm_leads', 'CRM', 'CRM Leads', 'Sales leads and prospects'],
+    ['crm_calls', 'CRM', 'CRM Calls', 'Customer call logs'],
+    ['crm_meetings', 'CRM', 'CRM Meetings', 'Meeting schedules and notes'],
+    ['crm_tasks', 'CRM', 'CRM Tasks', 'Task assignments and tracking'],
+    ['crm_visits', 'CRM', 'CRM Visits', 'Site visit records'],
     
-    // CRM Module
-    ['crm/leads/index', 'CRM', 'Leads List', 1, 0, 0, 0, 1, 0],
-    ['crm/leads/add', 'CRM', 'Add Lead', 1, 1, 0, 0, 0, 0],
-    ['crm/leads/edit', 'CRM', 'Edit Lead', 1, 0, 1, 0, 0, 0],
-    ['crm/leads/delete', 'CRM', 'Delete Lead', 1, 0, 0, 1, 0, 0],
-    ['crm/calls/index', 'CRM', 'Calls Log', 1, 0, 0, 0, 1, 0],
-    ['crm/calls/add', 'CRM', 'Log Call', 1, 1, 0, 0, 0, 0],
-    ['crm/meetings/index', 'CRM', 'Meetings Log', 1, 0, 0, 0, 1, 0],
-    ['crm/meetings/add', 'CRM', 'Schedule Meeting', 1, 1, 0, 0, 0, 0],
-    ['crm/tasks/index', 'CRM', 'Tasks List', 1, 0, 0, 0, 1, 0],
-    ['crm/tasks/add', 'CRM', 'Add Task', 1, 1, 0, 0, 0, 0],
-    ['crm/visits/index', 'CRM', 'Visits Log', 1, 0, 0, 0, 1, 0],
-    ['crm/visits/add', 'CRM', 'Log Visit', 1, 1, 0, 0, 0, 0],
-    
-    // Attendance Module
-    ['attendance/index', 'HR', 'Attendance Records', 1, 0, 0, 0, 1, 0],
-    ['attendance/mark', 'HR', 'Mark Attendance', 1, 1, 0, 0, 0, 0],
-    ['attendance/approve', 'HR', 'Approve Leave', 1, 0, 0, 0, 0, 1],
-    
-    // Salary Module
-    ['salary/index', 'Finance', 'Salary Records', 1, 0, 0, 0, 1, 0],
-    ['salary/generate', 'Finance', 'Generate Salary', 1, 1, 0, 0, 0, 0],
-    ['salary/approve', 'Finance', 'Approve Salary', 1, 0, 0, 0, 0, 1],
+    // Finance Module Tables
+    ['salary_records', 'Finance', 'Salary Records', 'Employee salary processing'],
+    ['reimbursements', 'Finance', 'Reimbursements', 'Employee expense reimbursements'],
+    ['office_expenses', 'Finance', 'Office Expenses', 'General office expenditures'],
     
     // Documents Module
-    ['documents/index', 'Documents', 'Documents Vault', 1, 0, 0, 0, 1, 0],
-    ['documents/upload', 'Documents', 'Upload Document', 1, 1, 0, 0, 0, 0],
-    ['documents/delete', 'Documents', 'Delete Document', 1, 0, 0, 1, 0, 0],
+    ['documents', 'Documents', 'Documents', 'Document management system'],
     
-    // Visitors Module
-    ['visitors/index', 'Reception', 'Visitor Log', 1, 0, 0, 0, 1, 0],
-    ['visitors/add', 'Reception', 'Register Visitor', 1, 1, 0, 0, 0, 0],
+    // Reception Module
+    ['visitor_logs', 'Reception', 'Visitor Logs', 'Visitor check-in records'],
     
-    // Expenses Module
-    ['expenses/index', 'Finance', 'Expenses List', 1, 0, 0, 0, 1, 0],
-    ['expenses/add', 'Finance', 'Add Expense', 1, 1, 0, 0, 0, 0],
-    ['expenses/approve', 'Finance', 'Approve Expense', 1, 0, 0, 0, 0, 1],
+    // Settings Module
+    ['roles', 'Settings', 'Roles', 'User role definitions'],
+    ['permissions', 'Settings', 'Permissions', 'Permission structure'],
+    ['user_roles', 'Settings', 'User Roles', 'Role assignments to users'],
+    ['branding_settings', 'Settings', 'Branding', 'System branding configuration'],
     
-    // Reimbursements Module
-    ['reimbursements/index', 'Finance', 'Reimbursements List', 1, 0, 0, 0, 1, 0],
-    ['reimbursements/add', 'Finance', 'Submit Reimbursement', 1, 1, 0, 0, 0, 0],
-    ['reimbursements/approve', 'Finance', 'Approve Reimbursement', 1, 0, 0, 0, 0, 1],
-    
-    // Settings & Admin
-    ['settings/roles', 'Settings', 'Manage Roles', 1, 1, 1, 1, 0, 0],
-    ['settings/permissions', 'Settings', 'Manage Permissions', 1, 0, 1, 0, 0, 0],
-    ['settings/assign-roles', 'Settings', 'Assign User Roles', 1, 0, 1, 0, 0, 0],
-    ['settings/branding', 'Settings', 'Branding Settings', 1, 0, 1, 0, 0, 0],
+    // System Tables
+    ['users', 'System', 'Users', 'System user accounts'],
 ];
 
 $stmt = mysqli_prepare($conn, "
     INSERT IGNORE INTO permissions 
-    (page_name, module, display_name, can_view, can_create, can_edit, can_delete, can_export, can_approve) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (table_name, module, display_name, description) 
+    VALUES (?, ?, ?, ?)
 ");
 
 foreach ($default_permissions as $perm) {
-    mysqli_stmt_bind_param($stmt, 'sssiiiiii', 
-        $perm[0], $perm[1], $perm[2], $perm[3], $perm[4], $perm[5], $perm[6], $perm[7], $perm[8]
+    mysqli_stmt_bind_param($stmt, 'ssss', 
+        $perm[0], $perm[1], $perm[2], $perm[3]
     );
     if (mysqli_stmt_execute($stmt)) {
-        echo "  ✓ Permission: {$perm[2]}\n";
+        echo "  ✓ Table: {$perm[2]}\n";
     }
 }
 mysqli_stmt_close($stmt);
@@ -272,8 +249,8 @@ echo "\n";
 echo "🔑 Assigning all permissions to Super Admin role...\n";
 
 $assign_query = "
-    INSERT IGNORE INTO role_permissions (role_id, permission_id, can_view, can_create, can_edit, can_delete, can_export, can_approve)
-    SELECT r.id, p.id, 1, 1, 1, 1, 1, 1
+    INSERT IGNORE INTO role_permissions (role_id, permission_id, can_create, can_view_all, can_view_assigned, can_view_own, can_edit_all, can_edit_assigned, can_edit_own, can_delete_all, can_delete_assigned, can_delete_own, can_export)
+    SELECT r.id, p.id, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     FROM roles r
     CROSS JOIN permissions p
     WHERE r.name = 'Super Admin'
@@ -290,18 +267,18 @@ echo "\n";
 // ===========================
 // ASSIGN BASIC PERMISSIONS TO EMPLOYEE ROLE
 // ===========================
-echo "🔑 Assigning basic permissions to Employee role...\n";
+echo "🔑 Assigning basic view permissions to Employee role...\n";
 
 $employee_query = "
-    INSERT IGNORE INTO role_permissions (role_id, permission_id, can_view, can_create, can_edit, can_delete, can_export, can_approve)
-    SELECT r.id, p.id, 1, 0, 0, 0, 0, 0
+    INSERT IGNORE INTO role_permissions (role_id, permission_id, can_create, can_view_all, can_view_assigned, can_view_own, can_edit_all, can_edit_assigned, can_edit_own, can_delete_all, can_delete_assigned, can_delete_own, can_export)
+    SELECT r.id, p.id, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0
     FROM roles r
     CROSS JOIN permissions p
-    WHERE r.name = 'Employee' AND p.page_name IN ('dashboard/index', 'employees/view')
+    WHERE r.name = 'Employee'
 ";
 
 if (mysqli_query($conn, $employee_query)) {
-    echo "✅ Basic permissions assigned to Employee role.\n";
+    echo "✅ Basic view-own/edit-own permissions assigned to Employee role.\n";
 } else {
     echo "❌ Error assigning employee permissions: " . mysqli_error($conn) . "\n";
 }

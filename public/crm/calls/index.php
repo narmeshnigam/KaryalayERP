@@ -1,21 +1,10 @@
 <?php
 require_once __DIR__ . '/common.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../login.php');
-    exit;
-}
+// Enforce permission to view calls
+authz_require_permission($conn, 'crm_calls', 'view_all');
 
-$user_role = $_SESSION['role'] ?? 'employee';
-if (!crm_role_can_manage($user_role)) {
-    header('Location: my.php');
-    exit;
-}
-
-$conn = createConnection(true);
-if (!$conn) {
-    die('Database connection failed');
-}
+$calls_permissions = authz_get_permission_set($conn, 'crm_calls');
 
 // Detect available columns
 $has_follow_up_date = crm_calls_has_column($conn, 'follow_up_date');
@@ -362,6 +351,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 </div>
 
 <?php
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 require_once __DIR__ . '/../../../includes/footer_sidebar.php';
 ?>

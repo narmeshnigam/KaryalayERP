@@ -3,17 +3,11 @@
  * Document Vault - Detailed view.
  */
 
-require_once __DIR__ . '/../../includes/bootstrap.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/flash.php';
 require_once __DIR__ . '/helpers.php';
 
-if (!isset($_SESSION['user_id'])) {
-		header('Location: ../login.php');
-		exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'employee';
 $doc_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($doc_id <= 0) {
 		flash_add('error', 'Document not found.', 'documents');
@@ -21,32 +15,31 @@ if ($doc_id <= 0) {
 		exit;
 }
 
+$document_permissions = authz_get_permission_set($conn, 'documents');
+$can_view_all = $document_permissions['can_view_all'] ?? false;
+$can_view_own = $document_permissions['can_view_own'] ?? false;
+
 $page_title = 'Document Details - ' . APP_NAME;
 
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = createConnection(true);
-if (!$conn) {
-		echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
-		require_once __DIR__ . '/../../includes/footer_sidebar.php';
-		exit;
-}
-
 if (!documents_table_exists($conn)) {
-		closeConnection($conn);
+		if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+			closeConnection($conn);
+		}
 		require_once __DIR__ . '/onboarding.php';
 		exit;
 }
 
-$current_employee_id = documents_current_employee_id($conn, (int) $_SESSION['user_id']);
-$allowed_visibilities = documents_allowed_visibilities($user_role);
+$current_employee_id = documents_current_employee_id($conn, (int) $CURRENT_USER_ID);
+$allowed_visibilities = documents_allowed_visibilities_for_permissions($document_permissions);
 
 $base_conditions = ['d.deleted_at IS NULL'];
 $base_params = [];
 $base_types = '';
 
-if ($user_role !== 'admin') {
+if (!$IS_SUPER_ADMIN && !$can_view_all) {
 		$placeholders = implode(',', array_fill(0, count($allowed_visibilities), '?'));
 		$clause = 'd.visibility IN (' . $placeholders . ')';
 		foreach ($allowed_visibilities as $visibility) {
@@ -100,14 +93,17 @@ function documents_fetch_detail(mysqli $conn, array $conditions, string $types, 
 
 $document = documents_fetch_detail($conn, $detail_conditions, $detail_types, $detail_params);
 if (!$document) {
-		closeConnection($conn);
+		if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+			closeConnection($conn);
+		}
 		flash_add('error', 'Document not accessible or no longer available.', 'documents');
 		header('Location: index.php');
 		exit;
 }
 
-$can_edit = in_array($user_role, ['admin', 'manager'], true);
-$can_archive = $user_role === 'admin';
+$is_uploader = $current_employee_id && ((int) $document['uploaded_by'] === (int) $current_employee_id);
+$can_edit = $IS_SUPER_ADMIN || $document_permissions['can_edit_all'] || $is_uploader;
+$can_archive = $IS_SUPER_ADMIN || $document_permissions['can_delete_all'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$action = $_POST['action'] ?? '';
@@ -118,9 +114,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$new_visibility = trim($_POST['visibility'] ?? $document['visibility']);
 				$new_employee_id = isset($_POST['employee_id']) ? (int) $_POST['employee_id'] : 0;
 
-				if ($user_role !== 'admin' && $new_visibility === 'admin') {
+				$allowed_visibilities_for_edit = documents_allowed_visibilities_for_permissions($document_permissions);
+				if (!$IS_SUPER_ADMIN && $new_visibility === 'admin') {
 					flash_add('error', 'Only administrators can mark documents as admin-only.', 'documents');
-				} elseif (!in_array($new_visibility, ($user_role === 'admin' ? ['employee', 'manager', 'admin'] : $allowed_visibilities), true)) {
+				} elseif (!in_array($new_visibility, ($IS_SUPER_ADMIN ? ['employee', 'manager', 'admin'] : $allowed_visibilities_for_edit), true)) {
 					flash_add('error', 'Invalid visibility selected.', 'documents');
 				} else {
 						$employee_value = $new_employee_id > 0 ? $new_employee_id : null;
@@ -169,7 +166,9 @@ $document = documents_fetch_detail($conn, $detail_conditions, $detail_types, $de
 
 $employees = documents_fetch_employees($conn);
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+	closeConnection($conn);
+}
 
 $file_relative = ltrim($document['file_path'] ?? '', '/');
 $file_path = __DIR__ . '/../../' . $file_relative;
@@ -178,7 +177,7 @@ $file_url = APP_URL . '/' . $file_relative;
 $tags = documents_parse_tags($document['tags'] ?? '');
 $uploaded_on = $document['created_at'] ? date('d M Y, h:i A', strtotime($document['created_at'])) : '—';
 $updated_on = $document['updated_at'] ? date('d M Y, h:i A', strtotime($document['updated_at'])) : '—';
-$visibility_choices = $user_role === 'admin' ? ['employee', 'manager', 'admin'] : $allowed_visibilities;
+$visibility_choices = $IS_SUPER_ADMIN ? ['employee', 'manager', 'admin'] : documents_allowed_visibilities_for_permissions($document_permissions);
 ?>
 <div class="main-wrapper">
 	<div class="main-content">

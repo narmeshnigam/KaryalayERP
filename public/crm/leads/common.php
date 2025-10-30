@@ -1,16 +1,16 @@
 <?php
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../../../includes/auth_check.php';
 
 function crm_leads_require_login(): void {
-    if (!isset($_SESSION['user_id'])) {
-        header('Location: ../../login.php');
-        exit;
-    }
+    // Auth check already performed by auth_check.php
 }
 
 function crm_leads_require_tables(mysqli $conn): void {
     if (!crm_tables_exist($conn)) {
-        closeConnection($conn);
+        if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+            closeConnection($conn);
+        }
         require_once __DIR__ . '/../onboarding.php';
         exit;
     }

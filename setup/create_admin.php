@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/setup_helper.php';
+require_once __DIR__ . '/../includes/authz.php';
 
 $status = getSetupStatus();
 $error = '';
@@ -67,14 +68,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     if ($stmt->execute()) {
                         $success = 'Administrator account created successfully!';
+                        $new_user_id = (int)$stmt->insert_id;
+
+                        // Attach the Super Admin role for RBAC alignment.
+                        authz_ensure_user_role_assignment($conn, $new_user_id, 'admin');
                         
                         // Auto-login the new admin user
                         session_start();
-                        $_SESSION['user_id'] = $stmt->insert_id;
+                        $_SESSION['user_id'] = $new_user_id;
                         $_SESSION['username'] = $username;
                         $_SESSION['full_name'] = $full_name;
                         $_SESSION['role'] = 'admin';
                         $_SESSION['login_time'] = time();
+
+                        authz_refresh_context($conn);
                         
                         $conn->close();
                         

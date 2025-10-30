@@ -3,31 +3,26 @@
  * Document Vault - Edit document (all fields)
  */
 
-require_once __DIR__ . '/../../includes/bootstrap.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/flash.php';
 require_once __DIR__ . '/helpers.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+// Enforce permission to edit documents
+authz_require_permission($conn, 'documents', 'edit_all');
 
-$user_role = $_SESSION['role'] ?? 'employee';
+$document_permissions = authz_get_permission_set($conn, 'documents');
+$can_edit_document = $document_permissions['can_edit_all'] ?? false;
+
 $page_title = 'Edit Document - ' . APP_NAME;
 
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
-
 if (!documents_table_exists($conn)) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
@@ -39,13 +34,15 @@ if ($doc_id <= 0) {
     exit;
 }
 
-$current_employee_id = documents_current_employee_id($conn, (int) $_SESSION['user_id']);
+$current_employee_id = documents_current_employee_id($conn, (int) $CURRENT_USER_ID);
 
 // fetch document
 $sql = 'SELECT * FROM documents WHERE id = ? AND deleted_at IS NULL LIMIT 1';
 $stmt = mysqli_prepare($conn, $sql);
 if (!$stmt) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
   flash_add('error', 'Unable to prepare statement.', 'documents');
     header('Location: index.php');
     exit;
@@ -57,16 +54,20 @@ $document = $res ? mysqli_fetch_assoc($res) : null;
 mysqli_stmt_close($stmt);
 
 if (!$document) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
   flash_add('error', 'Document not found.', 'documents');
     header('Location: index.php');
     exit;
 }
 
 $is_uploader = $current_employee_id && ((int) $document['uploaded_by'] === (int) $current_employee_id);
-$can_edit = in_array($user_role, ['admin', 'manager'], true) || $is_uploader;
+$can_edit = $IS_SUPER_ADMIN || $document_permissions['can_edit_all'] || $is_uploader;
 if (!$can_edit) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
   flash_add('error', 'You do not have permission to edit this document.', 'documents');
     header('Location: view.php?id=' . $doc_id);
     exit;
@@ -84,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $visibility = trim($_POST['visibility'] ?? $document['visibility']);
     // admin only: change uploaded_by
     $uploaded_by = $document['uploaded_by'];
-    if ($user_role === 'admin') {
+    if ($IS_SUPER_ADMIN) {
         $uploaded_by = isset($_POST['uploaded_by']) ? (int) $_POST['uploaded_by'] : $uploaded_by;
     }
 
@@ -92,7 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Title is required.';
     }
 
-    if (!in_array($visibility, ['admin', 'manager', 'employee'], true)) {
+    $allowed_visibilities = documents_allowed_visibilities_for_permissions($document_permissions);
+    if (!in_array($visibility, $allowed_visibilities, true)) {
         $errors[] = 'Invalid visibility selected.';
     }
 
@@ -174,7 +176,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (is_file($old)) { @unlink($old); }
                 }
         flash_add('success', 'Document updated successfully.', 'documents');
-                closeConnection($conn);
+                if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+                    closeConnection($conn);
+                }
                 header('Location: view.php?id=' . $doc_id);
                 exit;
             } else {
@@ -193,7 +197,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 ?>
 <div class="main-wrapper">
   <div class="main-content">
@@ -257,13 +263,15 @@ closeConnection($conn);
         <div class="form-group">
           <label for="visibility">Visibility</label>
           <select id="visibility" name="visibility" class="form-control">
-            <?php $choices = ['employee','manager','admin']; foreach ($choices as $c): ?>
+            <?php 
+            $allowed_visibilities = documents_allowed_visibilities_for_permissions($document_permissions);
+            foreach ($allowed_visibilities as $c): ?>
               <option value="<?php echo $c; ?>" <?php echo ($document['visibility'] === $c) ? 'selected' : ''; ?>><?php echo htmlspecialchars(documents_visibility_label($c)); ?></option>
             <?php endforeach; ?>
           </select>
         </div>
 
-        <?php if ($user_role === 'admin'): ?>
+        <?php if ($IS_SUPER_ADMIN): ?>
           <div class="form-group">
             <label for="uploaded_by">Uploaded by (admin only)</label>
             <select id="uploaded_by" name="uploaded_by" class="form-control">

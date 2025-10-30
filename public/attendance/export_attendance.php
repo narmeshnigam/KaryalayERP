@@ -4,14 +4,7 @@
  * Exports filtered attendance records to CSV format
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+require_once __DIR__ . '/../../includes/auth_check.php';
 
 // Filter parameters (same as index.php)
 $from_date = isset($_GET['from_date']) ? $_GET['from_date'] : date('Y-m-01');
@@ -19,8 +12,6 @@ $to_date = isset($_GET['to_date']) ? $_GET['to_date'] : date('Y-m-d');
 $employee_filter = isset($_GET['employee']) ? (int)$_GET['employee'] : 0;
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $department_filter = isset($_GET['department']) ? $_GET['department'] : '';
-
-$conn = createConnection(true);
 
 // Build query with filters
 $where_conditions = ["a.attendance_date BETWEEN '$from_date' AND '$to_date'"];
@@ -71,7 +62,11 @@ $sql = "SELECT
 $result = mysqli_query($conn, $sql);
 
 if (!$result) {
-    die("Query failed: " . mysqli_error($conn));
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
+    header('Location: index.php?export_error=1');
+    exit;
 }
 
 // Set headers for CSV download
@@ -140,6 +135,8 @@ while ($row = mysqli_fetch_assoc($result)) {
 }
 
 fclose($output);
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 exit;
 ?>

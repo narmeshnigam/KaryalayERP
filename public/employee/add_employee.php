@@ -3,20 +3,10 @@
  * Add New Employee (Scoped under /public/employee)
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
-
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+require_once __DIR__ . '/../../includes/auth_check.php';
 
 // Page title
 $page_title = "Add New Employee - " . APP_NAME;
-
-$conn = createConnection(true);
 
 // Get departments and designations for dropdowns
 $departments = [];
@@ -169,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $year_of_passing = !empty($_POST['year_of_passing']) ? (int)$_POST['year_of_passing'] : null;
             $prev_exp_years = isset($_POST['previous_experience_years']) && $_POST['previous_experience_years'] !== '' ? (float)$_POST['previous_experience_years'] : 0;
             $total_exp_years = isset($_POST['total_experience_years']) && $_POST['total_experience_years'] !== '' ? (float)$_POST['total_experience_years'] : 0;
-            $created_by = (int)$_SESSION['user_id'];
+            $created_by = (int)$CURRENT_USER_ID;
 
             $values = [
                 $employee_code,
@@ -254,7 +244,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $success = true;
                 $employee_id = mysqli_insert_id($conn);
                 mysqli_stmt_close($stmt);
-                closeConnection($conn);
+                if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+                    closeConnection($conn);
+                }
                 header('Location: index.php?success=1&employee_code=' . urlencode($employee_code));
                 exit;
             } else {
@@ -265,7 +257,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 
 // Include header with sidebar AFTER all processing logic
 require_once __DIR__ . '/../../includes/header_sidebar.php';

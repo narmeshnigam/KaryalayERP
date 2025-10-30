@@ -3,28 +3,31 @@
  * Salary Viewer - Admin/Accountant manager console.
  */
 
-require_once __DIR__ . '/../../includes/bootstrap.php';
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
 require_once __DIR__ . '/helpers.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+authz_require_permission($conn, 'salary_records', 'view_all');
+$salary_permissions = authz_get_permission_set($conn, 'salary_records');
+$can_create_salary = !empty($salary_permissions['can_create']);
+$can_edit_salary = !empty($salary_permissions['can_edit_all']);
+$can_delete_salary = !empty($salary_permissions['can_delete_all']);
 
-$user_role = $_SESSION['role'] ?? 'employee';
-if (!salary_role_can_manage($user_role)) {
-    flash_add('error', 'You do not have permission to access the Salary Manager.', 'salary');
-    header('Location: ../employee_portal/salary/index.php');
-    exit;
+$conn_check = createConnection(true);
+if ($conn_check) {
+    $prereq_check = get_prerequisite_check_result($conn_check, 'salary');
+    if (!$prereq_check['allowed']) {
+        closeConnection($conn_check);
+        display_prerequisite_error('salary', $prereq_check['missing_modules']);
+    }
+    closeConnection($conn_check);
 }
 
 $page_title = 'Salary Manager - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = createConnection(true);
+$conn = $conn ?? createConnection(true);
 if (!$conn) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
@@ -37,7 +40,6 @@ if (!salary_table_exists($conn)) {
     exit;
 }
 
-$current_employee_id = salary_current_employee_id($conn, (int) $_SESSION['user_id']);
 $query_string = $_SERVER['QUERY_STRING'] ?? '';
 $redirect_base = 'admin.php' . ($query_string !== '' ? '?' . $query_string : '');
 
@@ -46,6 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $record_id = isset($_POST['record_id']) ? (int) $_POST['record_id'] : 0;
     if ($record_id <= 0) {
         flash_add('error', 'Invalid record identifier.', 'salary');
+        header('Location: ' . $redirect_base);
+        exit;
+    }
+
+    if (in_array($action, ['lock', 'unlock', 'delete'], true) && !$can_edit_salary && !$can_delete_salary) {
+        flash_add('error', 'You do not have permission to modify salary records.', 'salary');
         header('Location: ' . $redirect_base);
         exit;
     }
@@ -68,6 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'lock' || $action === 'unlock') {
+        if (!$can_edit_salary) {
+            flash_add('error', 'You do not have permission to change lock state.', 'salary');
+            header('Location: ' . $redirect_base);
+            exit;
+        }
         $desired = $action === 'lock' ? 1 : 0;
         if ((int) $record['is_locked'] === $desired) {
             flash_add('info', 'Record is already in the requested state.', 'salary');
@@ -90,6 +103,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'delete') {
+        if (!$can_delete_salary) {
+            flash_add('error', 'You do not have permission to delete salary records.', 'salary');
+            header('Location: ' . $redirect_base);
+            exit;
+        }
         if ((int) $record['is_locked'] === 1) {
             flash_add('error', 'Locked salary records cannot be deleted. Unlock first.', 'salary');
             header('Location: ' . $redirect_base);
@@ -220,7 +238,9 @@ if ($monthly_stmt) {
     mysqli_stmt_close($monthly_stmt);
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 ?>
 <div class="main-wrapper">
     <div class="main-content">
@@ -231,8 +251,10 @@ closeConnection($conn);
                     <p>Upload salary slips, lock payroll, and manage corrections.</p>
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                    <a href="upload.php" class="btn" style="background:#003581;color:#fff;">＋ Upload Salary</a>
-                    <?php if (salary_role_can_edit($user_role)): ?>
+                    <?php if ($can_create_salary): ?>
+                        <a href="upload.php" class="btn" style="background:#003581;color:#fff;">＋ Upload Salary</a>
+                    <?php endif; ?>
+                    <?php if ($can_edit_salary): ?>
                         <a href="../../scripts/setup_salary_records_table.php" class="btn btn-secondary">⚙ Module Setup</a>
                     <?php endif; ?>
                 </div>
@@ -400,17 +422,19 @@ closeConnection($conn);
                                     <td style="padding:12px;text-align:center;white-space:nowrap;">
                                         <a href="view.php?id=<?php echo (int) $record['id']; ?>" class="btn btn-accent" style="padding:6px 14px;font-size:13px;">View</a>
                                         <a href="<?php echo $download_link ? htmlspecialchars($download_link, ENT_QUOTES) : '#'; ?>" class="btn" style="padding:6px 14px;font-size:13px;background:#17a2b8;color:#fff;<?php echo $download_link ? '' : 'opacity:0.5;pointer-events:none;'; ?>">PDF</a>
-                                        <?php if (salary_role_can_edit($user_role)): ?>
+                                        <?php if ($can_edit_salary): ?>
                                             <a href="edit.php?id=<?php echo (int) $record['id']; ?>" class="btn" style="padding:6px 14px;font-size:13px;background:#003581;color:#fff;">Edit</a>
                                         <?php endif; ?>
-                                        <form method="POST" style="display:inline;" onsubmit="return confirm('Change lock state for this record?');">
-                                            <input type="hidden" name="record_id" value="<?php echo (int) $record['id']; ?>">
-                                            <input type="hidden" name="action" value="<?php echo $locked ? 'unlock' : 'lock'; ?>">
-                                            <button type="submit" class="btn" style="padding:6px 14px;font-size:13px;background:<?php echo $locked ? '#6c757d' : '#28a745'; ?>;color:#fff;">
-                                                <?php echo $locked ? 'Unlock' : 'Lock'; ?>
-                                            </button>
-                                        </form>
-                                        <?php if (salary_role_can_edit($user_role)): ?>
+                                        <?php if ($can_edit_salary): ?>
+                                            <form method="POST" style="display:inline;" onsubmit="return confirm('Change lock state for this record?');">
+                                                <input type="hidden" name="record_id" value="<?php echo (int) $record['id']; ?>">
+                                                <input type="hidden" name="action" value="<?php echo $locked ? 'unlock' : 'lock'; ?>">
+                                                <button type="submit" class="btn" style="padding:6px 14px;font-size:13px;background:<?php echo $locked ? '#6c757d' : '#28a745'; ?>;color:#fff;">
+                                                    <?php echo $locked ? 'Unlock' : 'Lock'; ?>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+                                        <?php if ($can_delete_salary): ?>
                                             <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this salary record?');">
                                                 <input type="hidden" name="record_id" value="<?php echo (int) $record['id']; ?>">
                                                 <input type="hidden" name="action" value="delete">

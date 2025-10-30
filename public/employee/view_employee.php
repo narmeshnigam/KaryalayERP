@@ -3,14 +3,7 @@
  * Employee Profile View (Scoped under /public/employee)
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+require_once __DIR__ . '/../../includes/auth_check.php';
 
 $page_title = "Employee Profile - " . APP_NAME;
 
@@ -19,8 +12,6 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $not_found = false;
-
-$conn = createConnection(true);
 
 $emp = null;
 if ($id > 0) {
@@ -37,12 +28,14 @@ if ($id > 0) {
     } else {
         $not_found = true;
     }
-    mysqli_stmt_close($stmt);
+  mysqli_stmt_close($stmt);
 } else {
     $not_found = true;
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+  closeConnection($conn);
+}
 
 function safeValue($value, $fallback = '—') {
     if ($value === null || $value === '') {
@@ -119,7 +112,7 @@ function renderDocumentList($label, $jsonPaths) {
         </div>
         <div>
           <a href="index.php" class="btn btn-accent">← Back to List</a>
-          <?php if (!$not_found): ?>
+          <?php if (!$not_found && authz_user_can($conn, 'employees', 'edit_all')): ?>
           <a href="edit_employee.php?id=<?php echo $id; ?>" class="btn" style="margin-left:8px;">✏️ Edit</a>
           <?php endif; ?>
         </div>

@@ -1,27 +1,15 @@
 <?php
 require_once __DIR__ . '/common.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'employee';
-if (!crm_role_can_manage($user_role)) {
-    header('Location: my.php');
-    exit;
-}
-
-$conn = createConnection(true);
-if (!$conn) {
-    die('Database connection failed');
-}
+authz_require_permission($conn, 'crm_visits', 'view_all');
 
 if (!crm_tables_exist($conn)) {
-    closeConnection($conn);
     require_once __DIR__ . '/../onboarding.php';
     exit;
 }
+
+// Get permissions
+$visits_permissions = authz_get_permission_set($conn, 'crm_visits');
 
 // Detect available columns
 $has_lead_id = crm_visits_has_column($conn, 'lead_id');
@@ -206,7 +194,9 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
           <a href="my.php" class="btn btn-accent">🚗 My Visits</a>
+          <?php if ($visits_permissions['can_create'] || $IS_SUPER_ADMIN): ?>
           <a href="add.php" class="btn">➕ Log Visit</a>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -356,7 +346,9 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                   <?php endif; ?>
                   <td style="padding:12px;text-align:center;white-space:nowrap;">
                     <a href="view.php?id=<?php echo $visit['id']; ?>" class="btn" style="padding:6px 14px;font-size:13px;text-decoration:none;background:#17a2b8;color:#fff;">View</a>
+                    <?php if ($visits_permissions['can_edit_all'] || $IS_SUPER_ADMIN): ?>
                     <a href="edit.php?id=<?php echo $visit['id']; ?>" class="btn btn-accent" style="padding:6px 14px;font-size:13px;text-decoration:none;">Edit</a>
+                    <?php endif; ?>
                   </td>
                 </tr>
               <?php endforeach; ?>
@@ -369,6 +361,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 </div>
 
 <?php
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 require_once __DIR__ . '/../../../includes/footer_sidebar.php';
 ?>

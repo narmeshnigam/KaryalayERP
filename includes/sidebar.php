@@ -13,7 +13,11 @@
 // Get current page for active state
 $current_page = basename($_SERVER['PHP_SELF']);
 $current_path = $_SERVER['PHP_SELF'] ?? '';
-$user_role = $_SESSION['role'] ?? 'user';
+
+// Ensure authz functions are available
+if (!function_exists('authz_context')) {
+    require_once __DIR__ . '/authz.php';
+}
 
 // Get current employee ID for profile link
 $current_employee_id = null;
@@ -38,6 +42,48 @@ if ($conn_sidebar) {
     @closeConnection($conn_sidebar);
 }
 
+$sidebar_conn_auth = null;
+if (isset($conn) && $conn instanceof mysqli) {
+    $sidebar_conn_auth = $conn;
+} else {
+    $sidebar_conn_auth = createConnection(true);
+}
+
+// Get auth context - use global if set by auth_check.php, otherwise create new
+if (isset($AUTHZ_CONTEXT) && is_array($AUTHZ_CONTEXT)) {
+    $SIDEBAR_AUTH_CONTEXT = $AUTHZ_CONTEXT;
+} else {
+    $SIDEBAR_AUTH_CONTEXT = authz_context($sidebar_conn_auth);
+}
+
+$SIDEBAR_ROLE_NAMES = $_SESSION['role_names'] ?? array_map(static function ($role) {
+    return $role['name'] ?? '';
+}, $SIDEBAR_AUTH_CONTEXT['roles'] ?? []);
+$SIDEBAR_ROLE_DISPLAY = !empty($SIDEBAR_ROLE_NAMES) ? implode(', ', $SIDEBAR_ROLE_NAMES) : 'No Roles Assigned';
+
+if (!function_exists('sidebar_item_has_access')) {
+    function sidebar_item_has_access(array $item, mysqli $conn): bool {
+        if (isset($item['requires'])) {
+            $table = $item['requires']['table'] ?? '';
+            if ($table === '') {
+                return false;
+            }
+            $perm = $item['requires']['permission'] ?? 'view_all';
+            if (!authz_user_can($conn, $table, $perm)) {
+                return false;
+            }
+        }
+
+        if (isset($item['requires_any']) && is_array($item['requires_any'])) {
+            if (!authz_user_can_any($conn, $item['requires_any'])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+
 // Define navigation menu items with ABSOLUTE URLs
 // Main navigation (ordered as requested)
 $nav_items = [
@@ -57,61 +103,109 @@ $nav_items = [
         'icon' => 'employees.png',
         'label' => 'Employees',
         'link' => APP_URL . '/public/employee/index.php',
-        'active' => (strpos($current_path, '/employee/') !== false)
+        'active' => (strpos($current_path, '/employee/') !== false),
+        'requires' => ['table' => 'employees', 'permission' => 'view_all']
     ],
     [
         'icon' => 'attendance.png',
         'label' => 'Attendance',
         'link' => APP_URL . '/public/attendance/index.php',
-        'active' => (strpos($current_path, '/public/attendance/') !== false)
+        'active' => (strpos($current_path, '/public/attendance/') !== false),
+        'requires' => ['table' => 'attendance', 'permission' => 'view_all']
     ],
     [
         'icon' => 'expenses.png',
         'label' => 'Reimbursements',
         'link' => APP_URL . '/public/reimbursements/index.php',
-        'active' => (strpos($current_path, '/public/reimbursements/') !== false && strpos($current_path, '/employee_portal/') === false)
+        'active' => (strpos($current_path, '/public/reimbursements/') !== false && strpos($current_path, '/employee_portal/') === false),
+        'requires' => ['table' => 'reimbursements', 'permission' => 'view_all']
     ],
     [
         'icon' => 'crm.png',
         'label' => 'CRM',
         'link' => APP_URL . '/public/crm/index.php',
-        'active' => (strpos($current_path, '/crm/') !== false && strpos($current_path, '/crm/dashboard.php') === false)
+        'active' => (strpos($current_path, '/crm/') !== false && strpos($current_path, '/crm/dashboard.php') === false),
+        'requires' => ['table' => 'crm_leads', 'permission' => 'view_all']
     ],
     [
         'icon' => 'expenses.png',
         'label' => 'Expenses',
         'link' => APP_URL . '/public/expenses/index.php',
-        'active' => (strpos($current_path, '/expenses/') !== false)
+        'active' => (strpos($current_path, '/expenses/') !== false),
+        'requires' => ['table' => 'office_expenses', 'permission' => 'view_all']
     ],
     [
         'icon' => 'salary.png',
         'label' => 'Salary',
         'link' => APP_URL . '/public/salary/admin.php',
-        'active' => (strpos($current_path, '/public/salary/') !== false && strpos($current_path, '/employee_portal/') === false)
+        'active' => (strpos($current_path, '/public/salary/') !== false && strpos($current_path, '/employee_portal/') === false),
+        'requires' => ['table' => 'salary_records', 'permission' => 'view_all']
     ],
     [
         'icon' => 'documents.png',
         'label' => 'Documents',
         'link' => APP_URL . '/public/documents/index.php',
-        'active' => (strpos($current_path, '/documents/') !== false && strpos($current_path, '/employee_portal/') === false)
+        'active' => (strpos($current_path, '/documents/') !== false && strpos($current_path, '/employee_portal/') === false),
+        'requires' => ['table' => 'documents', 'permission' => 'view_all']
     ],
     [
         'icon' => 'visitors.png',
         'label' => 'Visitor Log',
         'link' => APP_URL . '/public/visitors/index.php',
-        'active' => (strpos($current_path, '/visitors/') !== false)
+        'active' => (strpos($current_path, '/visitors/') !== false),
+        'requires' => ['table' => 'visitor_logs', 'permission' => 'view_all']
+    ],
+    [
+        'icon' => 'documents.png',
+        'label' => 'Notebook',
+        'link' => APP_URL . '/public/notebook/index.php',
+        'active' => (strpos($current_path, '/notebook/') !== false),
+        'requires' => ['table' => 'notebook_notes', 'permission' => 'view']
+    ],
+    [
+        'icon' => 'employees.png',
+        'label' => 'Contacts',
+        'link' => APP_URL . '/public/contacts/index.php',
+        'active' => (strpos($current_path, '/contacts/') !== false),
+        'requires' => ['table' => 'contacts', 'permission' => 'view']
+    ],
+    [
+        'icon' => 'employees.png',
+        'label' => 'Clients',
+        'link' => APP_URL . '/public/clients/index.php',
+        'active' => (strpos($current_path, '/clients/') !== false),
+        'requires' => ['table' => 'clients', 'permission' => 'view']
+    ],
+    [
+        'icon' => 'documents.png',
+        'label' => 'Projects',
+        'link' => APP_URL . '/public/projects/dashboard.php',
+        'active' => (strpos($current_path, '/projects/') !== false),
+        'requires' => ['table' => 'projects', 'permission' => 'view']
     ],
     [
         'icon' => 'branding.png',
         'label' => 'Branding',
         'link' => APP_URL . '/public/branding/view.php',
-        'active' => (strpos($current_path, '/branding/') !== false)
+        'active' => (strpos($current_path, '/branding/') !== false),
+        'requires' => ['table' => 'branding_settings', 'permission' => 'view_all']
     ],
     [
         'icon' => 'settings.png',
         'label' => 'Roles & Permissions',
         'link' => APP_URL . '/public/settings/roles/index.php',
-        'active' => (strpos($current_path, '/settings/roles/') !== false || strpos($current_path, '/settings/permissions/') !== false)
+        'active' => (strpos($current_path, '/settings/roles/') !== false || strpos($current_path, '/settings/permissions/') !== false),
+        'requires_any' => [
+            ['table' => 'roles', 'permission' => 'view_all'],
+            ['table' => 'permissions', 'permission' => 'view_all']
+        ]
+    ],
+    [
+        'icon' => 'employees.png',
+        'label' => 'Users Management',
+        'link' => APP_URL . '/public/users/index.php',
+        'active' => (strpos($current_path, '/public/users/') !== false && strpos($current_path, '/my-account.php') === false),
+        'requires' => ['table' => 'users', 'permission' => 'view_all']
     ]
 ];
 
@@ -121,28 +215,54 @@ $employee_items[] = [
     'icon' => 'attendance.png',
     'label' => 'My Attendance',
     'link' => APP_URL . '/public/employee_portal/attendance/index.php',
-    'active' => (strpos($current_path, '/employee_portal/attendance/') !== false)
+    'active' => (strpos($current_path, '/employee_portal/attendance/') !== false),
+    'requires_any' => [
+        ['table' => 'attendance', 'permission' => 'view_own'],
+        ['table' => 'attendance', 'permission' => 'view_all']
+    ]
 ];
 $employee_items[] = [
     'icon' => 'expenses.png',
     'label' => 'My Reimbursements',
     'link' => APP_URL . '/public/employee_portal/reimbursements/index.php',
-    'active' => (strpos($current_path, '/employee_portal/reimbursements/') !== false)
+    'active' => (strpos($current_path, '/employee_portal/reimbursements/') !== false),
+    'requires_any' => [
+        ['table' => 'reimbursements', 'permission' => 'view_own'],
+        ['table' => 'reimbursements', 'permission' => 'view_all']
+    ]
 ];
 $employee_items[] = [
     'icon' => 'salary.png',
     'label' => 'My Salary',
     'link' => APP_URL . '/public/employee_portal/salary/index.php',
-    'active' => (strpos($current_path, '/employee_portal/salary/') !== false)
+    'active' => (strpos($current_path, '/employee_portal/salary/') !== false),
+    'requires_any' => [
+        ['table' => 'salary_records', 'permission' => 'view_own'],
+        ['table' => 'salary_records', 'permission' => 'view_all']
+    ]
 ];
 if ($current_employee_id) {
     $employee_items[] = [
         'icon' => 'employees.png',
         'label' => 'My Profile',
         'link' => APP_URL . '/public/employee/view_employee.php?id=' . $current_employee_id,
-        'active' => ($current_page == 'view_employee.php' && isset($_GET['id']) && (int)$_GET['id'] === $current_employee_id)
+        'active' => ($current_page == 'view_employee.php' && isset($_GET['id']) && (int)$_GET['id'] === $current_employee_id),
+        'requires_any' => [
+            ['table' => 'employees', 'permission' => 'view_own'],
+            ['table' => 'employees', 'permission' => 'view_all']
+        ]
     ];
 }
+$employee_items[] = [
+    'icon' => 'settings.png',
+    'label' => 'My Account',
+    'link' => APP_URL . '/public/users/my-account.php',
+    'active' => (strpos($current_path, '/users/my-account.php') !== false),
+    'requires_any' => [
+        ['table' => 'users', 'permission' => 'view_own'],
+        ['table' => 'users', 'permission' => 'view_all']
+    ]
+];
 
 // Check if icon file exists, otherwise use SVG fallback
 function getIconPath($icon_name) {
@@ -587,6 +707,9 @@ if ($conn_branding) {
             <?php 
             // Main navigation items
             foreach ($nav_items as $item): 
+                if (!sidebar_item_has_access($item, $sidebar_conn_auth)) {
+                    continue;
+                }
             ?>
                 <li class="sidebar-nav-item">
                     <a href="<?php echo htmlspecialchars($item['link'], ENT_QUOTES); ?>" 
@@ -627,6 +750,7 @@ if ($conn_branding) {
             <?php if (!empty($employee_items)): ?>
                 <li style="margin: 10px 15px; border-top: 1px solid rgba(255,255,255,0.2);"></li>
                 <?php foreach ($employee_items as $item): ?>
+                    <?php if (!sidebar_item_has_access($item, $sidebar_conn_auth)) { continue; } ?>
                     <li class="sidebar-nav-item">
                         <a href="<?php echo htmlspecialchars($item['link'], ENT_QUOTES); ?>" 
                            class="sidebar-nav-link <?php echo $item['active'] ? 'active' : ''; ?>"
@@ -711,3 +835,9 @@ if ($conn_branding) {
         }
     });
 </script>
+
+<?php
+if ((!isset($conn) || !($conn instanceof mysqli)) && isset($sidebar_conn_auth) && $sidebar_conn_auth instanceof mysqli) {
+    @closeConnection($sidebar_conn_auth);
+}
+?>

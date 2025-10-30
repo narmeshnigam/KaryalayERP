@@ -4,22 +4,11 @@
  * Read-only display of organization information for all users
  */
 
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
-    exit;
-}
 
 // Check if module is set up
 if (!branding_table_exists($conn)) {
-    closeConnection($conn);
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-warning">Branding module is not configured yet.</div></div></div>';
     exit;
 }
@@ -30,10 +19,12 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 // Get current settings
 $settings = branding_get_settings($conn);
-closeConnection($conn);
 
 if (!$settings) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-warning">No branding information available.</div></div></div>';
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
 }
@@ -276,4 +267,9 @@ if (!$settings) {
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php 
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
+require_once __DIR__ . '/../../includes/footer_sidebar.php'; 
+?>

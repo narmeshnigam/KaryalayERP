@@ -3,15 +3,15 @@
  * Expense Tracker - Expense Log List
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/module_dependencies.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+authz_require_permission($conn, 'office_expenses', 'view_all');
+$expense_permissions = authz_get_permission_set($conn, 'office_expenses');
+$can_create_expense = !empty($expense_permissions['can_create']);
+$can_edit_expense = !empty($expense_permissions['can_edit_all']);
+$can_delete_expense = !empty($expense_permissions['can_delete_all']);
+$can_export_expense = !empty($expense_permissions['can_export']);
 
 // Check office_expenses module prerequisites
 $conn_check = createConnection(true);
@@ -24,22 +24,11 @@ if ($conn_check) {
     closeConnection($conn_check);
 }
 
-$user_role = $_SESSION['role'] ?? 'user';
-if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../index.php');
-    exit;
-}
-
 $page_title = 'Expense Tracker - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
+$conn = $conn ?? createConnection(true);
 
 function tableExists($conn, $table)
 {
@@ -53,7 +42,9 @@ function tableExists($conn, $table)
 }
 
 if (!tableExists($conn, 'office_expenses')) {
+  if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
     closeConnection($conn);
+  }
     echo '<div class="main-wrapper"><div class="main-content">';
     echo '<div class="card" style="max-width:760px;margin:0 auto;">';
     echo '<h2 style="margin-top:0;color:#003581;">Expense Tracker module not ready</h2>';
@@ -69,6 +60,9 @@ $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+  if (!$can_delete_expense) {
+    $error = 'You do not have permission to delete expenses.';
+  } else {
     $delete_id = (int) $_POST['delete_id'];
     if ($delete_id > 0) {
         $file_sql = 'SELECT receipt_file FROM office_expenses WHERE id = ?';
@@ -95,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
         }
         mysqli_stmt_close($delete_stmt);
     }
+  }
 }
 
 $from_date = isset($_GET['from_date']) ? $_GET['from_date'] : date('Y-m-01');
@@ -187,7 +182,9 @@ if ($pm_res) {
     }
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+  closeConnection($conn);
+}
 ?>
 
 <div class="main-wrapper">
@@ -199,9 +196,13 @@ closeConnection($conn);
           <p>Track internal overheads and operational costs.</p>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <a href="add.php" class="btn" style="background:#28a745;">＋ Add Expense</a>
+          <?php if ($can_create_expense): ?>
+            <a href="add.php" class="btn" style="background:#28a745;">＋ Add Expense</a>
+          <?php endif; ?>
           <a href="reports.php" class="btn btn-accent">📊 Reports</a>
-          <a href="export.php?<?php echo http_build_query($_GET); ?>" class="btn">📥 Export</a>
+          <?php if ($can_export_expense): ?>
+            <a href="export.php?<?php echo http_build_query($_GET); ?>" class="btn">📥 Export</a>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -309,11 +310,15 @@ closeConnection($conn);
                   </td>
                   <td style="padding:12px;text-align:center;white-space:nowrap;">
                     <a href="view.php?id=<?php echo (int) $expense['id']; ?>" class="btn btn-accent" style="padding:6px 14px;font-size:13px;">View</a>
-                    <a href="edit.php?id=<?php echo (int) $expense['id']; ?>" class="btn" style="padding:6px 14px;font-size:13px;background:#17a2b8;">Edit</a>
-                    <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this expense entry?');">
-                      <input type="hidden" name="delete_id" value="<?php echo (int) $expense['id']; ?>">
-                      <button type="submit" class="btn" style="padding:6px 14px;font-size:13px;background:#dc3545;">Delete</button>
-                    </form>
+                    <?php if ($can_edit_expense): ?>
+                      <a href="edit.php?id=<?php echo (int) $expense['id']; ?>" class="btn" style="padding:6px 14px;font-size:13px;background:#17a2b8;">Edit</a>
+                    <?php endif; ?>
+                    <?php if ($can_delete_expense): ?>
+                      <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this expense entry?');">
+                        <input type="hidden" name="delete_id" value="<?php echo (int) $expense['id']; ?>">
+                        <button type="submit" class="btn" style="padding:6px 14px;font-size:13px;background:#dc3545;">Delete</button>
+                      </form>
+                    <?php endif; ?>
                   </td>
                 </tr>
               <?php endforeach; ?>

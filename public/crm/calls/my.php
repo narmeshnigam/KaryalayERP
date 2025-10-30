@@ -1,22 +1,22 @@
 <?php
 require_once __DIR__ . '/common.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../login.php');
+// Enforce permission to view own calls
+$calls_permissions = authz_get_permission_set($conn, 'crm_calls');
+$can_view_own = $calls_permissions['can_view_own'] ?? false;
+$can_view_all = $calls_permissions['can_view_all'] ?? false;
+
+if (!$can_view_own && !$can_view_all) {
+    flash_add('error', 'You do not have permission to view calls.', 'crm');
+    header('Location: ../index.php');
     exit;
 }
 
-$user_role = $_SESSION['role'] ?? 'employee';
-$user_id = (int)$_SESSION['user_id'];
-
-$conn = createConnection(true);
-if (!$conn) {
-    die('Database connection failed');
-}
-
-$current_employee_id = crm_current_employee_id($conn, $user_id);
+$current_employee_id = crm_current_employee_id($conn, (int)$CURRENT_USER_ID);
 if (!$current_employee_id) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     die('Unable to identify your employee record.');
 }
 
@@ -392,6 +392,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 </div>
 
 <?php
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 require_once __DIR__ . '/../../../includes/footer_sidebar.php';
 ?>

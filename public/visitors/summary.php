@@ -3,31 +3,16 @@
  * Visitor Log Module - Daily Summary Sheet
  */
 
-session_start();
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/flash.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'user';
-if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../index.php');
-    exit;
-}
+// Enforce permission to view visitor logs
+authz_require_permission($conn, 'visitor_logs', 'view_all');
 
 $page_title = 'Visitor Summary - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
-
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
 
 function tableExists($conn, $table)
 {
@@ -41,7 +26,9 @@ function tableExists($conn, $table)
 }
 
 if (!tableExists($conn, 'visitor_logs')) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
@@ -70,7 +57,9 @@ while ($row = mysqli_fetch_assoc($result)) {
     $rows[] = $row;
 }
 mysqli_stmt_close($stmt);
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 
 $total_visitors = count($rows);
 $checked_out = 0;

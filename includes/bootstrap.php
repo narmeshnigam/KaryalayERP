@@ -18,5 +18,4 @@ if (!defined('APP_BOOTSTRAPPED')) {
     }
 
     require_once __DIR__ . '/flash.php';
-    require_once __DIR__ . '/url_helper.php';
 }

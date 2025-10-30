@@ -1,17 +1,7 @@
 <?php
 require_once __DIR__ . '/common.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'employee';
-if (!crm_role_can_manage($user_role)) {
-    flash_add('error', 'You do not have permission to edit visits', 'crm');
-    header('Location: my.php');
-    exit;
-}
+authz_require_permission($conn, 'crm_visits', 'edit_all');
 
 $visit_id = isset($_GET['id']) && is_numeric($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($visit_id <= 0) {
@@ -20,17 +10,14 @@ if ($visit_id <= 0) {
     exit;
 }
 
-$conn = createConnection(true);
-if (!$conn) {
-    die('Database connection failed');
-}
-
 // Fetch existing visit
 $select_cols = crm_visits_select_columns($conn);
 $sql = "SELECT $select_cols FROM crm_visits c WHERE c.id = ? AND c.deleted_at IS NULL LIMIT 1";
 $stmt = mysqli_prepare($conn, $sql);
 if (!$stmt) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     die('Failed to prepare query');
 }
 
@@ -43,7 +30,9 @@ mysqli_stmt_close($stmt);
 
 if (!$visit) {
     flash_add('error', 'Visit not found', 'crm');
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     header('Location: index.php');
     exit;
 }
@@ -339,7 +328,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 flash_add('success', ($visit_type === 'Scheduled' ? 'Scheduled visit updated' : 'Visit updated') . ' successfully!', 'crm');
-                closeConnection($conn);
+                if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+                    closeConnection($conn);
+                }
                 header('Location: view.php?id=' . $visit_id);
                 exit;
             } else {
@@ -877,6 +868,8 @@ $(document).ready(function() {
 </script>
 
 <?php
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 require_once __DIR__ . '/../../../includes/footer_sidebar.php';
 ?>

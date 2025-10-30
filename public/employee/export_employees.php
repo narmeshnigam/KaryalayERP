@@ -3,16 +3,7 @@
  * Export Employees (CSV for Excel)
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
-$conn = createConnection(true);
+require_once __DIR__ . '/../../includes/auth_check.php';
 
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
 $department_filter = isset($_GET['department']) ? mysqli_real_escape_string($conn, $_GET['department']) : '';
@@ -28,7 +19,9 @@ $sql = "SELECT * FROM employees $where_sql ORDER BY created_at DESC";
 $res = mysqli_query($conn, $sql);
 
 if (!$res) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     header('Location: index.php?export_error=1');
     exit;
 }
@@ -69,5 +62,7 @@ while ($row = mysqli_fetch_assoc($res)) {
 }
 
 fclose($fh);
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 exit;

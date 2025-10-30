@@ -102,107 +102,23 @@ function getSetupStepUrl() {
 }
 
 /**
- * Update database configuration in .env file
+ * Update database configuration in config.php file
  */
 function updateDatabaseConfig($host, $user, $pass, $name) {
-    $env_file = __DIR__ . '/../.env';
+    $config_file = __DIR__ . '/config.php';
     
-    // Read existing .env file or use template
-    $env_template = __DIR__ . '/../.env.example';
-    
-    if (file_exists($env_file)) {
-        $lines = file($env_file, FILE_IGNORE_NEW_LINES);
-    } elseif (file_exists($env_template)) {
-        $lines = file($env_template, FILE_IGNORE_NEW_LINES);
-    } else {
-        // Create basic template if neither exists
-        $lines = [
-            '# Environment Configuration',
-            '# Database Configuration',
-            'DB_HOST=',
-            'DB_USER=',
-            'DB_PASS=',
-            'DB_NAME=',
-            'DB_CHARSET=utf8mb4',
-            '',
-            '# Application Configuration',
-            'APP_NAME=Karyalay ERP',
-            'APP_URL=',
-            '',
-            '# Session Configuration',
-            'SESSION_NAME=karyalay_session',
-            'SESSION_LIFETIME=3600',
-            '',
-            '# Timezone',
-            'TIMEZONE=Asia/Kolkata',
-            '',
-            '# Environment (development, production)',
-            'ENVIRONMENT=development',
-            '',
-            '# Debug Mode (true/false)',
-            'DEBUG_MODE=true'
-        ];
+    if (!file_exists($config_file)) {
+        return false;
     }
     
-    // Update database credentials
-    $updated_lines = [];
-    $db_keys_found = ['DB_HOST' => false, 'DB_USER' => false, 'DB_PASS' => false, 'DB_NAME' => false];
+    $content = file_get_contents($config_file);
     
-    foreach ($lines as $line) {
-        $trimmed = trim($line);
-        
-        // Skip comments and empty lines
-        if (empty($trimmed) || strpos($trimmed, '#') === 0) {
-            $updated_lines[] = $line;
-            continue;
-        }
-        
-        // Parse and update database keys
-        if (strpos($line, '=') !== false) {
-            list($key, $value) = explode('=', $line, 2);
-            $key = trim($key);
-            
-            switch ($key) {
-                case 'DB_HOST':
-                    $updated_lines[] = "DB_HOST=" . $host;
-                    $db_keys_found['DB_HOST'] = true;
-                    break;
-                case 'DB_USER':
-                    $updated_lines[] = "DB_USER=" . $user;
-                    $db_keys_found['DB_USER'] = true;
-                    break;
-                case 'DB_PASS':
-                    $updated_lines[] = "DB_PASS=" . $pass;
-                    $db_keys_found['DB_PASS'] = true;
-                    break;
-                case 'DB_NAME':
-                    $updated_lines[] = "DB_NAME=" . $name;
-                    $db_keys_found['DB_NAME'] = true;
-                    break;
-                default:
-                    $updated_lines[] = $line;
-            }
-        } else {
-            $updated_lines[] = $line;
-        }
-    }
+    // Replace database configuration values
+    $content = preg_replace("/define\('DB_HOST',\s*'[^']*'\);/", "define('DB_HOST', '" . addslashes($host) . "');", $content);
+    $content = preg_replace("/define\('DB_USER',\s*'[^']*'\);/", "define('DB_USER', '" . addslashes($user) . "');", $content);
+    $content = preg_replace("/define\('DB_PASS',\s*'[^']*'\);/", "define('DB_PASS', '" . addslashes($pass) . "');", $content);
+    $content = preg_replace("/define\('DB_NAME',\s*'[^']*'\);/", "define('DB_NAME', '" . addslashes($name) . "');", $content);
     
-    // Add any missing database keys
-    if (!$db_keys_found['DB_HOST']) $updated_lines[] = "DB_HOST=" . $host;
-    if (!$db_keys_found['DB_USER']) $updated_lines[] = "DB_USER=" . $user;
-    if (!$db_keys_found['DB_PASS']) $updated_lines[] = "DB_PASS=" . $pass;
-    if (!$db_keys_found['DB_NAME']) $updated_lines[] = "DB_NAME=" . $name;
-    
-    // Write back to .env file
-    $content = implode("\n", $updated_lines) . "\n";
-    
-    if (file_put_contents($env_file, $content) !== false) {
-        // Reload environment variables
-        require_once __DIR__ . '/env_loader.php';
-        EnvLoader::load($env_file);
-        return true;
-    }
-    
-    return false;
+    return file_put_contents($config_file, $content) !== false;
 }
 ?>

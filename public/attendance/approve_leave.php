@@ -4,20 +4,12 @@
  * View and approve/reject employee leave requests
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+require_once __DIR__ . '/../../includes/auth_check.php';
 
 $page_title = "Approve Leave Requests - " . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = createConnection(true);
 $message = '';
 $error = '';
 
@@ -33,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $error = "Invalid action selected.";
   } else {
     if (!empty($attendance_ids)) {
-      $user_id = $_SESSION['user_id'];
+  $user_id = $CURRENT_USER_ID;
             
       switch ($action) {
         case 'approve':
@@ -162,7 +154,9 @@ mysqli_stmt_execute($stats_stmt);
 $stats = mysqli_fetch_assoc(mysqli_stmt_get_result($stats_stmt));
 mysqli_stmt_close($stats_stmt);
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+  closeConnection($conn);
+}
 ?>
 
 <div class="main-wrapper">

@@ -1,17 +1,15 @@
 <?php
 require_once __DIR__ . '/common.php';
 
-if (!isset($_SESSION['user_id'])) { header('Location: ../../login.php'); exit; }
-$user_id = (int)$_SESSION['user_id'];
-$user_role = $_SESSION['role'] ?? 'employee';
-
 $task_id = isset($_GET['id']) && is_numeric($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($task_id <= 0) { flash_add('error','Invalid task ID','crm'); header('Location: index.php'); exit; }
 
-$conn = createConnection(true); if (!$conn) { die('DB failed'); }
-if (!crm_tables_exist($conn)) { closeConnection($conn); require_once __DIR__ . '/../onboarding.php'; exit; }
+if (!crm_tables_exist($conn)) { require_once __DIR__ . '/../onboarding.php'; exit; }
 
-$current_employee_id = crm_current_employee_id($conn, $user_id);
+$current_employee_id = crm_current_employee_id($conn, $CURRENT_USER_ID);
+
+// Get permissions
+$tasks_permissions = authz_get_permission_set($conn, 'crm_tasks');
 
 $has_lead_id = crm_tasks_has_column($conn,'lead_id');
 $has_assigned_to = crm_tasks_has_column($conn,'assigned_to');
@@ -31,12 +29,12 @@ $lead_select = '';
 if ($has_lead_id) { $joins = ' LEFT JOIN crm_leads l ON c.lead_id = l.id ' . $joins; $lead_select = ', l.name AS lead_name, l.company_name AS lead_company'; }
 
 $sql = "SELECT $select_cols $lead_select $emp_select FROM crm_tasks c $joins WHERE c.id = ? AND c.deleted_at IS NULL LIMIT 1";
-$stmt = mysqli_prepare($conn,$sql); if (!$stmt){ closeConnection($conn); die('Failed to prepare'); }
+$stmt = mysqli_prepare($conn,$sql); if (!$stmt){ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) { closeConnection($conn); } die('Failed to prepare'); }
 mysqli_stmt_bind_param($stmt,'i',$task_id); mysqli_stmt_execute($stmt); $res = mysqli_stmt_get_result($stmt); $task = $res?mysqli_fetch_assoc($res):null; if($res)mysqli_free_result($res); mysqli_stmt_close($stmt);
-if (!$task) { flash_add('error','Task not found','crm'); closeConnection($conn); header('Location: index.php'); exit; }
+if (!$task) { flash_add('error','Task not found','crm'); if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) { closeConnection($conn); } header('Location: index.php'); exit; }
 
-if ($has_assigned_to && !crm_role_can_manage($user_role) && (int)($task['assigned_to'] ?? 0) !== (int)$current_employee_id) {
-  flash_add('error','You do not have permission to view this task','crm'); closeConnection($conn); header('Location: my.php'); exit;
+if ($has_assigned_to && !$tasks_permissions['can_view_all'] && !$IS_SUPER_ADMIN && (int)($task['assigned_to'] ?? 0) !== (int)$current_employee_id) {
+  flash_add('error','You do not have permission to view this task','crm'); if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) { closeConnection($conn); } header('Location: my.php'); exit;
 }
 
 $page_title = 'Task Details - CRM - ' . APP_NAME;
@@ -57,8 +55,8 @@ $overdue = ($due && strtotime($due) < strtotime('today') && ($task['status'] ?? 
           <p>Full task information and timeline</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <?php if (crm_role_can_manage($user_role)): ?><a href="edit.php?id=<?php echo $task_id; ?>" class="btn">✏️ Edit Task</a><?php endif; ?>
-          <a href="<?php echo crm_role_can_manage($user_role) ? 'index.php' : 'my.php'; ?>" class="btn btn-accent">← Back to List</a>
+          <?php if ($tasks_permissions['can_edit_all'] || $IS_SUPER_ADMIN): ?><a href="edit.php?id=<?php echo $task_id; ?>" class="btn">✏️ Edit Task</a><?php endif; ?>
+          <a href="<?php echo ($tasks_permissions['can_view_all'] || $IS_SUPER_ADMIN) ? 'index.php' : 'my.php'; ?>" class="btn btn-accent">← Back to List</a>
         </div>
       </div>
     </div>
@@ -132,4 +130,4 @@ $overdue = ($due && strtotime($due) < strtotime('today') && ($task['status'] ?? 
   </div>
 </div>
 
-<?php closeConnection($conn); require_once __DIR__ . '/../../../includes/footer_sidebar.php'; ?>
+<?php if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) { closeConnection($conn); } require_once __DIR__ . '/../../../includes/footer_sidebar.php'; ?>

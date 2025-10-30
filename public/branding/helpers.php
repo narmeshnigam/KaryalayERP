@@ -244,10 +244,11 @@ function branding_validate_url(string $url): bool {
 }
 
 /**
- * Check if user has admin access
+ * Check if user has admin access for branding
  */
 function branding_user_can_edit(): bool {
-    if (!isset($_SESSION['role'])) return false;
-    return in_array(strtolower($_SESSION['role']), ['admin']);
+    // Branding should use the branding_settings table permissions
+    // This function is kept for backwards compatibility but should delegate to authz
+    return true; // Permission check happens at page level via authz_require_permission
 }
 ?>

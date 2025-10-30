@@ -160,7 +160,6 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                     <thead>
                         <tr>
                             <th>Role Name</th>
-                            <th>Description</th>
                             <th>Type</th>
                             <th>Users</th>
                             <th>Permissions</th>
@@ -186,7 +185,6 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                                     <span class="badge" style="background: #17a2b8; color: white; margin-left: 8px;">System</span>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo htmlspecialchars($role['description'] ?? '-'); ?></td>
                                 <td>
                                     <?php if ($role['is_system_role']): ?>
                                     <span style="color: #17a2b8;">🔒 System Role</span>
@@ -222,7 +220,6 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                                             ✏️ Edit
                                         </a>
                                         <?php endif; ?>
-                                        
                                         <?php if (has_permission($conn, $user_id, 'settings/roles', 'delete') && !$role['is_system_role']): ?>
                                         <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this role? All user assignments will be removed.');">
                                             <input type="hidden" name="delete_role_id" value="<?php echo $role['id']; ?>">
@@ -298,55 +295,79 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 </div>
 
 <style>
-.badge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.badge-success {
-    background: #28a745;
-    color: white;
-}
-
-.badge-secondary {
-    background: #6c757d;
-    color: white;
-}
-
+/* Cleaned up and improved table, badge, and button styles for better alignment and less clutter */
 .data-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    font-size: 15px;
+    table-layout: auto;
 }
-
 .data-table th {
     background: #f8f9fa;
-    padding: 12px;
+    padding: 14px 16px;
     text-align: left;
-    font-weight: 600;
+    font-weight: 700;
     color: #1b2a57;
     border-bottom: 2px solid #dee2e6;
+    white-space: nowrap;
 }
-
 .data-table td {
-    padding: 12px;
+    padding: 12px 16px;
     border-bottom: 1px solid #dee2e6;
+    vertical-align: middle;
+    font-size: 15px;
+    white-space: nowrap;
 }
-
 .data-table tbody tr:hover {
-    background: #f8f9fa;
+    background: #f3f6fa;
+    transition: background 0.2s;
 }
-
-.btn-sm {
-    padding: 6px 12px;
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
     font-size: 13px;
+    border-radius: 12px;
+    font-weight: 500;
+    margin-right: 2px;
+    margin-bottom: 2px;
 }
-
+.badge-success {
+    background: #28a745;
+    color: #fff;
+}
+.badge-secondary {
+    background: #6c757d;
+    color: #fff;
+}
+.btn-sm {
+    padding: 6px 14px;
+    font-size: 14px;
+    border-radius: 6px;
+    margin-right: 4px;
+    margin-bottom: 2px;
+}
 .btn-info {
     background: #17a2b8;
     color: white;
+}
+.btn-info:hover {
+    background: #138496;
+}
+.btn-primary {
+    background: #003581;
+    color: #fff;
+}
+.btn-primary:hover {
+    background: #00245c;
+}
+.btn-danger {
+    background: #dc3545;
+    color: #fff;
+}
+.btn-danger:hover {
+    background: #a71d2a;
 }
 
 .btn-info:hover {
@@ -357,6 +378,22 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
     padding: 16px;
     border-radius: 8px;
     margin-bottom: 24px;
+}
+
+.btn-primary {
+    background: #003581;
+    color: #fff;
+}
+.btn-primary:hover {
+    background: #00245c;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: #fff;
+}
+.btn-danger:hover {
+    background: #a71d2a;
 }
 
 .alert-success {

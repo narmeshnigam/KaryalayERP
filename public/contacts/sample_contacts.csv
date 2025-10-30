@@ -1,0 +1,6 @@
+Name,Organization,Designation,Contact Type,Phone,Alt Phone,Email,WhatsApp,LinkedIn,Address,Tags,Notes,Share Scope
+John Doe,ABC Corporation,Sales Manager,Client,+91 9876543210,,john.doe@abc.com,+91 9876543210,https://linkedin.com/in/johndoe,"Mumbai, Maharashtra",vip,Important client - handles bulk orders,Organization
+Jane Smith,XYZ Technologies,CEO,Partner,+91 8765432109,+91 9876543211,jane@xyz.tech,+91 8765432109,https://linkedin.com/in/janesmith,"Bangalore, Karnataka","partner,important,tech",Strategic technology partner,Team
+Robert Johnson,Global Supplies Ltd,Procurement Head,Vendor,+91 7654321098,,robert.j@globalsupplies.com,,,Delhi NCR,"vendor,supplier",Regular office supplies vendor,Organization
+Emily Brown,,Product Designer,Personal,+91 6543210987,,emily.brown@gmail.com,+91 6543210987,,"Pune, Maharashtra",personal,Friend and freelance designer,Private
+Michael Davis,Innovate Solutions,CTO,Client,+91 5432109876,+91 8765432100,mdavis@innovate.io,+91 5432109876,https://linkedin.com/in/michaeldavis,"Hyderabad, Telangana","tech,client,decision-maker",Tech client - SaaS platform user,Organization

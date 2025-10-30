@@ -89,14 +89,20 @@ if ($role_id > 0) {
         
         // Get permissions assigned to this role
         $stmt = mysqli_prepare($conn, "
-            SELECT p.page_name, p.module, p.display_name,
-                   rp.can_view, rp.can_create, rp.can_edit, 
-                   rp.can_delete, rp.can_export, rp.can_approve
+            SELECT p.table_name, p.module, p.display_name,
+                   rp.can_create, rp.can_view_all, rp.can_view_assigned, rp.can_view_own,
+                   rp.can_edit_all, rp.can_edit_assigned, rp.can_edit_own,
+                   rp.can_delete_all, rp.can_delete_assigned, rp.can_delete_own,
+                   rp.can_export
             FROM role_permissions rp
             INNER JOIN permissions p ON rp.permission_id = p.id
             WHERE rp.role_id = ?
-            AND (rp.can_view = 1 OR rp.can_create = 1 OR rp.can_edit = 1 
-                 OR rp.can_delete = 1 OR rp.can_export = 1 OR rp.can_approve = 1)
+            AND (
+                rp.can_create = 1 OR rp.can_view_all = 1 OR rp.can_view_assigned = 1 OR rp.can_view_own = 1 OR
+                rp.can_edit_all = 1 OR rp.can_edit_assigned = 1 OR rp.can_edit_own = 1 OR
+                rp.can_delete_all = 1 OR rp.can_delete_assigned = 1 OR rp.can_delete_own = 1 OR
+                rp.can_export = 1
+            )
             ORDER BY p.module, p.display_name
         ");
         
@@ -320,14 +326,14 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                                 <tr>
                                     <td>
                                         <strong><?php echo htmlspecialchars($perm['display_name']); ?></strong>
-                                        <div style="font-size: 11px; color: #6c757d;"><?php echo htmlspecialchars($perm['page_name']); ?></div>
+                                        <div style="font-size: 11px; color: #6c757d;">Table: <?php echo htmlspecialchars($perm['table_name']); ?></div>
                                     </td>
-                                    <td><?php echo $perm['can_view'] ? '<span style="color:#28a745;">✓</span>' : '<span style="color:#ddd;">—</span>'; ?></td>
+                                    <td><?php echo ($perm['can_view_all'] || $perm['can_view_assigned'] || $perm['can_view_own']) ? '<span style="color:#28a745;">✓</span>' : '<span style="color:#ddd;">—</span>'; ?></td>
                                     <td><?php echo $perm['can_create'] ? '<span style="color:#28a745;">✓</span>' : '<span style="color:#ddd;">—</span>'; ?></td>
-                                    <td><?php echo $perm['can_edit'] ? '<span style="color:#28a745;">✓</span>' : '<span style="color:#ddd;">—</span>'; ?></td>
-                                    <td><?php echo $perm['can_delete'] ? '<span style="color:#28a745;">✓</span>' : '<span style="color:#ddd;">—</span>'; ?></td>
+                                    <td><?php echo ($perm['can_edit_all'] || $perm['can_edit_assigned'] || $perm['can_edit_own']) ? '<span style="color:#28a745;">✓</span>' : '<span style="color:#ddd;">—</span>'; ?></td>
+                                    <td><?php echo ($perm['can_delete_all'] || $perm['can_delete_assigned'] || $perm['can_delete_own']) ? '<span style="color:#28a745;">✓</span>' : '<span style="color:#ddd;">—</span>'; ?></td>
                                     <td><?php echo $perm['can_export'] ? '<span style="color:#28a745;">✓</span>' : '<span style="color:#ddd;">—</span>'; ?></td>
-                                    <td><?php echo $perm['can_approve'] ? '<span style="color:#28a745;">✓</span>' : '<span style="color:#ddd;">—</span>'; ?></td>
+                                    <td>—</td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>

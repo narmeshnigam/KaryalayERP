@@ -3,35 +3,16 @@
  * Visitor Log Module - Edit Visitor Entry
  */
 
-// safe session start
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/flash.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'user';
-$allowed_roles = ['admin', 'manager'];
-if (!in_array($user_role, $allowed_roles, true)) {
-    header('Location: ../index.php');
-    exit;
-}
+// Enforce permission to edit visitor logs
+authz_require_permission($conn, 'visitor_logs', 'edit_all');
 
 $page_title = 'Edit Visitor - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
-
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
 
 function tableExistsLocal($conn, $table)
 {
@@ -45,14 +26,18 @@ function tableExistsLocal($conn, $table)
 }
 
 if (!tableExistsLocal($conn, 'visitor_logs')) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
 
 $visitor_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($visitor_id <= 0) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Invalid visitor ID provided.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
@@ -62,7 +47,9 @@ if ($visitor_id <= 0) {
 $detail_sql = 'SELECT * FROM visitor_logs WHERE id = ? AND deleted_at IS NULL LIMIT 1';
 $detail_stmt = mysqli_prepare($conn, $detail_sql);
 if (!$detail_stmt) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to prepare statement.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
@@ -74,7 +61,9 @@ $visitor = mysqli_fetch_assoc($detail_res);
 mysqli_stmt_close($detail_stmt);
 
 if (!$visitor) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Visitor record not found.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
@@ -183,9 +172,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $phone_param = $phone !== '' ? $phone : null;
             mysqli_stmt_bind_param($stmt, 'ssssisi', $visitor_name, $phone_param, $purpose, $check_in_time_db, $employee_id, $photo_path, $visitor_id);
             if (mysqli_stmt_execute($stmt)) {
-                $_SESSION['visitor_success'] = 'Visitor entry updated successfully.';
+                flash_add('success', 'Visitor entry updated successfully.', 'visitors');
                 mysqli_stmt_close($stmt);
-                closeConnection($conn);
+                if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+                    closeConnection($conn);
+                }
                 header('Location: view.php?id=' . $visitor_id);
                 exit;
             } else {
@@ -198,7 +189,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 ?>
 <div class="main-wrapper">
   <div class="main-content">

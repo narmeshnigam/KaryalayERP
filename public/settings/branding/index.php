@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../../includes/bootstrap.php';
 
 if (!isset($_SESSION['user_id'])) { header('Location: ../../login.php'); exit; }
 $role = strtolower($_SESSION['role'] ?? 'employee');
-if ($role !== 'admin') { header('Location: ../../unauthorized.php'); exit; }
+if ($role !== 'admin') { header('Location: /unauthorized'); exit; }
 
 $conn = createConnection(true);
 $branding = null;
@@ -51,7 +51,7 @@ function val($arr, $k, $d=''){ return htmlspecialchars($arr[$k] ?? $d); }
 
         <div style="margin-top:16px; display:flex; gap:10px;">
           <button class="btn btn-primary" type="submit">Save Settings</button>
-          <a href="view.php" class="btn btn-secondary">View as Employee</a>
+          <a href="/public/settings/branding/view.php" class="btn btn-secondary">View as Employee</a>
         </div>
       </form>
     </div>

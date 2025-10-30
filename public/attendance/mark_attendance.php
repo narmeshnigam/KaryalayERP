@@ -4,14 +4,7 @@
  * Interface for marking daily attendance
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+require_once __DIR__ . '/../../includes/auth_check.php';
 
 $page_title = "Mark Attendance - " . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
@@ -20,8 +13,6 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 $message = '';
 $error = '';
 $selected_date = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
-
-$conn = createConnection(true);
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['attendance_data'])) {
@@ -78,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['attendance_data'])) {
                 VALUES 
                 ($employee_id, '$attendance_date', $check_in, $check_out, '$status', 
                 $total_hours, $late_minutes, $early_leave_minutes, '$remarks', 
-                $work_from_home, $leave_type, {$_SESSION['user_id']}, 'Approved')
+                $work_from_home, $leave_type, {$CURRENT_USER_ID}, 'Approved')
                 ON DUPLICATE KEY UPDATE 
                 check_in_time = VALUES(check_in_time),
                 check_out_time = VALUES(check_out_time),
@@ -142,7 +133,9 @@ if (empty($leave_types)) {
     $leave_types = ['Sick Leave', 'Casual Leave', 'Earned Leave', 'Maternity Leave', 'Paternity Leave', 'Unpaid Leave'];
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+  closeConnection($conn);
+}
 ?>
 
 <div class="main-wrapper">

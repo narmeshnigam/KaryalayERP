@@ -301,11 +301,18 @@ if ($conn_favicon) {
             </a>
             
             <nav>
+                <?php
+                    $header_role_names = $_SESSION['role_names'] ?? [];
+                    $header_role_display = !empty($header_role_names) ? implode(', ', $header_role_names) : '';
+                ?>
                 <ul class="nav-menu">
                     <li><a href="../public/index.php" class="<?php echo ($current_page == 'index.php') ? 'active' : ''; ?>">Dashboard</a></li>
                     <li>
-                        <div class="user-info">
+                        <div class="user-info" title="<?php echo $header_role_display ? 'Roles: ' . htmlspecialchars($header_role_display) : 'No roles assigned'; ?>">
                             👤 <?php echo htmlspecialchars($_SESSION['username']); ?>
+                            <?php if ($header_role_display): ?>
+                                <span style="display:block;font-size:11px;color:#cbd5f5;">Roles: <?php echo htmlspecialchars($header_role_display); ?></span>
+                            <?php endif; ?>
                         </div>
                     </li>
                     <li><a href="../public/logout.php" class="logout-btn">Logout</a></li>

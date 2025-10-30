@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../../../includes/auth_check.php';
 
 /**
  * Get available call outcomes

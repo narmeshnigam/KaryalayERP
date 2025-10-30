@@ -3,22 +3,13 @@
  * Edit Employee (Scoped under /public/employee)
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+require_once __DIR__ . '/../../includes/auth_check.php';
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($id <= 0) {
     header('Location: index.php');
     exit;
 }
-
-$conn = createConnection(true);
 
 // Get available users for linking
 $available_users = [];
@@ -57,7 +48,9 @@ $emp = mysqli_fetch_assoc($res);
 mysqli_stmt_close($stmt);
 
 if (!$emp) {
+  if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
     closeConnection($conn);
+  }
     header('Location: index.php');
     exit;
 }
@@ -240,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'notes' => trim($_POST['notes'] ?? '') ?: null,
             'is_user_created' => $is_user_created,
             'user_id' => $user_id_to_link,
-            'updated_by' => (string)$_SESSION['user_id']
+      'updated_by' => (string)$CURRENT_USER_ID
         ];
 
         $set_clauses = [];
@@ -262,9 +255,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             call_user_func_array('mysqli_stmt_bind_param', $refs);
 
-            if (mysqli_stmt_execute($stmt)) {
-                mysqli_stmt_close($stmt);
-                closeConnection($conn);
+      if (mysqli_stmt_execute($stmt)) {
+        mysqli_stmt_close($stmt);
+        if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+          closeConnection($conn);
+        }
                 header('Location: view_employee.php?id=' . $id);
                 exit;
             }
@@ -300,7 +295,9 @@ if ($emp['user_id']) {
     mysqli_stmt_close($user_stmt);
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+  closeConnection($conn);
+}
 
 function selected($current, $value) {
     return $current == $value ? 'selected' : '';

@@ -3,32 +3,18 @@
  * Visitor Log Module - Detail View
  */
 
-require_once __DIR__ . '/../../includes/bootstrap.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/flash.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+// Enforce permission to view visitor logs
+authz_require_permission($conn, 'visitor_logs', 'view_all');
 
-$user_role = $_SESSION['role'] ?? 'user';
-$allowed_roles = ['admin', 'manager'];
-if (!in_array($user_role, $allowed_roles, true)) {
-    header('Location: ../index.php');
-    exit;
-}
+$visitor_permissions = authz_get_permission_set($conn, 'visitor_logs');
 
 $page_title = 'Visitor Details - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
-
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
 
 function tableExists($conn, $table)
 {
@@ -42,21 +28,26 @@ function tableExists($conn, $table)
 }
 
 if (!tableExists($conn, 'visitor_logs')) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
 
 $visitor_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($visitor_id <= 0) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Invalid visitor ID provided.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['checkout_id'])) {
+    $can_edit_visitor = $IS_SUPER_ADMIN || $visitor_permissions['can_edit_all'];
+    if (isset($_POST['checkout_id']) && $can_edit_visitor) {
         $checkout_id = (int) $_POST['checkout_id'];
         if ($checkout_id > 0) {
             $stmt = mysqli_prepare($conn, 'SELECT check_in_time, check_out_time FROM visitor_logs WHERE id = ? AND deleted_at IS NULL LIMIT 1');
@@ -128,7 +119,9 @@ $detail_res = mysqli_stmt_get_result($detail_stmt);
 $visitor = mysqli_fetch_assoc($detail_res);
 mysqli_stmt_close($detail_stmt);
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 
 if (!$visitor || $visitor['deleted_at'] !== null) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Visitor record not found.</div></div></div>';
@@ -162,7 +155,9 @@ if (!empty($visitor['photo'])) {
         </div>
         <div style="display:flex;gap:10px;">
           <a href="index.php" class="btn btn-secondary">← Back to Visitor Log</a>
-          <?php if (in_array($user_role, ['admin','manager'], true)): ?>
+          <?php 
+          $can_edit_visitor = $IS_SUPER_ADMIN || $visitor_permissions['can_edit_all'];
+          if ($can_edit_visitor): ?>
             <a href="edit.php?id=<?php echo (int) $visitor['id']; ?>" class="btn" style="background:#003581;color:#fff;">✏️ Edit</a>
           <?php endif; ?>
         </div>

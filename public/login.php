@@ -14,6 +14,7 @@ session_start();
 require_once __DIR__ . '/../config/db_connect.php';
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/setup_helper.php';
+require_once __DIR__ . '/../includes/authz.php';
 
 // Check if setup is complete, redirect to setup wizard if not
 if (!isSetupComplete()) {
@@ -44,10 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Check if connection exists
         if ($conn) {
             // Prepare SQL statement to prevent SQL injection
-            $sql = "SELECT id, username, password, full_name, role, is_active 
-                    FROM users 
-                    WHERE username = ? 
-                    LIMIT 1";
+        $sql = "SELECT id, username, password_hash, full_name, role, is_active 
+            FROM users 
+            WHERE username = ? 
+            LIMIT 1";
             
             $stmt = $conn->prepare($sql);
             
@@ -65,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $error_message = 'Your account has been deactivated. Please contact administrator.';
                     } 
                     // Verify password
-                    elseif (password_verify($password, $user['password'])) {
+                    elseif (password_verify($password, $user['password_hash'])) {
                         // Password is correct, create session
                         session_regenerate_id(true); // Prevent session fixation
                         
@@ -74,6 +75,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $_SESSION['full_name'] = $user['full_name'];
                         $_SESSION['role'] = $user['role'];
                         $_SESSION['login_time'] = time();
+
+                        // Ensure the user has an RBAC role assignment aligned with the permissions manager.
+                        authz_ensure_user_role_assignment($conn, (int)$user['id'], $user['role'] ?? null);
+                        authz_refresh_context($conn);
                         
                         // Redirect to dashboard
                         header('Location: index.php');

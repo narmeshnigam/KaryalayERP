@@ -3,23 +3,18 @@
  * Document Vault - Upload new document.
  */
 
-require_once __DIR__ . '/../../includes/bootstrap.php';
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
-if (!isset($_SESSION['user_id'])) {
-		header('Location: ../login.php');
-		exit;
-}
+authz_require_permission($conn, 'documents', 'create');
+$document_permissions = authz_get_permission_set($conn, 'documents');
 
-$user_role = $_SESSION['role'] ?? 'employee';
 $page_title = 'Upload Document - ' . APP_NAME;
 
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = createConnection(true);
+$conn = $conn ?? createConnection(true);
 if (!$conn) {
 		echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
 		require_once __DIR__ . '/../../includes/footer_sidebar.php';
@@ -27,13 +22,15 @@ if (!$conn) {
 }
 
 if (!documents_table_exists($conn)) {
-		closeConnection($conn);
+		if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+				closeConnection($conn);
+		}
 		require_once __DIR__ . '/onboarding.php';
 		exit;
 }
 
-$current_employee_id = documents_current_employee_id($conn, (int) $_SESSION['user_id']);
-$allowed_visibilities = documents_allowed_visibilities($user_role);
+$current_employee_id = documents_current_employee_id($conn, (int) $CURRENT_USER_ID);
+$allowed_visibilities = documents_allowed_visibilities_for_permissions($document_permissions);
 $employees = documents_fetch_employees($conn);
 
 $form_data = [
@@ -59,15 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$errors[] = 'Title is required.';
 		}
 
-		if (!in_array($form_data['visibility'], array_merge($allowed_visibilities, ['admin']), true)) {
-				$errors[] = 'Invalid visibility option selected.';
-		}
+	if (!in_array($form_data['visibility'], array_merge($allowed_visibilities, ['admin']), true)) {
+			$errors[] = 'Invalid visibility option selected.';
+	}
 
-		if ($user_role !== 'admin' && $form_data['visibility'] === 'admin') {
-				$errors[] = 'Only administrators can mark documents as admin-only.';
-		}
-
-		if (!$current_employee_id) {
+	if (!$document_permissions['can_view_all'] && $form_data['visibility'] === 'admin') {
+			$errors[] = 'Only administrators can mark documents as admin-only.';
+	}		if (!$current_employee_id) {
 				$errors[] = 'Your user profile is not linked to an employee record. Contact administrator to fix this before uploading.';
 		}
 
@@ -139,7 +134,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$executed = mysqli_stmt_execute($stmt);
 				if ($executed) {
 					mysqli_stmt_close($stmt);
-					closeConnection($conn);
+					if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+						closeConnection($conn);
+					}
 					flash_add('success', 'Document uploaded successfully.', 'documents');
 					header('Location: index.php');
 					exit;
@@ -156,7 +153,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		}
 }
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+	closeConnection($conn);
+}
 ?>
 <div class="main-wrapper">
 	<div class="main-content">

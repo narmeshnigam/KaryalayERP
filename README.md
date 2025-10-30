@@ -20,35 +20,23 @@ A complete **Core PHP** project with login system, database auto-setup, and sess
 KaryalayERP/
 │
 ├── config/
-│   ├── env_loader.php          # Environment variable loader
-│   ├── config.php              # Configuration loader (uses .env)
-│   ├── db_connect.php          # Database connection handler
-│   └── setup_helper.php        # Setup utilities
+│   ├── config.php              # Database and app configuration constants
+│   └── db_connect.php          # Database connection handler
 │
 ├── includes/
 │   ├── header.php              # Common header and navigation
-│   ├── sidebar.php             # Application sidebar navigation
 │   └── footer.php              # Common footer
 │
 ├── public/
 │   ├── login.php               # Login form and authentication
-│   ├── index.php               # Protected dashboard page
-│   ├── logout.php              # Logout handler
-│   └── [modules]/              # Various application modules
+│   ├── index.php           # Protected dashboard page
+│   └── logout.php              # Logout handler
 │
 ├── scripts/
-│   └── setup_*.php             # Database table setup scripts
+│   └── setup_db.php            # Database and table setup script
 │
-├── setup/
-│   └── *.php                   # Installation wizard files
-│
-├── .env                        # Environment configuration (DO NOT COMMIT)
-├── .env.example                # Environment variables template
-├── .gitignore                  # Git ignore rules
-├── validate_config.php         # Configuration validator tool
-├── migrate_config.php          # Migration helper tool
-├── ENV_CONFIGURATION_GUIDE.md  # Environment configuration guide
-├── index.php                   # Main entry point
+├── index.php                   # Main entry point with auto-setup
+├── .env.example                # Environment variables example
 └── README.md                   # This file
 ```
 
@@ -71,24 +59,15 @@ KaryalayERP/
    - Start **Apache** server
    - Start **MySQL** server
 
-3. **Configure Database**
-   
-   **Option A: Using Setup Wizard (Recommended)**
-   - Navigate to: `http://localhost/KaryalayERP/setup/`
-   - Follow the guided setup wizard
-   - Enter your database credentials
-   - Setup wizard will automatically create `.env` file
-   
-   **Option B: Manual Configuration**
-   - Copy `.env.example` to `.env`
-   - Edit `.env` with your database credentials:
-     ```bash
-     DB_HOST=localhost
-     DB_USER=root
-     DB_PASS=
-     DB_NAME=karyalay_db
+3. **Configure Database (Optional)**
+   - Edit `config/config.php` to change database credentials if needed
+   - Default settings work with XAMPP out of the box:
+     ```php
+     DB_HOST: localhost
+     DB_USER: root
+     DB_PASS: (empty)
+     DB_NAME: karyalay_db
      ```
-   - Save the file
 
 4. **Access the Application**
    - Open your browser and visit:
@@ -96,22 +75,10 @@ KaryalayERP/
    http://localhost/KaryalayERP/
    ```
 
-5. **Verify Setup**
-   - Run the configuration validator:
-   ```
-   http://localhost/KaryalayERP/validate_config.php
-   ```
-   - Or use the migration helper if upgrading:
-   ```
-   http://localhost/KaryalayERP/migrate_config.php
-   ```
-
-6. **Complete Setup**
-   - On first visit, the setup wizard will guide you through:
-     - Database creation
-     - Table creation
-     - Admin user creation
-     - Initial branding configuration
+5. **Automatic Setup**
+   - On first visit, the system will automatically:
+     - Create the database `karyalay_db`
+     - Create the `users` table
      - Insert default admin user
    - You'll be redirected to the setup page showing progress
 
@@ -183,54 +150,21 @@ CREATE TABLE `users` (
 
 ## 📝 Configuration
 
-### Environment-Based Configuration (New!)
-
-KaryalayERP now uses **environment variables** for configuration, providing better security and flexibility.
-
-**Key Benefits:**
-- ✅ Credentials stored in `.env` file (not committed to version control)
-- ✅ Easy to configure for different environments
-- ✅ No hardcoded credentials in code
-- ✅ Simple deployment and updates
-
-**Configuration Files:**
-- `.env` - Your actual configuration (DO NOT commit to Git)
-- `.env.example` - Template with all available options
-- `config/config.php` - Loads configuration from `.env`
-- `config/env_loader.php` - Environment variable parser
-
 ### Database Settings
-Edit `.env` file:
-```bash
-DB_HOST=localhost
-DB_USER=root
-DB_PASS=
-DB_NAME=karyalay_db
-DB_CHARSET=utf8mb4
+Edit `config/config.php`:
+```php
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+define('DB_NAME', 'karyalay_db');
 ```
 
 ### Application Settings
-Edit `.env` file:
-```bash
-APP_NAME=Karyalay ERP
-APP_URL=http://localhost/KaryalayERP
-SESSION_NAME=karyalay_session
-SESSION_LIFETIME=3600
-TIMEZONE=Asia/Kolkata
+```php
+define('APP_NAME', 'Karyalay ERP');
+define('APP_URL', 'http://localhost/KaryalayERP');
+define('SESSION_LIFETIME', 3600); // 1 hour
 ```
-
-### Environment Modes
-```bash
-# Development (shows errors)
-ENVIRONMENT=development
-DEBUG_MODE=true
-
-# Production (hides errors)
-ENVIRONMENT=production
-DEBUG_MODE=false
-```
-
-**📖 For detailed configuration guide, see:** [ENV_CONFIGURATION_GUIDE.md](ENV_CONFIGURATION_GUIDE.md)
 
 ## 🎨 Customization
 
@@ -252,35 +186,16 @@ $sql = "INSERT INTO users (username, password, full_name, role)
 
 ### Database Connection Error
 - Check if MySQL is running in XAMPP
-- Verify database credentials in `.env` file (not config.php)
-- Run configuration validator: `http://localhost/KaryalayERP/validate_config.php`
+- Verify database credentials in `config/config.php`
 - Check MySQL error logs
 
-### .env File Not Found
-- Copy `.env.example` to `.env`
-- Or run the migration helper: `http://localhost/KaryalayERP/migrate_config.php`
-- Or use the setup wizard: `http://localhost/KaryalayERP/setup/`
-
-### Configuration Not Loading
-- Ensure `.env` file is in the project root (not in subdirectories)
-- Check file permissions - PHP must be able to read `.env`
-- Verify `.env` syntax (key=value format, no spaces around =)
-- Restart Apache after changing `.env`
-
 ### Setup Not Running
-- Visit `http://localhost/KaryalayERP/setup/` for guided setup
-- Or manually configure `.env` file
+- Visit `http://localhost/KaryalayERP/scripts/setup_db.php` manually
 - Check PHP error logs in XAMPP
 
 ### Session Issues
 - Ensure session cookies are enabled in browser
 - Check session save path permissions
-- Verify SESSION_NAME and SESSION_LIFETIME in `.env`
-
-### Migration from Old Version
-- Run: `http://localhost/KaryalayERP/migrate_config.php`
-- Follow the migration steps
-- Old hardcoded credentials will be detected and suggested for `.env`
 
 ## 📚 Code Documentation
 

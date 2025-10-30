@@ -3,15 +3,13 @@
  * Employee Management Module - Main Page (Scoped under /public/employee)
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+authz_require_permission($conn, 'employees', 'view_all');
+$employee_permissions = authz_get_permission_set($conn, 'employees');
+$can_create_employee = !empty($employee_permissions['can_create']);
+$can_edit_employee = !empty($employee_permissions['can_edit_all']);
+$can_export_employee = !empty($employee_permissions['can_export']);
 
 // Page title
 $page_title = "Employee Management - " . APP_NAME;
@@ -19,9 +17,6 @@ $page_title = "Employee Management - " . APP_NAME;
 // Include header with sidebar
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
-
-// Get database connection
-$conn = createConnection(true);
 
 // Check if employees table exists
 $table_exists = mysqli_query($conn, "SHOW TABLES LIKE 'employees'");
@@ -86,7 +81,9 @@ if ($employees_table_exists) {
 
 $total_pages = ceil($total_records / $per_page);
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 ?>
 
 <div class="main-wrapper">
@@ -99,7 +96,7 @@ closeConnection($conn);
                     <p>Manage employee information, records, and profiles</p>
                 </div>
                 <div>
-                    <?php if ($employees_table_exists): ?>
+                    <?php if ($employees_table_exists && $can_create_employee): ?>
                         <a href="add_employee.php" class="btn" style="display: inline-flex; align-items: center; gap: 8px;">
                             <span style="font-size: 18px;">➕</span> Add New Employee
                         </a>
@@ -212,9 +209,11 @@ closeConnection($conn);
                         <span style="font-size: 14px; color: #6c757d; font-weight: normal;">(<?php echo $total_records; ?> records)</span>
                     </h3>
                     <div style="display: flex; gap: 10px;">
-                        <button onclick="exportToExcel()" class="btn btn-accent" style="padding: 8px 16px; font-size: 13px;">
-                            📊 Export to Excel
-                        </button>
+                        <?php if ($can_export_employee): ?>
+                            <button onclick="exportToExcel()" class="btn btn-accent" style="padding: 8px 16px; font-size: 13px;">
+                                📊 Export to Excel
+                            </button>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -290,9 +289,11 @@ closeConnection($conn);
                                                 <a href="view_employee.php?id=<?php echo $emp['id']; ?>" class="btn" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">
                                                     👁️ View
                                                 </a>
-                                                <a href="edit_employee.php?id=<?php echo $emp['id']; ?>" class="btn btn-accent" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">
-                                                    ✏️ Edit
-                                                </a>
+                                                <?php if ($can_edit_employee): ?>
+                                                    <a href="edit_employee.php?id=<?php echo $emp['id']; ?>" class="btn btn-accent" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">
+                                                        ✏️ Edit
+                                                    </a>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>

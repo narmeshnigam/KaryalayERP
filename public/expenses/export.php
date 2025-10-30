@@ -3,27 +3,11 @@
  * Expense Tracker - CSV Export
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+authz_require_permission($conn, 'office_expenses', 'export');
 
-$user_role = $_SESSION['role'] ?? 'user';
-if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../index.php');
-    exit;
-}
-
-$conn = createConnection(true);
-if (!$conn) {
-    header('Content-Type: text/plain; charset=utf-8');
-    echo 'Unable to connect to the database.';
-    exit;
-}
+$conn = $conn ?? createConnection(true);
 
 function tableExists($conn, $table)
 {
@@ -46,7 +30,9 @@ function refValues(array &$arr)
 }
 
 if (!tableExists($conn, 'office_expenses')) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Expense table not found. Please run the setup script.';
     exit;
@@ -88,7 +74,9 @@ $sql = "SELECT e.date, e.category, e.vendor_name, e.description, e.amount, e.pay
 
 $stmt = mysqli_prepare($conn, $sql);
 if (!$stmt) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Failed to prepare export statement.';
     exit;
@@ -104,7 +92,9 @@ if (!empty($params)) {
 
 if (!mysqli_stmt_execute($stmt)) {
     mysqli_stmt_close($stmt);
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Failed to execute export query.';
     exit;
@@ -145,5 +135,7 @@ while ($row = mysqli_fetch_assoc($result)) {
 
 fclose($output);
 mysqli_stmt_close($stmt);
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 exit;

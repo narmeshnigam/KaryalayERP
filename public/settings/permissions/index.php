@@ -1,61 +1,59 @@
 <?php
-// Enable error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+/**
+ * Table-Based Permissions Manager
+ * Manage permissions by database tables instead of page paths
+ */
 
 session_start();
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../../config/db_connect.php';
-require_once __DIR__ . '/../roles/helpers.php';
-require_once __DIR__ . '/helpers.php';
 
-if (!isset($_SESSION['user_id'])) { header('Location: ../../login.php'); exit; }
-$user_id = (int)$_SESSION['user_id'];
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ../../login.php');
+    exit;
+}
+
+$page_title = "Table Permissions Manager - " . APP_NAME;
+
 $conn = createConnection(true);
 
-// Skip roles table check for now - we're rebuilding the system
-// if (!roles_tables_exist($conn)) { header('Location: ../roles/onboarding.php'); exit; }
+// Include table-based helpers
+require_once __DIR__ . '/helpers_table_based.php';
 
-// Auto-scan and sync pages FIRST
-$public_path = __DIR__ . '/../../';
-$discovered_pages = scan_public_pages($public_path);
-$sync_stats = sync_permissions_table($conn, $discovered_pages);
+// Auto-scan and sync database tables
+$discovered_tables = scan_database_tables($conn);
+$sync_stats = sync_permissions_with_tables($conn, $discovered_tables);
 
-// Check permission (after pages are synced)
-// TEMPORARILY DISABLED - Rebuilding permission system
-// Allow access if permissions table is empty (initial setup)
-// $perm_count = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM permissions");
-// $perm_row = mysqli_fetch_assoc($perm_count);
-// if ($perm_row['cnt'] > 0) {
-//     // Permissions exist, do the check
-//     require_permission($conn, $user_id, 'settings/roles/index.php', 'view');
-// }
-
-$permissions = get_permissions_grouped($conn, false);
-
-$stmt = mysqli_prepare($conn, "SELECT id, name, is_system_role FROM roles WHERE status = 'Active' ORDER BY CASE WHEN is_system_role = 1 THEN 0 ELSE 1 END, name");
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
+// Get all active roles
+$roles_result = mysqli_query($conn, "SELECT * FROM roles WHERE status = 'Active' ORDER BY name");
 $roles = [];
-while ($row = mysqli_fetch_assoc($result)) { $roles[] = $row; }
-mysqli_stmt_close($stmt);
+while ($row = mysqli_fetch_assoc($roles_result)) {
+    $roles[] = $row;
+}
+mysqli_free_result($roles_result);
 
-$rp_result = mysqli_query($conn, "SELECT role_id, permission_id, can_create, can_view_all, can_view_assigned, can_view_own, can_edit_all, can_edit_assigned, can_edit_own, can_delete_all, can_delete_assigned, can_delete_own, can_export FROM role_permissions");
+// Get permissions grouped by module
+$permissions = get_permissions_grouped($conn);
+
+// Load role permissions for matrix display
 $role_permissions = [];
+$rp_result = mysqli_query($conn, "SELECT * FROM role_permissions");
 while ($row = mysqli_fetch_assoc($rp_result)) {
-    $role_permissions[$row['role_id'] . '_' . $row['permission_id']] = $row;
+    $key = $row['role_id'] . '_' . $row['permission_id'];
+    $role_permissions[$key] = $row;
 }
+mysqli_free_result($rp_result);
 
-$total_pages = 0; $total_modules = count($permissions); $total_submodules = 0;
-foreach ($permissions as $module_data) {
-    $total_pages += count($module_data['pages']);
-    $total_submodules += count($module_data['submodules']);
-    foreach ($module_data['submodules'] as $sp) { $total_pages += count($sp); }
-}
+// Calculate statistics
+$total_tables = count($discovered_tables);
+$total_modules = count($permissions);
+$total_roles = count($roles);
 
-$page_title = 'Permissions Management - ' . APP_NAME;
+// Include headers
 require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
+
+closeConnection($conn);
 ?>
 
 <div class="main-wrapper">
@@ -65,8 +63,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <div class="page-header">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
                 <div>
-                    <h1>🔐 Permissions Management</h1>
-                    <p>Real-time permission matrix with automatic page detection</p>
+                    <h1>🗄️ Table-Based Permissions Manager</h1>
+                    <p>Control user access by database tables with granular permissions</p>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                     <a href="../roles/index.php" class="btn btn-secondary">← Back to Roles</a>
@@ -79,13 +77,13 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <div style="background:#d4edda;border-left:4px solid #28a745;padding:16px;margin-bottom:24px;border-radius:6px;">
             <strong>🔄 Auto-Sync Completed:</strong>
             <?php if ($sync_stats['new'] > 0): ?>
-                <span style="margin-left:12px;">✨ <?php echo $sync_stats['new']; ?> new page(s) added</span>
+                <span style="margin-left:12px;">✨ <?php echo $sync_stats['new']; ?> new table(s) added</span>
             <?php endif; ?>
             <?php if ($sync_stats['reactivated'] > 0): ?>
-                <span style="margin-left:12px;">✅ <?php echo $sync_stats['reactivated']; ?> page(s) reactivated</span>
+                <span style="margin-left:12px;">✅ <?php echo $sync_stats['reactivated']; ?> table(s) reactivated</span>
             <?php endif; ?>
             <?php if ($sync_stats['deactivated'] > 0): ?>
-                <span style="margin-left:12px;">⚠️ <?php echo $sync_stats['deactivated']; ?> page(s) deactivated</span>
+                <span style="margin-left:12px;">⚠️ <?php echo $sync_stats['deactivated']; ?> table(s) deactivated</span>
             <?php endif; ?>
         </div>
         <?php endif; ?>
@@ -93,9 +91,9 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <!-- Statistics Cards -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;">
             <div class="stat-card">
-                <div style="font-size:32px;margin-bottom:8px;">📄</div>
-                <div style="color:#6c757d;font-size:12px;font-weight:600;">TOTAL PAGES</div>
-                <div style="font-size:28px;font-weight:700;color:#003581;margin-top:8px;"><?php echo $total_pages; ?></div>
+                <div style="font-size:32px;margin-bottom:8px;">🗄️</div>
+                <div style="color:#6c757d;font-size:12px;font-weight:600;">DATABASE TABLES</div>
+                <div style="font-size:28px;font-weight:700;color:#003581;margin-top:8px;"><?php echo $total_tables; ?></div>
             </div>
             <div class="stat-card">
                 <div style="font-size:32px;margin-bottom:8px;">📦</div>
@@ -103,14 +101,9 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                 <div style="font-size:28px;font-weight:700;color:#003581;margin-top:8px;"><?php echo $total_modules; ?></div>
             </div>
             <div class="stat-card">
-                <div style="font-size:32px;margin-bottom:8px;">📁</div>
-                <div style="color:#6c757d;font-size:12px;font-weight:600;">SUBMODULES</div>
-                <div style="font-size:28px;font-weight:700;color:#003581;margin-top:8px;"><?php echo $total_submodules; ?></div>
-            </div>
-            <div class="stat-card">
                 <div style="font-size:32px;margin-bottom:8px;">👥</div>
                 <div style="color:#6c757d;font-size:12px;font-weight:600;">ACTIVE ROLES</div>
-                <div style="font-size:28px;font-weight:700;color:#003581;margin-top:8px;"><?php echo count($roles); ?></div>
+                <div style="font-size:28px;font-weight:700;color:#003581;margin-top:8px;"><?php echo $total_roles; ?></div>
             </div>
         </div>
 
@@ -143,11 +136,11 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         </div>
         
         <?php elseif (empty($permissions)): ?>
-        <!-- No Pages Warning -->
+        <!-- No Tables Warning -->
         <div class="card">
             <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:20px;border-radius:6px;color:#856404;">
-                <strong>⚠️ No Pages Found</strong>
-                <p>No pages were detected. Please check your /public folder structure.</p>
+                <strong>⚠️ No Database Tables Found</strong>
+                <p>No tables were detected in the database. Please check your database structure.</p>
             </div>
         </div>
         
@@ -156,7 +149,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <!-- Permissions Matrix -->
         <div class="card">
             <h3 style="margin:0 0 20px 0;color:#1b2a57;border-bottom:2px solid #e5e7eb;padding-bottom:12px;">
-                📊 Interactive Permissions Matrix
+                📊 Interactive Table Permissions Matrix
             </h3>
 
             <div style="overflow-x:auto;">
@@ -164,10 +157,10 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                     <thead style="position:sticky;top:0;background:white;z-index:10;">
                         <tr style="background:#f8f9fa;border-bottom:2px solid #dee2e6;">
                             <th rowspan="2" style="text-align:left;padding:12px;font-weight:600;color:#1b2a57;min-width:250px;position:sticky;left:0;background:#f8f9fa;z-index:11;">
-                                Module · Page
+                                Module · Table
                             </th>
                             <?php foreach ($roles as $role): ?>
-                                <th colspan="11" style="text-align:center;padding:8px;font-weight:600;color:#1b2a57;border-left:2px solid #003581;">
+                                <th colspan="12" style="text-align:center;padding:8px 12px;font-weight:600;color:#1b2a57;border-left:2px solid #003581;min-width:520px;">
                                     <?php echo htmlspecialchars($role['name']); ?>
                                     <?php if ($role['is_system_role']): ?>
                                         <span style="font-size:10px;">🔒</span>
@@ -177,7 +170,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                         </tr>
                         <tr style="background:#f8f9fa;border-bottom:1px solid #dee2e6;">
                             <?php foreach ($roles as $role): ?>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;border-left:2px solid #003581;" title="Create">C</th>
+                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;border-left:2px solid #003581;" title="Row: Select/Clear all for this role">ALL</th>
+                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="Create">C</th>
                                 <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="View All">VA</th>
                                 <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="View Assigned">VAs</th>
                                 <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="View Own">VO</th>
@@ -194,27 +188,34 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                     <tbody>
                         <?php
                         $row_num = 0;
-                        foreach ($permissions as $module => $module_data):
+                        foreach ($permissions as $module => $tables):
+                            $module_id = strtolower(preg_replace('/[^a-z0-9]+/i','-',$module));
                         ?>
-                            <!-- Module Header -->
-                            <tr style="background:#e3f2fd;">
-                                <td colspan="<?php echo 1 + (count($roles) * 11); ?>" style="padding:10px 12px;font-weight:700;color:#0066cc;font-size:14px;position:sticky;left:0;background:#e3f2fd;z-index:11;">
+                            <!-- Module Header with per-role bulk controls -->
+                            <tr class="module-row" style="background:#e3f2fd;" data-module="<?php echo $module_id; ?>">
+                                <td style="padding:10px 12px;font-weight:700;color:#0066cc;font-size:14px;position:sticky;left:0;background:#e3f2fd;z-index:11;">
                                     📦 <?php echo htmlspecialchars($module); ?>
                                 </td>
+                                <?php foreach ($roles as $role): ?>
+                                    <td colspan="12" style="padding:6px 8px;border-left:2px solid #003581;background:#e3f2fd;">
+                                        <button type="button" class="mini-btn module-select" data-action="select" data-module="<?php echo $module_id; ?>" data-role="<?php echo (int)$role['id']; ?>">✓ All</button>
+                                        <button type="button" class="mini-btn module-select" data-action="clear" data-module="<?php echo $module_id; ?>" data-role="<?php echo (int)$role['id']; ?>">✕ None</button>
+                                    </td>
+                                <?php endforeach; ?>
                             </tr>
                             
-                            <!-- Module Pages (no submodule) -->
-                            <?php foreach ($module_data['pages'] as $page):
+                            <!-- Module Tables -->
+                            <?php foreach ($tables as $table):
                                 $row_num++;
                                 $row_color = ($row_num % 2 === 0) ? '#fafafa' : 'white';
                             ?>
-                            <tr style="background:<?php echo $row_color; ?>;border-bottom:1px solid #eee;">
+                            <tr class="table-row" data-module="<?php echo $module_id; ?>" style="background:<?php echo $row_color; ?>;border-bottom:1px solid #eee;">
                                 <td style="padding:10px 12px;position:sticky;left:0;background:<?php echo $row_color; ?>;z-index:9;">
-                                    <div style="font-weight:600;color:#1b2a57;margin-bottom:2px;"><?php echo htmlspecialchars($page['page_name']); ?></div>
-                                    <div style="font-size:10px;color:#6c757d;"><?php echo htmlspecialchars($page['page_path']); ?></div>
+                                    <div style="font-weight:600;color:#1b2a57;margin-bottom:2px;"><?php echo htmlspecialchars($table['display_name']); ?></div>
+                                    <div style="font-size:10px;color:#6c757d;font-family:monospace;"><?php echo htmlspecialchars($table['table_name']); ?></div>
                                 </td>
                                 <?php foreach ($roles as $role):
-                                    $key = $role['id'] . '_' . $page['id'];
+                                    $key = $role['id'] . '_' . $table['id'];
                                     $perms = $role_permissions[$key] ?? null;
                                     
                                     $permission_types = [
@@ -228,65 +229,23 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                                     foreach ($permission_types as $ptype):
                                         $is_checked = $perms && $perms[$ptype] == 1;
                                         $first_col = ($ptype === 'can_create');
-                                ?>
-                                    <td style="text-align:center;padding:4px;<?php echo $first_col ? 'border-left:2px solid #003581;' : ''; ?>">
+                                        if ($first_col): ?>
+                                            <td style="text-align:center;padding:4px;border-left:2px solid #003581;">
+                                                <button type="button" class="mini-btn row-select" data-action="select" data-role="<?php echo (int)$role['id']; ?>" title="Select all in this row for role">✓</button>
+                                                <button type="button" class="mini-btn row-select" data-action="clear" data-role="<?php echo (int)$role['id']; ?>" title="Clear all in this row for role">✕</button>
+                                            </td>
+                                        <?php endif; ?>
+                                    <td style="text-align:center;padding:6px 8px;">
                                         <input type="checkbox" 
                                                class="perm-checkbox"
                                                data-role="<?php echo $role['id']; ?>"
-                                               data-permission="<?php echo $page['id']; ?>"
+                                               data-permission="<?php echo $table['id']; ?>"
                                                data-type="<?php echo $ptype; ?>"
                                                <?php echo $is_checked ? 'checked' : ''; ?>
-                                               style="cursor:pointer;width:14px;height:14px;">
+                                               style="cursor:pointer;width:16px;height:16px;">
                                     </td>
                                 <?php endforeach; endforeach; ?>
                             </tr>
-                            <?php endforeach; ?>
-                            
-                            <!-- Submodules -->
-                            <?php foreach ($module_data['submodules'] as $submodule => $submodule_pages): ?>
-                                <tr style="background:#fff3cd;">
-                                    <td colspan="<?php echo 1 + (count($roles) * 11); ?>" style="padding:8px 12px 8px 24px;font-weight:600;color:#856404;font-size:13px;position:sticky;left:0;background:#fff3cd;z-index:11;">
-                                        📁 <?php echo htmlspecialchars($submodule); ?> <span style="font-weight:normal;font-size:11px;">(Submodule)</span>
-                                    </td>
-                                </tr>
-                                
-                                <?php foreach ($submodule_pages as $page):
-                                    $row_num++;
-                                    $row_color = ($row_num % 2 === 0) ? '#fafafa' : 'white';
-                                ?>
-                                <tr style="background:<?php echo $row_color; ?>;border-bottom:1px solid #eee;">
-                                    <td style="padding:10px 12px 10px 36px;position:sticky;left:0;background:<?php echo $row_color; ?>;z-index:9;">
-                                        <div style="font-weight:600;color:#1b2a57;margin-bottom:2px;"><?php echo htmlspecialchars($page['page_name']); ?></div>
-                                        <div style="font-size:10px;color:#6c757d;"><?php echo htmlspecialchars($page['page_path']); ?></div>
-                                    </td>
-                                    <?php foreach ($roles as $role):
-                                        $key = $role['id'] . '_' . $page['id'];
-                                        $perms = $role_permissions[$key] ?? null;
-                                        
-                                        $permission_types = [
-                                            'can_create',
-                                            'can_view_all', 'can_view_assigned', 'can_view_own',
-                                            'can_edit_all', 'can_edit_assigned', 'can_edit_own',
-                                            'can_delete_all', 'can_delete_assigned', 'can_delete_own',
-                                            'can_export'
-                                        ];
-                                        
-                                        foreach ($permission_types as $ptype):
-                                            $is_checked = $perms && $perms[$ptype] == 1;
-                                            $first_col = ($ptype === 'can_create');
-                                    ?>
-                                        <td style="text-align:center;padding:4px;<?php echo $first_col ? 'border-left:2px solid #003581;' : ''; ?>">
-                                            <input type="checkbox" 
-                                                   class="perm-checkbox"
-                                                   data-role="<?php echo $role['id']; ?>"
-                                                   data-permission="<?php echo $page['id']; ?>"
-                                                   data-type="<?php echo $ptype; ?>"
-                                                   <?php echo $is_checked ? 'checked' : ''; ?>
-                                                   style="cursor:pointer;width:14px;height:14px;">
-                                        </td>
-                                    <?php endforeach; endforeach; ?>
-                                </tr>
-                                <?php endforeach; ?>
                             <?php endforeach; ?>
                             
                         <?php endforeach; ?>
@@ -297,13 +256,13 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         
         <!-- Information -->
         <div style="background:#d4edda;border-left:4px solid #28a745;padding:16px;border-radius:6px;margin-top:24px;">
-            <h4 style="margin:0 0 8px 0;color:#155724;">ℹ️ How It Works</h4>
+            <h4 style="margin:0 0 8px 0;color:#155724;">ℹ️ How Table-Based Permissions Work</h4>
             <ul style="margin:8px 0 0 20px;color:#155724;line-height:1.6;font-size:13px;">
-                <li><strong>Auto-Discovery:</strong> Pages are automatically detected from /public folder on every page load</li>
+                <li><strong>Auto-Discovery:</strong> Tables are automatically detected from your database on every page load</li>
                 <li><strong>Real-Time Updates:</strong> Click any checkbox to instantly update permissions (no save button needed)</li>
                 <li><strong>Granular Control:</strong> Set different permission levels for view, edit, and delete operations</li>
-                <li><strong>Module Organization:</strong> Pages are grouped by folder structure (Module → Submodule → Page)</li>
-                <li><strong>Sticky Headers:</strong> Column headers stay visible while scrolling</li>
+                <li><strong>Module Organization:</strong> Tables are grouped by their functional modules</li>
+                <li><strong>Table-Centric:</strong> Permissions apply to entire database tables, giving you full control over data access</li>
             </ul>
         </div>
 
@@ -379,6 +338,27 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
     top: 0;
     z-index: 10;
 }
+
+/* Small action buttons for bulk selects */
+.mini-btn {
+    padding: 2px 6px;
+    font-size: 11px;
+    border: 1px solid #003581;
+    background: #f8fbff;
+    color: #003581;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 0 2px;
+}
+
+.mini-btn:hover {
+    background: #e7f1ff;
+}
+
+.mini-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
 </style>
 
 <script>
@@ -397,8 +377,11 @@ document.querySelectorAll('.perm-checkbox').forEach(checkbox => {
         // Send AJAX request
         fetch('<?php echo APP_URL; ?>/public/api/permissions/update.php', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
                 role_id: roleId,
@@ -407,7 +390,14 @@ document.querySelectorAll('.perm-checkbox').forEach(checkbox => {
                 value: value
             })
         })
-        .then(response => response.json())
+        .then(async (response) => {
+            const text = await response.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error(`Unexpected response (${response.status}): ${text.substring(0, 200)}`);
+            }
+        })
         .then(data => {
             if (data.success) {
                 // Success - keep the checkbox state
@@ -430,11 +420,12 @@ document.querySelectorAll('.perm-checkbox').forEach(checkbox => {
             }
         })
         .catch(error => {
-            // Network error - revert checkbox
+            // Network/error - revert checkbox
             this.checked = !this.checked;
             this.classList.remove('updating');
             this.disabled = false;
             alert('Network error: ' + error.message);
+            console.error('Permissions update failed:', error);
         });
     });
 });
@@ -443,9 +434,43 @@ document.querySelectorAll('.perm-checkbox').forEach(checkbox => {
 document.querySelectorAll('th[title]').forEach(th => {
     th.style.cursor = 'help';
 });
+
+// Helper to toggle and dispatch change only when needed
+function toggleCheckbox(cb, shouldCheck) {
+    if (cb.checked !== shouldCheck) {
+        cb.checked = shouldCheck;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+}
+
+// Row-level bulk select/clear for a specific role within that row
+document.querySelectorAll('.row-select').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const roleId = this.dataset.role;
+        const action = this.dataset.action; // 'select' or 'clear'
+        const tr = this.closest('tr.table-row');
+        if (!tr) return;
+        const shouldCheck = action === 'select';
+        const boxes = tr.querySelectorAll('input.perm-checkbox[data-role="' + roleId + '"]');
+        boxes.forEach(cb => toggleCheckbox(cb, shouldCheck));
+    });
+});
+
+// Module-level bulk select/clear for a specific role across all rows in module
+document.querySelectorAll('.module-select').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const roleId = this.dataset.role;
+        const moduleId = this.dataset.module;
+        const action = this.dataset.action; // 'select' or 'clear'
+        const shouldCheck = action === 'select';
+        // Find all rows for this module
+        const rows = document.querySelectorAll('tr.table-row[data-module="' + moduleId + '"]');
+        rows.forEach(tr => {
+            const boxes = tr.querySelectorAll('input.perm-checkbox[data-role="' + roleId + '"]');
+            boxes.forEach(cb => toggleCheckbox(cb, shouldCheck));
+        });
+    });
+});
 </script>
 
-<?php
-closeConnection($conn);
-require_once __DIR__ . '/../../../includes/footer_sidebar.php';
-?>
+<?php require_once __DIR__ . '/../../../includes/footer_sidebar.php'; ?>

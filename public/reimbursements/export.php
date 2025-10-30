@@ -3,25 +3,11 @@
  * Export Reimbursements to CSV
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+authz_require_permission($conn, 'reimbursements', 'export');
 
-$user_role = $_SESSION['role'] ?? 'user';
-if (!in_array($user_role, ['admin', 'manager'], true)) {
-    header('Location: ../index.php');
-    exit;
-}
-
-$conn = createConnection(true);
-if (!$conn) {
-    die('Unable to connect to database');
-}
+$conn = $conn ?? createConnection(true);
 
 function tableExists($conn, $table) {
     $table = mysqli_real_escape_string($conn, $table);
@@ -34,8 +20,11 @@ function tableExists($conn, $table) {
 }
 
 if (!tableExists($conn, 'reimbursements')) {
-    closeConnection($conn);
-    die('Reimbursements table not found.');
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
+    header('Location: index.php?export_error=1');
+    exit;
 }
 
 $status_filter = isset($_GET['status']) ? $_GET['status'] : 'All';
@@ -129,6 +118,8 @@ while ($row = mysqli_fetch_assoc($result)) {
 
 fclose($output);
 mysqli_stmt_close($stmt);
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 exit;
 ?>

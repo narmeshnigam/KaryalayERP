@@ -1,13 +1,8 @@
 <?php
 require_once __DIR__ . '/common.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../login.php');
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'employee';
-$user_id = (int)$_SESSION['user_id'];
+// Enforce permission to view calls
+$calls_permissions = authz_get_permission_set($conn, 'crm_calls');
 
 $call_id = isset($_GET['id']) && is_numeric($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($call_id <= 0) {
@@ -16,12 +11,7 @@ if ($call_id <= 0) {
     exit;
 }
 
-$conn = createConnection(true);
-if (!$conn) {
-    die('Database connection failed');
-}
-
-$current_employee_id = crm_current_employee_id($conn, $user_id);
+$current_employee_id = crm_current_employee_id($conn, (int)$CURRENT_USER_ID);
 
 // Detect available columns
 $has_lead_id = crm_calls_has_column($conn, 'lead_id');
@@ -56,7 +46,9 @@ $sql = "SELECT $select_cols $lead_select $emp_select
 
 $stmt = mysqli_prepare($conn, $sql);
 if (!$stmt) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     die('Failed to prepare query');
 }
 
@@ -69,17 +61,25 @@ mysqli_stmt_close($stmt);
 
 if (!$call) {
     flash_add('error', 'Call not found', 'crm');
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     header('Location: index.php');
     exit;
 }
 
 // Check access rights - employees can only view their own calls
-if ($has_assigned_to && !crm_role_can_manage($user_role) && (int)($call['assigned_to'] ?? 0) !== $current_employee_id) {
-    flash_add('error', 'You do not have permission to view this call', 'crm');
-    closeConnection($conn);
-    header('Location: my.php');
-    exit;
+$can_view_all = $IS_SUPER_ADMIN || $calls_permissions['can_view_all'];
+$can_view_own = $calls_permissions['can_view_own'] ?? false;
+if ($has_assigned_to && !$can_view_all && (int)($call['assigned_to'] ?? 0) !== $current_employee_id) {
+    if (!$can_view_own) {
+        flash_add('error', 'You do not have permission to view this call', 'crm');
+        if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+            closeConnection($conn);
+        }
+        header('Location: my.php');
+        exit;
+    }
 }
 
 $page_title = 'Call Details - CRM - ' . APP_NAME;
@@ -106,10 +106,10 @@ function safeValue($value, $fallback = '—') {
           <p>Detailed call information and follow-up tracking</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <?php if (crm_role_can_manage($user_role)): ?>
+          <?php if ($calls_permissions['can_edit_all']): ?>
             <a href="edit.php?id=<?php echo $call_id; ?>" class="btn">✏️ Edit Call</a>
           <?php endif; ?>
-          <a href="<?php echo crm_role_can_manage($user_role) ? 'index.php' : 'my.php'; ?>" class="btn btn-accent">← Back to List</a>
+          <a href="<?php echo $can_view_all ? 'index.php' : 'my.php'; ?>" class="btn btn-accent">← Back to List</a>
         </div>
       </div>
     </div>
@@ -323,6 +323,8 @@ document.addEventListener('keydown', function(e) {
 </script>
 
 <?php
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 require_once __DIR__ . '/../../../includes/footer_sidebar.php';
 ?>

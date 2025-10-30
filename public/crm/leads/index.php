@@ -2,18 +2,11 @@
 require_once __DIR__ . '/common.php';
 
 crm_leads_require_login();
-$user_role = $_SESSION['role'] ?? 'employee';
-if (!crm_role_can_manage($user_role)) {
-    flash_add('error', 'You do not have access to all leads.', 'crm');
-    header('Location: ../index.php');
-    exit;
-}
 
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to database.</div></div></div>';
-    exit;
-}
+// Enforce permission to view leads
+authz_require_permission($conn, 'crm_leads', 'view_all');
+
+$leads_permissions = authz_get_permission_set($conn, 'crm_leads');
 
 crm_leads_require_tables($conn);
 
@@ -284,7 +277,9 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
           <a href="my.php" class="btn btn-accent">📌 My Leads</a>
-          <a href="add.php" class="btn">➕ Add Lead</a>
+          <?php if ($leads_permissions['can_create']): ?>
+            <a href="add.php" class="btn">➕ Add Lead</a>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -448,7 +443,9 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                   <td style="padding:12px;font-size:13px;color:#6c757d;"><?php echo htmlspecialchars($lastContact); ?></td>
                   <td style="padding:12px;text-align:center;white-space:nowrap;">
                     <a href="view.php?id=<?php echo (int)$lead['id']; ?>" class="btn" style="padding:6px 14px;font-size:13px;text-decoration:none;background:#17a2b8;color:#fff;">View</a>
-                    <a href="edit.php?id=<?php echo (int)$lead['id']; ?>" class="btn btn-accent" style="padding:6px 14px;font-size:13px;text-decoration:none;">Edit</a>
+                    <?php if ($leads_permissions['can_edit_all']): ?>
+                      <a href="edit.php?id=<?php echo (int)$lead['id']; ?>" class="btn btn-accent" style="padding:6px 14px;font-size:13px;text-decoration:none;">Edit</a>
+                    <?php endif; ?>
                   </td>
                 </tr>
               <?php endforeach; ?>
@@ -461,4 +458,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 </div>
 
 <?php require_once __DIR__ . '/../../../includes/footer_sidebar.php'; ?>
-<?php closeConnection($conn); ?>
+<?php 
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn); 
+}
+?>

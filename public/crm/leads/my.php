@@ -2,23 +2,26 @@
 require_once __DIR__ . '/common.php';
 
 crm_leads_require_login();
-$user_role = $_SESSION['role'] ?? 'employee';
 
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to database.</div></div></div>';
+// Enforce permission to view own leads
+$leads_permissions = authz_get_permission_set($conn, 'crm_leads');
+$can_view_own = $leads_permissions['can_view_own'] ?? false;
+$can_view_all = $leads_permissions['can_view_all'] ?? false;
+
+if (!$can_view_own && !$can_view_all) {
+    flash_add('error', 'You do not have permission to view leads.', 'crm');
+    header('Location: ../index.php');
     exit;
 }
 
 crm_leads_require_tables($conn);
 
-$current_employee_id = crm_current_employee_id($conn, (int)($_SESSION['user_id'] ?? 0));
-if (!$current_employee_id) {
-    $current_employee_id = (int)($_SESSION['employee_id'] ?? 0);
-}
+$current_employee_id = crm_current_employee_id($conn, (int)$CURRENT_USER_ID);
 
-if ($current_employee_id <= 0 && !crm_role_can_manage($user_role)) {
-    closeConnection($conn);
+if ($current_employee_id <= 0 && !$IS_SUPER_ADMIN && !$can_view_all) {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     flash_add('error', 'Employee mapping not found. Contact administrator.', 'crm');
     header('Location: ../index.php');
     exit;
@@ -526,4 +529,8 @@ $statuses = crm_lead_statuses();
 </div>
 
 <?php require_once __DIR__ . '/../../../includes/footer_sidebar.php'; ?>
-<?php closeConnection($conn); ?>
+<?php 
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn); 
+}
+?>

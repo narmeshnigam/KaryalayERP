@@ -4,28 +4,13 @@
  * Manage logos, organization details, and branding elements
  */
 
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
-// Check admin access
-if (!branding_user_can_edit()) {
-    header('Location: ../unauthorized.php');
-    exit;
-}
-
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
-    exit;
-}
+authz_require_permission($conn, 'branding_settings', 'edit_all');
 
 // Check if module is set up
 if (!branding_table_exists($conn)) {
-    closeConnection($conn);
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
@@ -43,8 +28,6 @@ if (!$settings) {
     mysqli_query($conn, "INSERT INTO branding_settings (org_name, footer_text) VALUES ('$default_name', '$default_footer')");
     $settings = branding_get_settings($conn);
 }
-
-closeConnection($conn);
 ?>
 
 <style>
@@ -435,4 +418,9 @@ document.getElementById('brandingForm').addEventListener('submit', function(e) {
 });
 </script>
 
-<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php 
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
+require_once __DIR__ . '/../../includes/footer_sidebar.php'; 
+?>

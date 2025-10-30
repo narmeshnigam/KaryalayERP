@@ -4,15 +4,14 @@
  * View and manage attendance records with filtering
  */
 
-session_start();
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/module_dependencies.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+authz_require_permission($conn, 'attendance', 'view_all');
+$attendance_permissions = authz_get_permission_set($conn, 'attendance');
+$can_mark_attendance = !empty($attendance_permissions['can_create']);
+$can_manage_leave = !empty($attendance_permissions['can_edit_all']);
+$can_export_attendance = !empty($attendance_permissions['can_export']);
 
 // Check attendance module prerequisites
 $conn_check = createConnection(true);
@@ -36,7 +35,7 @@ $employee_filter = isset($_GET['employee']) ? (int)$_GET['employee'] : 0;
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $department_filter = isset($_GET['department']) ? $_GET['department'] : '';
 
-$conn = createConnection(true);
+$conn = $conn ?? createConnection(true);
 
 // Safety: Ensure required tables exist before querying
 function tableExists($conn, $table) {
@@ -54,8 +53,10 @@ $hasEmployees = tableExists($conn, 'employees');
 $hasAttendance = tableExists($conn, 'attendance');
 
 if (!$hasEmployees || !$hasAttendance) {
-    // Close connection early as we won't run further queries
+  // Close connection early as we won't run further queries
+  if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
     closeConnection($conn);
+  }
     ?>
     <div class="main-wrapper">
       <div class="main-content">
@@ -179,7 +180,9 @@ $stats_sql = "SELECT
 $stats_result = mysqli_query($conn, $stats_sql);
 $stats = mysqli_fetch_assoc($stats_result);
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+  closeConnection($conn);
+}
 ?>
 
 <div class="main-wrapper">
@@ -191,9 +194,15 @@ closeConnection($conn);
           <p>View and manage employee attendance</p>
         </div>
         <div>
-          <a href="approve_leave.php" class="btn" style="background:#28a745;">✈️ Leave Requests</a>
-          <a href="mark_attendance.php" class="btn btn-accent" style="margin-left:8px;">📋 Mark Attendance</a>
-          <a href="export_attendance.php?<?php echo http_build_query($_GET); ?>" class="btn" style="margin-left:8px;">📥 Export</a>
+          <?php if ($can_manage_leave): ?>
+            <a href="approve_leave.php" class="btn" style="background:#28a745;">✈️ Leave Requests</a>
+          <?php endif; ?>
+          <?php if ($can_mark_attendance): ?>
+            <a href="mark_attendance.php" class="btn btn-accent" style="margin-left:8px;">📋 Mark Attendance</a>
+          <?php endif; ?>
+          <?php if ($can_export_attendance): ?>
+            <a href="export_attendance.php?<?php echo http_build_query($_GET); ?>" class="btn" style="margin-left:8px;">📥 Export</a>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -282,9 +291,11 @@ closeConnection($conn);
           📋 Attendance Records 
           <span style="font-size:14px;color:#6c757d;font-weight:normal;">(<?php echo count($attendance_records); ?> records)</span>
         </h3>
-        <a href="export_attendance.php?<?php echo http_build_query($_GET); ?>" class="btn btn-accent" style="padding:8px 16px;font-size:13px;">
-          📊 Export to Excel
-        </a>
+        <?php if ($can_export_attendance): ?>
+          <a href="export_attendance.php?<?php echo http_build_query($_GET); ?>" class="btn btn-accent" style="padding:8px 16px;font-size:13px;">
+            📊 Export to Excel
+          </a>
+        <?php endif; ?>
       </div>
       
       <?php if (count($attendance_records) === 0): ?>

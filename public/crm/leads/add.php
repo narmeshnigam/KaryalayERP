@@ -2,13 +2,9 @@
 require_once __DIR__ . '/common.php';
 
 crm_leads_require_login();
-$user_role = $_SESSION['role'] ?? 'employee';
 
-$conn = createConnection(true);
-if (!$conn) {
-  echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to database.</div></div></div>';
-  exit;
-}
+// Enforce permission to create leads
+authz_require_permission($conn, 'crm_leads', 'create');
 
 crm_leads_require_tables($conn);
 
@@ -18,9 +14,9 @@ $statuses = crm_lead_statuses();
 $follow_types = crm_lead_follow_up_types();
 $source_options = crm_lead_sources();
 
-$current_employee_id = crm_current_employee_id($conn, (int)($_SESSION['user_id'] ?? 0));
+$current_employee_id = crm_current_employee_id($conn, (int)$CURRENT_USER_ID);
 if (!$current_employee_id) {
-  $current_employee_id = (int)($_SESSION['employee_id'] ?? 0);
+  $current_employee_id = 0;
 }
 
 $form = [
@@ -356,4 +352,8 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 </div>
 
 <?php require_once __DIR__ . '/../../../includes/footer_sidebar.php'; ?>
-<?php closeConnection($conn); ?>
+<?php 
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn); 
+}
+?>

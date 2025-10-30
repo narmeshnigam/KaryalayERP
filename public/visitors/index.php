@@ -3,44 +3,25 @@
  * Visitor Log Module - Listing & Management
  */
 
-require_once __DIR__ . '/../../includes/bootstrap.php';
+require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/db_connect.php';
+require_once __DIR__ . '/../../includes/flash.php';
 require_once __DIR__ . '/../../config/module_dependencies.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
-
 // Check visitors module prerequisites
-$conn_check = createConnection(true);
-if ($conn_check) {
-    $prereq_check = get_prerequisite_check_result($conn_check, 'visitors');
-    if (!$prereq_check['allowed']) {
-        closeConnection($conn_check);
-        display_prerequisite_error('visitors', $prereq_check['missing_modules']);
-    }
-    closeConnection($conn_check);
+$prereq_check = get_prerequisite_check_result($conn, 'visitors');
+if (!$prereq_check['allowed']) {
+    display_prerequisite_error('visitors', $prereq_check['missing_modules']);
 }
 
-$user_role = $_SESSION['role'] ?? 'user';
-$listing_roles = ['admin', 'manager'];
-if (!in_array($user_role, $listing_roles, true)) {
-    header('Location: ../index.php');
-    exit;
-}
+// Enforce permission to view visitor logs
+authz_require_permission($conn, 'visitor_logs', 'view_all');
+
+$visitor_permissions = authz_get_permission_set($conn, 'visitor_logs');
 
 $page_title = 'Visitor Log - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
-
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
 
 function tableExists($conn, $table)
 {
@@ -54,7 +35,9 @@ function tableExists($conn, $table)
 }
 
 if (!tableExists($conn, 'visitor_logs')) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+    }
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
@@ -97,7 +80,7 @@ if ($stats_stmt) {
 }
 $pending_count = $total_visitors - $checked_out_count;
 
-$allowed_checkout_roles = ['admin', 'manager', 'guard'];
+$can_edit_visitor = $IS_SUPER_ADMIN || $visitor_permissions['can_edit_all'];
 $original_query = $_SERVER['QUERY_STRING'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -106,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $redirect_target .= '?' . $original_query;
     }
 
-    if (isset($_POST['checkout_id']) && in_array($user_role, $allowed_checkout_roles, true)) {
+    if (isset($_POST['checkout_id']) && $can_edit_visitor) {
         $checkout_id = (int) $_POST['checkout_id'];
         if ($checkout_id > 0) {
             $stmt = mysqli_prepare($conn, 'SELECT check_in_time, check_out_time FROM visitor_logs WHERE id = ? AND deleted_at IS NULL LIMIT 1');
@@ -211,7 +194,9 @@ while ($row = mysqli_fetch_assoc($result)) {
 }
 mysqli_stmt_close($stmt);
 
-closeConnection($conn);
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
 
 function formatEmployeeName($code, $first, $last)
 {
@@ -231,9 +216,13 @@ function formatEmployeeName($code, $first, $last)
           <p>Track check-ins, check-outs, and visitor purpose for compliance.</p>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <a href="add.php" class="btn" style="background:#28a745;">＋ New Visitor</a>
+          <?php if ($visitor_permissions['can_create']): ?>
+            <a href="add.php" class="btn" style="background:#28a745;">＋ New Visitor</a>
+          <?php endif; ?>
           <a href="summary.php?date=<?php echo urlencode($to_date); ?>" class="btn btn-secondary">🖨 Daily Summary</a>
-          <a href="export.php?<?php echo http_build_query($_GET); ?>" class="btn">📥 Export CSV</a>
+          <?php if ($visitor_permissions['can_export']): ?>
+            <a href="export.php?<?php echo http_build_query($_GET); ?>" class="btn">📥 Export CSV</a>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -359,11 +348,11 @@ function formatEmployeeName($code, $first, $last)
                   </td>
                   <td style="padding:12px;text-align:center;"><?php echo $status_label; ?></td>
                   <td style="padding:12px;text-align:center;white-space:nowrap;">
-                    <?php if (in_array($user_role, ['admin','manager'], true)): ?>
+                    <?php if ($can_edit_visitor): ?>
                       <a href="edit.php?id=<?php echo (int) $row['id']; ?>" class="btn" style="padding:6px 14px;font-size:13px;background:#003581;color:#fff;margin-right:6px;">Edit</a>
                     <?php endif; ?>
                     <a href="view.php?id=<?php echo (int) $row['id']; ?>" class="btn btn-accent" style="padding:6px 14px;font-size:13px;">View</a>
-                    <?php if (empty($row['check_out_time']) && in_array($user_role, $allowed_checkout_roles, true)): ?>
+                    <?php if (empty($row['check_out_time']) && $can_edit_visitor): ?>
                       <form method="POST" style="display:inline;" onsubmit="return confirm('Mark this visitor as checked out?');">
                         <input type="hidden" name="checkout_id" value="<?php echo (int) $row['id']; ?>">
                         <button type="submit" class="btn" style="padding:6px 14px;font-size:13px;background:#17a2b8;">Checkout</button>
