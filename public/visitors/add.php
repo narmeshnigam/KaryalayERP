@@ -6,74 +6,56 @@
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../includes/flash.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/helpers.php';
 
-// Enforce permission to create visitor logs
+$closeManagedConnection = static function () use (&$conn): void {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+    }
+};
+
 authz_require_permission($conn, 'visitor_logs', 'create');
 
-$page_title = 'Add Visitor - ' . APP_NAME;
-require_once __DIR__ . '/../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../includes/sidebar.php';
-
-function tableExists($conn, $table)
-{
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
+if (!($conn instanceof mysqli)) {
+    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
+    require_once __DIR__ . '/../../includes/footer_sidebar.php';
+    exit;
 }
 
-if (!tableExists($conn, 'visitor_logs')) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
+$prereq_check = get_prerequisite_check_result($conn, 'visitors');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    display_prerequisite_error('visitors', $prereq_check['missing_modules']);
+    exit;
+}
+
+if (!visitor_logs_table_exists($conn)) {
+    $closeManagedConnection();
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
 
-$employee_stmt = mysqli_prepare($conn, 'SELECT id FROM employees WHERE user_id = ? LIMIT 1');
-if (!$employee_stmt) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to load employee details.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
-mysqli_stmt_bind_param($employee_stmt, 'i', $CURRENT_USER_ID);
-mysqli_stmt_execute($employee_stmt);
-$employee_result = mysqli_stmt_get_result($employee_stmt);
-$current_employee = mysqli_fetch_assoc($employee_result);
-mysqli_stmt_close($employee_stmt);
-
+$current_employee = visitor_logs_current_employee($conn, (int) $CURRENT_USER_ID);
 if (!$current_employee) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">No employee record linked to your account. Please contact HR.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
+    $closeManagedConnection();
+    flash_add('error', 'No employee record linked to your account. Please contact HR.', 'visitors');
+    header('Location: index.php');
     exit;
 }
 
-$employee_options = [];
-$emp_sql = 'SELECT id, employee_code, first_name, last_name FROM employees ORDER BY first_name, last_name';
-if ($emp_res = mysqli_query($conn, $emp_sql)) {
-    while ($row = mysqli_fetch_assoc($emp_res)) {
-        $employee_options[] = $row;
-    }
-    mysqli_free_result($emp_res);
-}
+$employee_options = visitor_logs_fetch_employees($conn);
+$employee_ids = array_map('intval', array_column($employee_options, 'id'));
 
 $errors = [];
-$success = '';
-
 $visitor_name = '';
 $phone = '';
 $purpose = '';
 $employee_id = $employee_options[0]['id'] ?? 0;
 $check_in_time = date('Y-m-d\TH:i');
+$check_in_time_db = date('Y-m-d H:i:s');
+$stored_file_path = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $visitor_name = trim($_POST['visitor_name'] ?? '');
@@ -90,9 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Purpose of visit is required.';
     }
 
-  // Normalize employee ids to integers to avoid type-mismatch with strict in_array
-  $employee_ids = array_map('intval', array_column($employee_options, 'id'));
-  if ($employee_id <= 0 || !in_array($employee_id, $employee_ids, true)) {
+    if ($employee_id <= 0 || !in_array($employee_id, $employee_ids, true)) {
         $errors[] = 'Please select a valid employee to meet.';
     }
 
@@ -104,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Invalid check-in time provided.';
         } else {
             $check_in_time_db = date('Y-m-d H:i:s', $timestamp);
+            $check_in_time = date('Y-m-d\TH:i', $timestamp);
         }
     }
 
@@ -123,56 +104,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Uploaded file must be 2 MB or smaller.';
             }
             if (empty($errors)) {
-                $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                try {
-                    $token = bin2hex(random_bytes(4));
-                } catch (Exception $e) {
-                    $token = substr(md5(uniqid((string) microtime(true), true)), 0, 8);
-                }
-                $filename = 'visitor_' . time() . '_' . $token . '.' . $extension;
-                $destination_dir = __DIR__ . '/../../uploads/visitor_logs';
-                if (!is_dir($destination_dir)) {
-                    mkdir($destination_dir, 0755, true);
-                }
-                $destination_path = $destination_dir . DIRECTORY_SEPARATOR . $filename;
-                if (!move_uploaded_file($file['tmp_name'], $destination_path)) {
-                    $errors[] = 'Failed to store the uploaded file.';
+                if (!visitor_logs_ensure_upload_directory()) {
+                    $errors[] = 'Unable to create upload directory for visitor documents.';
                 } else {
-                    $photo_path = 'uploads/visitor_logs/' . $filename;
+                    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                    try {
+                        $token = bin2hex(random_bytes(4));
+                    } catch (Exception $e) {
+                        $token = substr(md5(uniqid((string) microtime(true), true)), 0, 8);
+                    }
+                    $filename = 'visitor_' . time() . '_' . $token . '.' . $extension;
+                    $destination_path = visitor_logs_upload_directory_path() . DIRECTORY_SEPARATOR . $filename;
+                    if (!move_uploaded_file($file['tmp_name'], $destination_path)) {
+                        $errors[] = 'Failed to store the uploaded file.';
+                    } else {
+                        $photo_path = 'uploads/visitor_logs/' . $filename;
+                        $stored_file_path = $photo_path;
+                    }
                 }
             }
         }
     }
 
     if (empty($errors)) {
-    $insert_sql = 'INSERT INTO visitor_logs (visitor_name, phone, purpose, check_in_time, employee_id, photo, added_by) VALUES (?, ?, ?, ?, ?, ?, ?)';
-    $stmt = mysqli_prepare($conn, $insert_sql);
-    if ($stmt) {
-      $phone_param = $phone !== '' ? $phone : null;
-      mysqli_stmt_bind_param($stmt, 'ssssisi', $visitor_name, $phone_param, $purpose, $check_in_time_db, $employee_id, $photo_path, $current_employee['id']);
-            if (mysqli_stmt_execute($stmt)) {
-                $success = 'Visitor entry logged successfully.';
-                $visitor_name = '';
-                $phone = '';
-                $purpose = '';
-                $employee_id = $employee_options[0]['id'] ?? 0;
-                $check_in_time = date('Y-m-d\TH:i');
-            } else {
-                $errors[] = 'Failed to save visitor log. Please try again.';
+        $insert_sql = 'INSERT INTO visitor_logs (visitor_name, phone, purpose, check_in_time, employee_id, photo, added_by) VALUES (?, ?, ?, ?, ?, ?, ?)';
+        $insert_stmt = mysqli_prepare($conn, $insert_sql);
+        if ($insert_stmt) {
+            $params = [
+                $visitor_name,
+                $phone !== '' ? $phone : null,
+                $purpose,
+                $check_in_time_db,
+                $employee_id,
+                $photo_path,
+                (int) $current_employee['id'],
+            ];
+            visitor_logs_stmt_bind($insert_stmt, 'ssssisi', $params);
+            if (mysqli_stmt_execute($insert_stmt)) {
+                mysqli_stmt_close($insert_stmt);
+                $closeManagedConnection();
+                flash_add('success', 'Visitor entry logged successfully.', 'visitors');
+                header('Location: index.php');
+                exit;
             }
-            mysqli_stmt_close($stmt);
+            $errors[] = 'Failed to save visitor log. Please try again.';
+            mysqli_stmt_close($insert_stmt);
         } else {
             $errors[] = 'Unable to prepare database statement.';
         }
-    } else {
-        // Preserve datetime-local input value for the form to avoid resetting to current time
-        $check_in_time = $check_in_input;
+    }
+
+    if (!empty($errors) && $stored_file_path) {
+        visitor_logs_delete_file($stored_file_path);
+        $stored_file_path = null;
     }
 }
 
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
-}
+$page_title = 'Add Visitor - ' . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 <div class="main-wrapper">
   <div class="main-content">
@@ -188,6 +178,8 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
       </div>
     </div>
 
+    <?php echo flash_render(); ?>
+
     <?php if (!empty($errors)): ?>
       <div class="alert alert-error">
         <ul style="margin:0;padding-left:18px;">
@@ -196,10 +188,6 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
           <?php endforeach; ?>
         </ul>
       </div>
-    <?php endif; ?>
-
-    <?php if ($success !== ''): ?>
-      <div class="alert alert-success"><?php echo htmlspecialchars($success, ENT_QUOTES); ?></div>
     <?php endif; ?>
 
     <div class="card" style="max-width:820px;margin:0 auto;">
@@ -250,4 +238,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php
+$closeManagedConnection();
+require_once __DIR__ . '/../../includes/footer_sidebar.php';
+?>

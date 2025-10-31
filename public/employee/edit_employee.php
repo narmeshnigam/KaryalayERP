@@ -13,9 +13,10 @@ if ($id <= 0) {
 
 // Get available users for linking
 $available_users = [];
-$users_result = mysqli_query($conn, "SELECT u.id, u.username, u.full_name, u.email, u.role, 
+$users_result = mysqli_query($conn, "SELECT u.id, u.username, u.full_name, u.email, r.name as role, 
                                       (SELECT COUNT(*) FROM employees WHERE user_id = u.id) as is_linked 
                                       FROM users u 
+                                      LEFT JOIN roles r ON u.role_id = r.id
                                       WHERE u.is_active = 1 
                                       ORDER BY u.username");
 while ($row = mysqli_fetch_assoc($users_result)) {
@@ -287,12 +288,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Get current linked user info (fetch before closing connection)
 $linked_user = null;
 if ($emp['user_id']) {
-    $user_stmt = mysqli_prepare($conn, "SELECT username, full_name, email, role FROM users WHERE id = ?");
-    mysqli_stmt_bind_param($user_stmt, 'i', $emp['user_id']);
-    mysqli_stmt_execute($user_stmt);
-    $user_result = mysqli_stmt_get_result($user_stmt);
-    $linked_user = mysqli_fetch_assoc($user_result);
-    mysqli_stmt_close($user_stmt);
+  $user_stmt = mysqli_prepare($conn, "SELECT u.username, u.full_name, u.email, r.name as role FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE u.id = ?");
+  mysqli_stmt_bind_param($user_stmt, 'i', $emp['user_id']);
+  mysqli_stmt_execute($user_stmt);
+  $user_result = mysqli_stmt_get_result($user_stmt);
+  $linked_user = mysqli_fetch_assoc($user_result);
+  mysqli_stmt_close($user_stmt);
 }
 
 if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {

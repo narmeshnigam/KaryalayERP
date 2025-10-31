@@ -7,12 +7,18 @@
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'notebook', 'view');
-
-// Check if tables exist
+// Check if tables exist first
 if (!notebook_tables_exist($conn)) {
     header('Location: /KaryalayERP/setup/index.php?module=notebook');
     exit;
+}
+
+if (!authz_user_can_any($conn, [
+    ['table' => 'notebook_notes', 'permission' => 'view_all'],
+    ['table' => 'notebook_notes', 'permission' => 'view_assigned'],
+    ['table' => 'notebook_notes', 'permission' => 'view_own'],
+])) {
+    authz_require_permission($conn, 'notebook_notes', 'view_all');
 }
 
 // Get note ID

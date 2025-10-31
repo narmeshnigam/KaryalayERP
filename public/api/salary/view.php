@@ -4,6 +4,8 @@ header('Content-Type: application/json');
 
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../../config/db_connect.php';
+require_once __DIR__ . '/../../../config/module_dependencies.php';
+require_once __DIR__ . '/../../../includes/authz.php';
 require_once __DIR__ . '/../../salary/helpers.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -32,6 +34,18 @@ if (!$conn) {
     exit;
 }
 
+$prereq_check = get_prerequisite_check_result($conn, 'salary');
+if (!$prereq_check['allowed']) {
+    closeConnection($conn);
+    http_response_code(503);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Salary module prerequisites missing',
+        'missing' => $prereq_check['missing_modules'],
+    ]);
+    exit;
+}
+
 if (!salary_table_exists($conn)) {
     closeConnection($conn);
     http_response_code(503);
@@ -39,7 +53,9 @@ if (!salary_table_exists($conn)) {
     exit;
 }
 
-$user_role = $_SESSION['role'] ?? 'employee';
+$hasViewAll = authz_user_can($conn, 'salary_records', 'view_all');
+$hasViewOwn = authz_user_can($conn, 'salary_records', 'view_own');
+
 $current_employee_id = salary_current_employee_id($conn, (int) $_SESSION['user_id']);
 
 $sql = "SELECT sr.*, emp.employee_code, emp.first_name, emp.last_name
@@ -69,7 +85,7 @@ if (!$record) {
 }
 
 $owns_record = $current_employee_id && ((int) $record['employee_id'] === (int) $current_employee_id);
-if (!salary_role_can_manage($user_role) && !$owns_record) {
+if (!$hasViewAll && (!$hasViewOwn || !$owns_record)) {
     closeConnection($conn);
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Forbidden']);

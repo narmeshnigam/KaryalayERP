@@ -7,11 +7,27 @@
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'contacts', 'view');
+if (!authz_user_can_any($conn, [
+    ['table' => 'contacts', 'permission' => 'view_all'],
+    ['table' => 'contacts', 'permission' => 'view_assigned'],
+    ['table' => 'contacts', 'permission' => 'view_own'],
+])) {
+    authz_require_permission($conn, 'contacts', 'view_all');
+}
 
 // Check if tables exist
+
 if (!contacts_tables_exist($conn)) {
-    header('Location: /KaryalayERP/setup/index.php?module=contacts');
+    $page_title = 'Contacts Module Setup Required - ' . APP_NAME;
+    require_once __DIR__ . '/../../includes/header_sidebar.php';
+    require_once __DIR__ . '/../../includes/sidebar.php';
+    echo '<div class="main-wrapper"><div class="main-content">';
+    echo '<div class="alert alert-warning" style="margin:40px auto;max-width:600px;padding:32px 28px;font-size:1.1em;">';
+    echo '<h2 style="margin-bottom:16px;color:#b85c00;">Contacts Module Not Set Up</h2>';
+    echo '<p>The contacts module database tables have not been created yet. To use this module, please run the setup for contacts.</p>';
+    echo '<a href="/KaryalayERP/scripts/setup_contacts_tables.php" class="btn btn-primary" style="margin-top:18px;">Set Up Contacts Module</a>';
+    echo '</div></div></div>';
+    require_once __DIR__ . '/../../includes/footer.php';
     exit;
 }
 

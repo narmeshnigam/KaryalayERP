@@ -11,7 +11,7 @@ echo "<h2>Setting up Clients Module</h2>";
 // Table 1: clients
 $sql_clients = "
 CREATE TABLE IF NOT EXISTS `clients` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `code` VARCHAR(30) UNIQUE NOT NULL,
     `name` VARCHAR(200) NOT NULL,
     `legal_name` VARCHAR(200) NULL,
@@ -21,11 +21,11 @@ CREATE TABLE IF NOT EXISTS `clients` (
     `phone` VARCHAR(20) NULL,
     `gstin` VARCHAR(50) NULL,
     `status` ENUM('Active','Inactive') NOT NULL DEFAULT 'Active',
-    `owner_id` INT NOT NULL,
+    `owner_id` INT UNSIGNED NOT NULL,
     `lead_id` INT NULL,
     `tags` TEXT NULL,
     `notes` TEXT NULL,
-    `created_by` INT NOT NULL,
+    `created_by` INT UNSIGNED NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
     INDEX `idx_code` (`code`),
@@ -50,7 +50,7 @@ if ($conn->query($sql_clients) === TRUE) {
 $sql_addresses = "
 CREATE TABLE IF NOT EXISTS `client_addresses` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `client_id` INT NOT NULL,
+    `client_id` INT UNSIGNED NOT NULL,
     `label` VARCHAR(50) NOT NULL,
     `line1` VARCHAR(255) NOT NULL,
     `line2` VARCHAR(255) NULL,
@@ -76,7 +76,7 @@ if ($conn->query($sql_addresses) === TRUE) {
 $sql_contacts_map = "
 CREATE TABLE IF NOT EXISTS `client_contacts_map` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `client_id` INT NOT NULL,
+    `client_id` INT UNSIGNED NOT NULL,
     `contact_id` INT NOT NULL,
     `role_at_client` VARCHAR(100) NULL,
     INDEX `idx_client_id` (`client_id`),
@@ -97,11 +97,11 @@ if ($conn->query($sql_contacts_map) === TRUE) {
 $sql_documents = "
 CREATE TABLE IF NOT EXISTS `client_documents` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `client_id` INT NOT NULL,
+    `client_id` INT UNSIGNED NOT NULL,
     `file_name` VARCHAR(255) NOT NULL,
     `file_path` TEXT NOT NULL,
     `doc_type` VARCHAR(100) NULL,
-    `uploaded_by` INT NOT NULL,
+    `uploaded_by` INT UNSIGNED NOT NULL,
     `uploaded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_client_id` (`client_id`),
     INDEX `idx_doc_type` (`doc_type`),
@@ -121,7 +121,7 @@ if ($conn->query($sql_documents) === TRUE) {
 $sql_custom_fields = "
 CREATE TABLE IF NOT EXISTS `client_custom_fields` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `client_id` INT NOT NULL,
+    `client_id` INT UNSIGNED NOT NULL,
     `field_key` VARCHAR(50) NOT NULL,
     `field_value` VARCHAR(200) NULL,
     INDEX `idx_client_id` (`client_id`),

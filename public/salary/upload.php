@@ -7,36 +7,37 @@ require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/module_dependencies.php';
 require_once __DIR__ . '/helpers.php';
 
+$closeManagedConnection = static function () use (&$conn): void {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+    }
+};
+
 authz_require_permission($conn, 'salary_records', 'create');
 
-$conn_check = createConnection(true);
-if ($conn_check) {
-    $prereq_check = get_prerequisite_check_result($conn_check, 'salary');
-    if (!$prereq_check['allowed']) {
-        closeConnection($conn_check);
-        display_prerequisite_error('salary', $prereq_check['missing_modules']);
-    }
-    closeConnection($conn_check);
-}
-
-$page_title = 'Upload Salary Record - ' . APP_NAME;
-require_once __DIR__ . '/../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../includes/sidebar.php';
-
-$conn = $conn ?? createConnection(true);
-if (!$conn) {
+if (!($conn instanceof mysqli)) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
 }
 
+$prereq_check = get_prerequisite_check_result($conn, 'salary');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    display_prerequisite_error('salary', $prereq_check['missing_modules']);
+    exit;
+}
+
 if (!salary_table_exists($conn)) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
+    $closeManagedConnection();
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
+
+$page_title = 'Upload Salary Record - ' . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 
 $current_employee_id = salary_current_employee_id($conn, (int) $CURRENT_USER_ID);
 $employees = salary_fetch_employees($conn);
@@ -194,9 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 salary_notify_salary_uploaded($conn, $new_id);
                 mysqli_stmt_close($insert);
                 flash_add('success', 'Salary record created successfully.', 'salary');
-                if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-                    closeConnection($conn);
-                }
+                $closeManagedConnection();
                 header('Location: admin.php');
                 exit;
             }
@@ -226,9 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
-}
+$closeManagedConnection();
 ?>
 <div class="main-wrapper">
     <div class="main-content">

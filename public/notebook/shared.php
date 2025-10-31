@@ -7,12 +7,18 @@
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'notebook', 'view');
-
-// Check if tables exist
+// Check if tables exist first
 if (!notebook_tables_exist($conn)) {
     header('Location: /KaryalayERP/setup/index.php?module=notebook');
     exit;
+}
+
+if (!authz_user_can_any($conn, [
+    ['table' => 'notebook_notes', 'permission' => 'view_all'],
+    ['table' => 'notebook_notes', 'permission' => 'view_assigned'],
+    ['table' => 'notebook_notes', 'permission' => 'view_own'],
+])) {
+    authz_require_permission($conn, 'notebook_notes', 'view_all');
 }
 
 // Get filters
@@ -59,7 +65,7 @@ foreach ($all_notes as $note) {
 $all_tags = get_all_tags($conn);
 
 // Check permissions
-$notebook_permissions = authz_get_permission_set($conn, 'notebook');
+$notebook_permissions = authz_get_permission_set($conn, 'notebook_notes');
 $can_create = $notebook_permissions['can_create'] || $IS_SUPER_ADMIN;
 
 $page_title = 'Shared With Me - Notebook - ' . APP_NAME;

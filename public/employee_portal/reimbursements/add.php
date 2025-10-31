@@ -6,6 +6,7 @@
 session_start();
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../../config/db_connect.php';
+require_once __DIR__ . '/../../reimbursements/helpers.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../login.php');
@@ -25,17 +26,7 @@ if (!$conn) {
     exit;
 }
 
-function tableExists($conn, $table) {
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
-}
-
-if (!tableExists($conn, 'reimbursements')) {
+if (!reimbursements_table_exists($conn)) {
     closeConnection($conn);
     echo '<div class="main-wrapper"><div class="main-content">';
     echo '<div class="card" style="max-width:720px;margin:0 auto;">';
@@ -64,12 +55,15 @@ if (!$employee) {
     exit;
 }
 
-$categories = ['Travel', 'Food', 'Internet', 'Accommodation', 'Supplies', 'Other'];
+$categories = reimbursements_fetch_categories($conn);
+if (empty($categories)) {
+  $categories = ['Travel', 'Food', 'Internet', 'Accommodation', 'Supplies', 'Other'];
+}
 $errors = [];
 $success = '';
 
 $expense_date = date('Y-m-d');
-$category = 'Travel';
+$category = $categories[0] ?? 'Travel';
 $amount = '';
 $description = '';
 
@@ -96,77 +90,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $proof_path = '';
-    $upload_required = true;
     $file_error = $_FILES['proof']['error'] ?? UPLOAD_ERR_NO_FILE;
 
-    if ($upload_required && $file_error === UPLOAD_ERR_NO_FILE) {
+    if ($file_error === UPLOAD_ERR_NO_FILE) {
         $errors[] = 'Proof document is required.';
-    }
-
-    if ($file_error !== UPLOAD_ERR_NO_FILE) {
-        if ($file_error !== UPLOAD_ERR_OK) {
-            $errors[] = 'Error uploading file. Please try again.';
-        } else {
-      $allowed_types = ['image/jpeg', 'image/png', 'application/pdf'];
-      $max_size = 2 * 1024 * 1024; // 2MB
-      $file_tmp = $_FILES['proof']['tmp_name'];
-      $file_size = $_FILES['proof']['size'];
-      $file_type = mime_content_type($file_tmp);
-
-      if ($file_type === false || !in_array($file_type, $allowed_types, true)) {
-                $errors[] = 'Only PDF, JPG, or PNG files are allowed.';
-            }
-
-            if ($file_size > $max_size) {
-                $errors[] = 'File size must be under 2 MB.';
-            }
-
-            if (empty($errors)) {
-                $ext = pathinfo($_FILES['proof']['name'], PATHINFO_EXTENSION);
-        try {
-          $token = bin2hex(random_bytes(4));
-        } catch (Exception $e) {
-          $token = substr(md5(uniqid((string) microtime(true), true)), 0, 8);
-        }
-        $safe_name = 'reimb_' . time() . '_' . $token . '.' . strtolower($ext);
-                $destination_dir = realpath(__DIR__ . '/../../../uploads/reimbursements');
-                if ($destination_dir === false) {
-                    $destination_dir = __DIR__ . '/../../../uploads/reimbursements';
-                    if (!is_dir($destination_dir)) {
-                        mkdir($destination_dir, 0755, true);
-                    }
-                }
-                $destination_path = $destination_dir . DIRECTORY_SEPARATOR . $safe_name;
-
-                if (move_uploaded_file($file_tmp, $destination_path)) {
-                    $proof_path = 'uploads/reimbursements/' . $safe_name;
-                } else {
-                    $errors[] = 'Failed to move uploaded file. Please try again.';
-                }
-            }
+    } else {
+        $stored_path = reimbursements_store_proof_file($_FILES['proof'], $errors);
+        if ($stored_path !== null) {
+            $proof_path = $stored_path;
         }
     }
 
     if (empty($errors)) {
         $insert_sql = 'INSERT INTO reimbursements (employee_id, date_submitted, expense_date, category, amount, description, status, proof_file) VALUES (?, ?, ?, ?, ?, ?, "Pending", ?)';
         $stmt = mysqli_prepare($conn, $insert_sql);
-  $today = date('Y-m-d');
-  $amount_value = round((float)$amount, 2);
-  mysqli_stmt_bind_param($stmt, 'isssdss', $employee['id'], $today, $expense_date, $category, $amount_value, $description, $proof_path);
+        $today = date('Y-m-d');
+        $amount_value = round((float)$amount, 2);
+        mysqli_stmt_bind_param($stmt, 'isssdss', $employee['id'], $today, $expense_date, $category, $amount_value, $description, $proof_path);
 
         if (mysqli_stmt_execute($stmt)) {
             $success = 'Expense claim submitted successfully!';
             $expense_date = date('Y-m-d');
-            $category = 'Travel';
+            $category = $categories[0] ?? 'Travel';
             $amount = '';
             $description = '';
         } else {
             $errors[] = 'Unable to save the claim. Please try again.';
-            if (!empty($proof_path) && file_exists(__DIR__ . '/../../../' . $proof_path)) {
-                unlink(__DIR__ . '/../../../' . $proof_path);
-            }
+            reimbursements_delete_proof_file($proof_path);
         }
         mysqli_stmt_close($stmt);
+    } else {
+        reimbursements_delete_proof_file($proof_path);
     }
 }
 

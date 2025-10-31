@@ -134,14 +134,12 @@ function get_all_clients($conn, $user_id, $filters = []) {
  */
 function get_client_by_id($conn, $client_id) {
     $sql = "SELECT c.*, 
-            u1.username as owner_username,
-            u2.username as created_by_username,
-            l.name as lead_name
-            FROM clients c
-            LEFT JOIN users u1 ON c.owner_id = u1.id
-            LEFT JOIN users u2 ON c.created_by = u2.id
-            LEFT JOIN crm_leads l ON c.lead_id = l.id
-            WHERE c.id = ?";
+        u1.username as owner_username,
+        u2.username as created_by_username
+        FROM clients c
+        LEFT JOIN users u1 ON c.owner_id = u1.id
+        LEFT JOIN users u2 ON c.created_by = u2.id
+        WHERE c.id = ?";
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $client_id);

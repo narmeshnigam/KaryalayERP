@@ -7,7 +7,13 @@
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'contacts', 'view');
+if (!authz_user_can_any($conn, [
+    ['table' => 'contacts', 'permission' => 'view_all'],
+    ['table' => 'contacts', 'permission' => 'view_assigned'],
+    ['table' => 'contacts', 'permission' => 'view_own'],
+])) {
+    authz_require_permission($conn, 'contacts', 'view_all');
+}
 
 // Check if tables exist
 if (!contacts_tables_exist($conn)) {

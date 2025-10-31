@@ -4,34 +4,54 @@
  */
 
 require_once __DIR__ . '/../../includes/auth_check.php';
-require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../includes/flash.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/helpers.php';
+
+$closeManagedConnection = static function () use (&$conn): void {
+		if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+				closeConnection($conn);
+				$GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+		}
+};
 
 $doc_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($doc_id <= 0) {
 		flash_add('error', 'Document not found.', 'documents');
+		$closeManagedConnection();
 		header('Location: index.php');
 		exit;
 }
 
-$document_permissions = authz_get_permission_set($conn, 'documents');
-$can_view_all = $document_permissions['can_view_all'] ?? false;
-$can_view_own = $document_permissions['can_view_own'] ?? false;
+if (!authz_user_can_any($conn, [
+		['table' => 'documents', 'permission' => 'view_all'],
+		['table' => 'documents', 'permission' => 'view_assigned'],
+		['table' => 'documents', 'permission' => 'view_own'],
+])) {
+		authz_require_permission($conn, 'documents', 'view_all');
+}
 
-$page_title = 'Document Details - ' . APP_NAME;
+if (!($conn instanceof mysqli)) {
+		echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
+		require_once __DIR__ . '/../../includes/footer_sidebar.php';
+		exit;
+}
 
-require_once __DIR__ . '/../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../includes/sidebar.php';
+$prereq_check = get_prerequisite_check_result($conn, 'documents');
+if (!$prereq_check['allowed']) {
+		$closeManagedConnection();
+		display_prerequisite_error('documents', $prereq_check['missing_modules']);
+		exit;
+}
 
 if (!documents_table_exists($conn)) {
-		if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-			closeConnection($conn);
-		}
+		$closeManagedConnection();
 		require_once __DIR__ . '/onboarding.php';
 		exit;
 }
 
+$document_permissions = authz_get_permission_set($conn, 'documents');
 $current_employee_id = documents_current_employee_id($conn, (int) $CURRENT_USER_ID);
 $allowed_visibilities = documents_allowed_visibilities_for_permissions($document_permissions);
 
@@ -39,7 +59,7 @@ $base_conditions = ['d.deleted_at IS NULL'];
 $base_params = [];
 $base_types = '';
 
-if (!$IS_SUPER_ADMIN && !$can_view_all) {
+if (!$IS_SUPER_ADMIN && empty($document_permissions['can_view_all'])) {
 		$placeholders = implode(',', array_fill(0, count($allowed_visibilities), '?'));
 		$clause = 'd.visibility IN (' . $placeholders . ')';
 		foreach ($allowed_visibilities as $visibility) {
@@ -63,47 +83,54 @@ $detail_conditions[] = 'd.id = ?';
 $detail_params[] = $doc_id;
 $detail_types .= 'i';
 
-function documents_fetch_detail(mysqli $conn, array $conditions, string $types, array $params): ?array
-{
-		$where = implode(' AND ', $conditions);
-		$sql = "SELECT d.*, 
-									 uploader.employee_code AS uploader_code, uploader.first_name AS uploader_first, uploader.last_name AS uploader_last,
-									 subject.employee_code AS subject_code, subject.first_name AS subject_first, subject.last_name AS subject_last
-						FROM documents d
-						LEFT JOIN employees uploader ON uploader.id = d.uploaded_by
-						LEFT JOIN employees subject ON subject.id = d.employee_id
-						WHERE $where
-						LIMIT 1";
-		$stmt = mysqli_prepare($conn, $sql);
-		if (!$stmt) {
-				return null;
+if (!function_exists('documents_fetch_detail')) {
+		function documents_fetch_detail(mysqli $conn, array $conditions, string $types, array $params): ?array
+		{
+				$where = implode(' AND ', $conditions);
+				$sql = "SELECT d.*,
+											 uploader.employee_code AS uploader_code, uploader.first_name AS uploader_first, uploader.last_name AS uploader_last,
+											 subject.employee_code AS subject_code, subject.first_name AS subject_first, subject.last_name AS subject_last
+								FROM documents d
+								LEFT JOIN employees uploader ON uploader.id = d.uploaded_by
+								LEFT JOIN employees subject ON subject.id = d.employee_id
+								WHERE $where
+								LIMIT 1";
+				$stmt = mysqli_prepare($conn, $sql);
+				if (!$stmt) {
+						return null;
+				}
+				if ($types !== '') {
+						documents_stmt_bind($stmt, $types, $params);
+				}
+				mysqli_stmt_execute($stmt);
+				$result = mysqli_stmt_get_result($stmt);
+				$document = $result ? mysqli_fetch_assoc($result) : null;
+				if ($result) {
+						mysqli_free_result($result);
+				}
+				mysqli_stmt_close($stmt);
+				return $document ?: null;
 		}
-		if ($types !== '') {
-				documents_stmt_bind($stmt, $types, $params);
-		}
-		mysqli_stmt_execute($stmt);
-		$result = mysqli_stmt_get_result($stmt);
-		$document = $result ? mysqli_fetch_assoc($result) : null;
-		if ($result) {
-				mysqli_free_result($result);
-		}
-		mysqli_stmt_close($stmt);
-		return $document ?: null;
 }
 
 $document = documents_fetch_detail($conn, $detail_conditions, $detail_types, $detail_params);
 if (!$document) {
-		if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-			closeConnection($conn);
-		}
+		$closeManagedConnection();
 		flash_add('error', 'Document not accessible or no longer available.', 'documents');
 		header('Location: index.php');
 		exit;
 }
 
 $is_uploader = $current_employee_id && ((int) $document['uploaded_by'] === (int) $current_employee_id);
-$can_edit = $IS_SUPER_ADMIN || $document_permissions['can_edit_all'] || $is_uploader;
-$can_archive = $IS_SUPER_ADMIN || $document_permissions['can_delete_all'];
+$is_assigned = $current_employee_id && ((int) $document['employee_id'] === (int) $current_employee_id);
+$can_edit = $IS_SUPER_ADMIN
+		|| !empty($document_permissions['can_edit_all'])
+		|| (!empty($document_permissions['can_edit_own']) && $is_uploader)
+		|| (!empty($document_permissions['can_edit_assigned']) && $is_assigned);
+$can_archive = $IS_SUPER_ADMIN
+		|| !empty($document_permissions['can_delete_all'])
+		|| (!empty($document_permissions['can_delete_own']) && $is_uploader)
+		|| (!empty($document_permissions['can_delete_assigned']) && $is_assigned);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$action = $_POST['action'] ?? '';
@@ -115,10 +142,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$new_employee_id = isset($_POST['employee_id']) ? (int) $_POST['employee_id'] : 0;
 
 				$allowed_visibilities_for_edit = documents_allowed_visibilities_for_permissions($document_permissions);
-				if (!$IS_SUPER_ADMIN && $new_visibility === 'admin') {
-					flash_add('error', 'Only administrators can mark documents as admin-only.', 'documents');
-				} elseif (!in_array($new_visibility, ($IS_SUPER_ADMIN ? ['employee', 'manager', 'admin'] : $allowed_visibilities_for_edit), true)) {
-					flash_add('error', 'Invalid visibility selected.', 'documents');
+				$all_visibilities = ['employee', 'manager', 'admin'];
+
+				if (!$IS_SUPER_ADMIN && empty($document_permissions['can_view_all']) && $new_visibility === 'admin') {
+						flash_add('error', 'Only administrators can mark documents as admin-only.', 'documents');
+				} elseif (!in_array($new_visibility, ($IS_SUPER_ADMIN ? $all_visibilities : $allowed_visibilities_for_edit), true)) {
+						flash_add('error', 'Invalid visibility selected.', 'documents');
 				} else {
 						$employee_value = $new_employee_id > 0 ? $new_employee_id : null;
 						$doc_type_value = $new_doc_type !== '' ? $new_doc_type : null;
@@ -129,15 +158,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 						if ($stmt) {
 								mysqli_stmt_bind_param($stmt, 'sissi', $doc_type_value, $employee_value, $tags_value, $new_visibility, $doc_id);
 								if (mysqli_stmt_execute($stmt)) {
-							flash_add('success', 'Document details updated.', 'documents');
+										flash_add('success', 'Document details updated.', 'documents');
 								} else {
-							flash_add('error', 'Failed to update document: ' . mysqli_stmt_error($stmt), 'documents');
+										flash_add('error', 'Failed to update document. Please try again.', 'documents');
 								}
 								mysqli_stmt_close($stmt);
 						} else {
-						flash_add('error', 'Could not prepare update statement.', 'documents');
+								flash_add('error', 'Could not prepare update statement.', 'documents');
 						}
 				}
+				$closeManagedConnection();
 				header('Location: view.php?id=' . $doc_id);
 				exit;
 		}
@@ -148,14 +178,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				if ($stmt) {
 						mysqli_stmt_bind_param($stmt, 'i', $doc_id);
 						if (mysqli_stmt_execute($stmt) && mysqli_stmt_affected_rows($stmt) > 0) {
-						flash_add('success', 'Document archived successfully.', 'documents');
+								flash_add('success', 'Document archived successfully.', 'documents');
 						} else {
-						flash_add('error', 'Unable to archive document.', 'documents');
+								flash_add('error', 'Unable to archive document.', 'documents');
 						}
 						mysqli_stmt_close($stmt);
 				} else {
-					flash_add('error', 'Could not prepare archive statement.', 'documents');
+						flash_add('error', 'Could not prepare archive statement.', 'documents');
 				}
+				$closeManagedConnection();
 				header('Location: index.php');
 				exit;
 		}
@@ -164,12 +195,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Refetch after possible updates for display.
 $document = documents_fetch_detail($conn, $detail_conditions, $detail_types, $detail_params);
 
-$employees = documents_fetch_employees($conn);
-
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-	closeConnection($conn);
-}
-
 $file_relative = ltrim($document['file_path'] ?? '', '/');
 $file_path = __DIR__ . '/../../' . $file_relative;
 $file_exists = $file_relative !== '' && is_file($file_path);
@@ -177,7 +202,10 @@ $file_url = APP_URL . '/' . $file_relative;
 $tags = documents_parse_tags($document['tags'] ?? '');
 $uploaded_on = $document['created_at'] ? date('d M Y, h:i A', strtotime($document['created_at'])) : '—';
 $updated_on = $document['updated_at'] ? date('d M Y, h:i A', strtotime($document['updated_at'])) : '—';
-$visibility_choices = $IS_SUPER_ADMIN ? ['employee', 'manager', 'admin'] : documents_allowed_visibilities_for_permissions($document_permissions);
+
+$page_title = 'Document Details - ' . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 <div class="main-wrapper">
 	<div class="main-content">
@@ -187,21 +215,21 @@ $visibility_choices = $IS_SUPER_ADMIN ? ['employee', 'manager', 'admin'] : docum
 					<h1>📄 <?php echo htmlspecialchars($document['title'], ENT_QUOTES); ?></h1>
 					<p>Document ID: #<?php echo (int) $document['id']; ?></p>
 				</div>
-						<div style="display:flex;gap:10px;flex-wrap:wrap;">
-							<a href="index.php" class="btn btn-secondary">← Back to list</a>
-							<?php if ($can_edit): ?>
-								<a href="edit.php?id=<?php echo (int) $document['id']; ?>" class="btn" style="background:#003581;color:#fff;">Edit</a>
-							<?php endif; ?>
-							<?php if ($file_exists): ?>
-								<a href="<?php echo htmlspecialchars($file_url, ENT_QUOTES); ?>" target="_blank" rel="noopener" class="btn" style="background:#17a2b8;color:#fff;">Download</a>
-							<?php endif; ?>
-							<?php if ($can_archive): ?>
-								<form method="POST" onsubmit="return confirm('Archive this document?');">
-									<input type="hidden" name="action" value="archive">
-									<button type="submit" class="btn" style="background:#dc3545;color:#fff;">Archive</button>
-								</form>
-							<?php endif; ?>
-						</div>
+				<div style="display:flex;gap:10px;flex-wrap:wrap;">
+					<a href="index.php" class="btn btn-secondary">← Back to list</a>
+					<?php if ($can_edit): ?>
+						<a href="edit.php?id=<?php echo (int) $document['id']; ?>" class="btn" style="background:#003581;color:#fff;">Edit</a>
+					<?php endif; ?>
+					<?php if ($file_exists): ?>
+						<a href="<?php echo htmlspecialchars($file_url, ENT_QUOTES); ?>" target="_blank" rel="noopener" class="btn" style="background:#17a2b8;color:#fff;">Download</a>
+					<?php endif; ?>
+					<?php if ($can_archive): ?>
+						<form method="POST" onsubmit="return confirm('Archive this document?');">
+							<input type="hidden" name="action" value="archive">
+							<button type="submit" class="btn" style="background:#dc3545;color:#fff;">Archive</button>
+						</form>
+					<?php endif; ?>
+				</div>
 			</div>
 		</div>
 
@@ -221,7 +249,7 @@ $visibility_choices = $IS_SUPER_ADMIN ? ['employee', 'manager', 'admin'] : docum
 					<div><?php echo documents_format_employee($document['subject_code'] ?? null, $document['subject_first'] ?? null, $document['subject_last'] ?? null); ?></div>
 
 					<div style="font-weight:600;color:#495057;">Project ID</div>
-					<div><?php echo !empty($document['project_id']) ? htmlspecialchars((string)$document['project_id'], ENT_QUOTES) : '—'; ?></div>
+					<div><?php echo !empty($document['project_id']) ? htmlspecialchars((string) $document['project_id'], ENT_QUOTES) : '—'; ?></div>
 
 					<div style="font-weight:600;color:#495057;">Uploaded by</div>
 					<div><?php echo documents_format_employee($document['uploader_code'] ?? null, $document['uploader_first'] ?? null, $document['uploader_last'] ?? null); ?></div>
@@ -253,7 +281,7 @@ $visibility_choices = $IS_SUPER_ADMIN ? ['employee', 'manager', 'admin'] : docum
 
 			<div class="card">
 				<h3 style="margin-top:0;color:#003581;">File preview</h3>
-				<?php if ($file_exists && in_array(strtolower(pathinfo($file_relative, PATHINFO_EXTENSION)), ['jpg','jpeg','png','gif'], true)): ?>
+				<?php if ($file_exists && in_array(strtolower(pathinfo($file_relative, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif'], true)): ?>
 					<img src="<?php echo htmlspecialchars($file_url, ENT_QUOTES); ?>" alt="Document preview" style="max-width:100%;border-radius:8px;">
 				<?php else: ?>
 					<div style="padding:20px;border:1px dashed #ced4da;border-radius:8px;text-align:center;color:#6c757d;">
@@ -271,5 +299,7 @@ $visibility_choices = $IS_SUPER_ADMIN ? ['employee', 'manager', 'admin'] : docum
 		<!-- Edit form removed from view page. Use Edit button to modify document in edit.php -->
 	</div>
 </div>
-
-<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php
+$closeManagedConnection();
+require_once __DIR__ . '/../../includes/footer_sidebar.php';
+?>

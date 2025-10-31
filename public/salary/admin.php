@@ -7,38 +7,41 @@ require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/module_dependencies.php';
 require_once __DIR__ . '/helpers.php';
 
+$closeManagedConnection = static function () use (&$conn): void {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+    }
+};
+
 authz_require_permission($conn, 'salary_records', 'view_all');
 $salary_permissions = authz_get_permission_set($conn, 'salary_records');
 $can_create_salary = !empty($salary_permissions['can_create']);
 $can_edit_salary = !empty($salary_permissions['can_edit_all']);
 $can_delete_salary = !empty($salary_permissions['can_delete_all']);
 
-$conn_check = createConnection(true);
-if ($conn_check) {
-    $prereq_check = get_prerequisite_check_result($conn_check, 'salary');
-    if (!$prereq_check['allowed']) {
-        closeConnection($conn_check);
-        display_prerequisite_error('salary', $prereq_check['missing_modules']);
-    }
-    closeConnection($conn_check);
-}
-
-$page_title = 'Salary Manager - ' . APP_NAME;
-require_once __DIR__ . '/../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../includes/sidebar.php';
-
-$conn = $conn ?? createConnection(true);
-if (!$conn) {
+if (!($conn instanceof mysqli)) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
 }
 
+$prereq_check = get_prerequisite_check_result($conn, 'salary');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    display_prerequisite_error('salary', $prereq_check['missing_modules']);
+    exit;
+}
+
 if (!salary_table_exists($conn)) {
-    closeConnection($conn);
+    $closeManagedConnection();
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
+
+$page_title = 'Salary Manager - ' . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 
 $query_string = $_SERVER['QUERY_STRING'] ?? '';
 $redirect_base = 'admin.php' . ($query_string !== '' ? '?' . $query_string : '');
@@ -239,7 +242,7 @@ if ($monthly_stmt) {
 }
 
 if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
+    $closeManagedConnection();
 }
 ?>
 <div class="main-wrapper">

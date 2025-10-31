@@ -358,12 +358,12 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         </div>
                         <div style="display:flex;gap:8px;align-items:center;grid-column:1 / -1;justify-content:flex-end;">
                           <button class="btn btn-primary">Save</button>
-                          <form method="post" onsubmit="return confirm('Delete this task?');">
-                            <input type="hidden" name="action" value="delete">
-                            <input type="hidden" name="task_id" value="<?= (int)$t['id'] ?>">
-                            <button class="btn btn-danger">Delete</button>
-                          </form>
                         </div>
+                      </form>
+                      <form method="post" style="margin-top:8px;display:inline-block;" onsubmit="return confirm('Delete this task?');">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="task_id" value="<?= (int)$t['id'] ?>">
+                        <button class="btn btn-danger">Delete</button>
                       </form>
                     </div>
                   </details>

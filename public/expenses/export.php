@@ -4,38 +4,54 @@
  */
 
 require_once __DIR__ . '/../../includes/auth_check.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/helpers.php';
 
 authz_require_permission($conn, 'office_expenses', 'export');
 
-$conn = $conn ?? createConnection(true);
-
-function tableExists($conn, $table)
-{
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
-}
-
-function refValues(array &$arr)
-{
-    $refs = [];
-    foreach ($arr as $key => &$value) {
-        $refs[$key] = &$value;
-    }
-    return $refs;
-}
-
-if (!tableExists($conn, 'office_expenses')) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+$closeManagedConnection = static function () use (&$conn): void {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
         closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
     }
+};
+
+if (!($conn instanceof mysqli)) {
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'Unable to connect to the database.';
+    exit;
+}
+
+$prereq_check = get_prerequisite_check_result($conn, 'office_expenses');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'Prerequisites missing for office expenses module.';
+    exit;
+}
+
+if (!office_expenses_table_exists($conn)) {
+    $closeManagedConnection();
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Expense table not found. Please run the setup script.';
     exit;
+}
+
+$expense_permissions = authz_get_permission_set($conn, 'office_expenses');
+$can_view_all = !empty($expense_permissions['can_view_all']);
+$can_view_own = !empty($expense_permissions['can_view_own']);
+
+$current_employee = office_expenses_current_employee($conn, (int) $CURRENT_USER_ID);
+$restricted_employee_id = null;
+if (!$can_view_all) {
+    if ($can_view_own && $current_employee) {
+        $restricted_employee_id = (int) $current_employee['id'];
+    } else {
+        $closeManagedConnection();
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'You do not have permission to export these expenses.';
+        exit;
+    }
 }
 
 $from_date = isset($_GET['from_date']) ? trim($_GET['from_date']) : date('Y-01-01');
@@ -63,6 +79,11 @@ if ($vendor_filter !== '') {
     $params[] = '%' . $vendor_filter . '%';
     $types .= 's';
 }
+if ($restricted_employee_id !== null) {
+    $where[] = 'e.added_by = ?';
+    $params[] = $restricted_employee_id;
+    $types .= 'i';
+}
 $where_clause = implode(' AND ', $where);
 
 $sql = "SELECT e.date, e.category, e.vendor_name, e.description, e.amount, e.payment_mode, e.receipt_file,
@@ -74,27 +95,19 @@ $sql = "SELECT e.date, e.category, e.vendor_name, e.description, e.amount, e.pay
 
 $stmt = mysqli_prepare($conn, $sql);
 if (!$stmt) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
+    $closeManagedConnection();
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Failed to prepare export statement.';
     exit;
 }
 
 if (!empty($params)) {
-    $bind = [$types];
-    foreach ($params as $index => $value) {
-        $bind[] = $params[$index];
-    }
-    call_user_func_array([$stmt, 'bind_param'], refValues($bind));
+    office_expenses_stmt_bind($stmt, $types, $params);
 }
 
 if (!mysqli_stmt_execute($stmt)) {
     mysqli_stmt_close($stmt);
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
+    $closeManagedConnection();
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Failed to execute export query.';
     exit;
@@ -135,7 +148,5 @@ while ($row = mysqli_fetch_assoc($result)) {
 
 fclose($output);
 mysqli_stmt_close($stmt);
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
-}
+$closeManagedConnection();
 exit;

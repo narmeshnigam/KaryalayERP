@@ -5,91 +5,125 @@
 
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/../../includes/flash.php';
+require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'office_expenses', 'view_all');
+$closeManagedConnection = static function () use (&$conn): void {
+  if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+    closeConnection($conn);
+    $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+  }
+};
+
+if (!authz_user_can_any($conn, [
+  ['table' => 'office_expenses', 'permission' => 'view_all'],
+  ['table' => 'office_expenses', 'permission' => 'view_own'],
+  ['table' => 'office_expenses', 'permission' => 'view_assigned'],
+])) {
+  authz_require_permission($conn, 'office_expenses', 'view_all');
+}
+
 $expense_permissions = authz_get_permission_set($conn, 'office_expenses');
+$can_view_all = !empty($expense_permissions['can_view_all']);
+$can_view_own = !empty($expense_permissions['can_view_own']);
+$can_view_assigned = !empty($expense_permissions['can_view_assigned']);
 $can_create_expense = !empty($expense_permissions['can_create']);
-$can_edit_expense = !empty($expense_permissions['can_edit_all']);
-$can_delete_expense = !empty($expense_permissions['can_delete_all']);
+$can_edit_all = !empty($expense_permissions['can_edit_all']);
+$can_edit_own = !empty($expense_permissions['can_edit_own']);
+$can_delete_all = !empty($expense_permissions['can_delete_all']);
+$can_delete_own = !empty($expense_permissions['can_delete_own']);
 $can_export_expense = !empty($expense_permissions['can_export']);
 
-// Check office_expenses module prerequisites
-$conn_check = createConnection(true);
-if ($conn_check) {
-    $prereq_check = get_prerequisite_check_result($conn_check, 'office_expenses');
-    if (!$prereq_check['allowed']) {
-        closeConnection($conn_check);
-        display_prerequisite_error('office_expenses', $prereq_check['missing_modules']);
-    }
-    closeConnection($conn_check);
+if (!($conn instanceof mysqli)) {
+  echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
+  require_once __DIR__ . '/../../includes/footer_sidebar.php';
+  exit;
+}
+
+$prereq_check = get_prerequisite_check_result($conn, 'office_expenses');
+if (!$prereq_check['allowed']) {
+  $closeManagedConnection();
+  display_prerequisite_error('office_expenses', $prereq_check['missing_modules']);
+  exit;
+}
+
+if (!office_expenses_table_exists($conn)) {
+  $closeManagedConnection();
+  require_once __DIR__ . '/onboarding.php';
+  exit;
 }
 
 $page_title = 'Expense Tracker - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = $conn ?? createConnection(true);
+$current_employee_id = office_expenses_current_employee_id($conn, (int) $CURRENT_USER_ID);
+$restricted_employee_id = null;
 
-function tableExists($conn, $table)
-{
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
-}
-
-if (!tableExists($conn, 'office_expenses')) {
-  if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
-  }
-    echo '<div class="main-wrapper"><div class="main-content">';
-    echo '<div class="card" style="max-width:760px;margin:0 auto;">';
-    echo '<h2 style="margin-top:0;color:#003581;">Expense Tracker module not ready</h2>';
-    echo '<p>The <code>office_expenses</code> table is missing. Run the setup script to continue.</p>';
-    echo '<a href="../../scripts/setup_office_expenses_table.php" class="btn" style="margin-top:20px;">🚀 Setup Expense Tracker</a>';
-    echo '<a href="../index.php" class="btn btn-accent" style="margin-left:10px;margin-top:20px;">Back to dashboard</a>';
-    echo '</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
-
-$message = '';
-$error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
-  if (!$can_delete_expense) {
-    $error = 'You do not have permission to delete expenses.';
+if (!$IS_SUPER_ADMIN && !$can_view_all) {
+  if ($can_view_own && $current_employee_id) {
+    $restricted_employee_id = $current_employee_id;
+  } elseif ($can_view_assigned) {
+    authz_require_permission($conn, 'office_expenses', 'view_all');
   } else {
-    $delete_id = (int) $_POST['delete_id'];
-    if ($delete_id > 0) {
-        $file_sql = 'SELECT receipt_file FROM office_expenses WHERE id = ?';
-        $file_stmt = mysqli_prepare($conn, $file_sql);
-        mysqli_stmt_bind_param($file_stmt, 'i', $delete_id);
-        mysqli_stmt_execute($file_stmt);
-        $file_res = mysqli_stmt_get_result($file_stmt);
-        $file_row = mysqli_fetch_assoc($file_res);
-        mysqli_stmt_close($file_stmt);
+    authz_require_permission($conn, 'office_expenses', 'view_all');
+  }
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+  $delete_id = (int) ($_POST['delete_id'] ?? 0);
+  if ($delete_id <= 0) {
+    flash_add('error', 'Invalid expense identifier supplied.', 'office_expenses');
+  } else {
+    $detail_stmt = mysqli_prepare($conn, 'SELECT id, receipt_file, added_by FROM office_expenses WHERE id = ? LIMIT 1');
+    if ($detail_stmt) {
+      mysqli_stmt_bind_param($detail_stmt, 'i', $delete_id);
+      mysqli_stmt_execute($detail_stmt);
+      $detail_res = mysqli_stmt_get_result($detail_stmt);
+      $expense_row = $detail_res ? mysqli_fetch_assoc($detail_res) : null;
+      mysqli_stmt_close($detail_stmt);
 
-        $delete_sql = 'DELETE FROM office_expenses WHERE id = ?';
-        $delete_stmt = mysqli_prepare($conn, $delete_sql);
-        mysqli_stmt_bind_param($delete_stmt, 'i', $delete_id);
-        if (mysqli_stmt_execute($delete_stmt) && mysqli_stmt_affected_rows($delete_stmt) > 0) {
-            $message = 'Expense entry deleted successfully.';
-            if (!empty($file_row['receipt_file'])) {
-                $file_path = __DIR__ . '/../../' . ltrim($file_row['receipt_file'], '/');
-                if (file_exists($file_path)) {
-                    @unlink($file_path);
-                }
-            }
+      if ($expense_row) {
+        $is_owner = $current_employee_id && ((int) $expense_row['added_by'] === (int) $current_employee_id);
+        $can_delete = $IS_SUPER_ADMIN || $can_delete_all || ($can_delete_own && $is_owner);
+
+        if (!$can_delete) {
+          flash_add('error', 'You do not have permission to delete this expense entry.', 'office_expenses');
         } else {
-            $error = 'Unable to delete expense entry.';
+          $delete_stmt = mysqli_prepare($conn, 'DELETE FROM office_expenses WHERE id = ? LIMIT 1');
+          if ($delete_stmt) {
+            mysqli_stmt_bind_param($delete_stmt, 'i', $delete_id);
+            if (mysqli_stmt_execute($delete_stmt) && mysqli_stmt_affected_rows($delete_stmt) > 0) {
+              if (!empty($expense_row['receipt_file'])) {
+                $file_path = __DIR__ . '/../../' . ltrim($expense_row['receipt_file'], '/');
+                if (is_file($file_path)) {
+                  @unlink($file_path);
+                }
+              }
+              flash_add('success', 'Expense entry deleted successfully.', 'office_expenses');
+            } else {
+              flash_add('error', 'Unable to delete the selected expense entry.', 'office_expenses');
+            }
+            mysqli_stmt_close($delete_stmt);
+          } else {
+            flash_add('error', 'Failed to prepare delete statement.', 'office_expenses');
+          }
         }
-        mysqli_stmt_close($delete_stmt);
+      } else {
+        flash_add('error', 'Expense record not found.', 'office_expenses');
+      }
+    } else {
+      flash_add('error', 'Unable to load expense details for deletion.', 'office_expenses');
     }
   }
+
+  $redirect = 'index.php';
+  $query = $_SERVER['QUERY_STRING'] ?? '';
+  if ($query !== '') {
+    $redirect .= '?' . $query;
+  }
+  $closeManagedConnection();
+  header('Location: ' . $redirect);
+  exit;
 }
 
 $from_date = isset($_GET['from_date']) ? $_GET['from_date'] : date('Y-m-01');
@@ -101,6 +135,12 @@ $search_vendor = isset($_GET['vendor']) ? trim($_GET['vendor']) : '';
 $where = ['e.date BETWEEN ? AND ?'];
 $params = [$from_date, $to_date];
 $types = 'ss';
+
+if ($restricted_employee_id !== null) {
+  $where[] = 'e.added_by = ?';
+  $params[] = $restricted_employee_id;
+  $types .= 'i';
+}
 
 if ($category_filter !== '') {
     $where[] = 'e.category = ?';
@@ -123,67 +163,53 @@ if ($search_vendor !== '') {
 $where_clause = implode(' AND ', $where);
 
 $sql = "SELECT e.*, emp.employee_code, emp.first_name, emp.last_name
-        FROM office_expenses e
-        LEFT JOIN employees emp ON e.added_by = emp.id
-        WHERE $where_clause
-        ORDER BY e.date DESC, e.id DESC";
+    FROM office_expenses e
+    LEFT JOIN employees emp ON e.added_by = emp.id
+    WHERE $where_clause
+    ORDER BY e.date DESC, e.id DESC";
 
 $stmt = mysqli_prepare($conn, $sql);
-$bind_params = [];
-$bind_params[] = &$types;
-foreach ($params as $key => $value) {
-    $bind_params[] = &$params[$key];
-}
-call_user_func_array([$stmt, 'bind_param'], $bind_params);
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
 $expenses = [];
-while ($row = mysqli_fetch_assoc($result)) {
+if ($stmt) {
+  office_expenses_stmt_bind($stmt, $types, $params);
+  mysqli_stmt_execute($stmt);
+  $result = mysqli_stmt_get_result($stmt);
+  while ($result && ($row = mysqli_fetch_assoc($result))) {
     $expenses[] = $row;
+  }
+  mysqli_stmt_close($stmt);
 }
-mysqli_stmt_close($stmt);
 
 $total_sql = "SELECT 
-                SUM(amount) AS total_amount,
-                SUM(CASE WHEN DATE_FORMAT(date,'%Y-%m') = DATE_FORMAT(CURDATE(),'%Y-%m') THEN amount ELSE 0 END) AS current_month,
-                COUNT(*) AS entries
-             FROM office_expenses e
-             WHERE $where_clause";
+        SUM(amount) AS total_amount,
+        SUM(CASE WHEN DATE_FORMAT(date,'%Y-%m') = DATE_FORMAT(CURDATE(),'%Y-%m') THEN amount ELSE 0 END) AS current_month,
+        COUNT(*) AS entries
+       FROM office_expenses e
+       WHERE $where_clause";
 $total_stmt = mysqli_prepare($conn, $total_sql);
-$bind_params = [];
-$bind_params[] = &$types;
-foreach ($params as $key => $value) {
-    $bind_params[] = &$params[$key];
-}
-call_user_func_array([$total_stmt, 'bind_param'], $bind_params);
-mysqli_stmt_execute($total_stmt);
-$total_stats = mysqli_fetch_assoc(mysqli_stmt_get_result($total_stmt));
-mysqli_stmt_close($total_stmt);
-
-$category_list = [];
-$cat_sql = 'SELECT DISTINCT category FROM office_expenses ORDER BY category';
-$cat_res = mysqli_query($conn, $cat_sql);
-if ($cat_res) {
-    while ($row = mysqli_fetch_assoc($cat_res)) {
-        if (!empty($row['category'])) {
-            $category_list[] = $row['category'];
-        }
+$total_stats = ['total_amount' => 0, 'current_month' => 0, 'entries' => 0];
+if ($total_stmt) {
+  $total_params = $params;
+  office_expenses_stmt_bind($total_stmt, $types, $total_params);
+  mysqli_stmt_execute($total_stmt);
+  $stats_result = mysqli_stmt_get_result($total_stmt);
+  if ($stats_result) {
+    $row = mysqli_fetch_assoc($stats_result);
+    if ($row) {
+      $total_stats = $row;
     }
+  }
+  mysqli_stmt_close($total_stmt);
 }
 
-$payment_modes = [];
-$pm_sql = 'SELECT DISTINCT payment_mode FROM office_expenses ORDER BY payment_mode';
-$pm_res = mysqli_query($conn, $pm_sql);
-if ($pm_res) {
-    while ($row = mysqli_fetch_assoc($pm_res)) {
-        if (!empty($row['payment_mode'])) {
-            $payment_modes[] = $row['payment_mode'];
-        }
-    }
+$category_list = office_expenses_fetch_categories($conn);
+if (empty($category_list)) {
+  $category_list = office_expenses_default_categories();
 }
 
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-  closeConnection($conn);
+$payment_modes = office_expenses_fetch_payment_modes($conn);
+if (empty($payment_modes)) {
+  $payment_modes = office_expenses_default_payment_modes();
 }
 ?>
 
@@ -207,13 +233,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
       </div>
     </div>
 
-    <?php if (!empty($message)): ?>
-      <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
-    <?php endif; ?>
-
-    <?php if (!empty($error)): ?>
-      <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
-    <?php endif; ?>
+      <?php echo flash_render(); ?>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
       <div class="card" style="background:linear-gradient(135deg,#28a745 0%,#20c997 100%);color:#fff;text-align:center;">
@@ -293,6 +313,11 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
             </thead>
             <tbody>
               <?php foreach ($expenses as $expense): ?>
+                <?php
+                  $is_owner = $current_employee_id && (int) ($expense['added_by'] ?? 0) === (int) $current_employee_id;
+                  $can_edit_expense = $IS_SUPER_ADMIN || $can_edit_all || ($can_edit_own && $is_owner);
+                  $can_delete_expense = $IS_SUPER_ADMIN || $can_delete_all || ($can_delete_own && $is_owner);
+                ?>
                 <tr style="border-bottom:1px solid #e1e8ed;">
                   <td style="padding:12px;white-space:nowrap;"><?php echo htmlspecialchars(date('d M Y', strtotime($expense['date']))); ?></td>
                   <td style="padding:12px;"><?php echo htmlspecialchars($expense['category']); ?></td>
@@ -329,5 +354,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
     </div>
   </div>
 </div>
+
+    <?php $closeManagedConnection(); ?>
 
 <?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>

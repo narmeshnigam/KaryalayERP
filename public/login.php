@@ -44,43 +44,96 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         // Check if connection exists
         if ($conn) {
-            // Prepare SQL statement to prevent SQL injection
-        $sql = "SELECT id, username, password_hash, full_name, role, is_active 
-            FROM users 
-            WHERE username = ? 
-            LIMIT 1";
-            
+            // Detect column availability for backwards compatibility
+            $columnChecks = [
+                'password_hash' => false,
+                'password' => false,
+                'status' => false,
+                'is_active' => false,
+            ];
+
+            foreach (array_keys($columnChecks) as $columnName) {
+                $colResult = $conn->query("SHOW COLUMNS FROM users LIKE '" . $conn->real_escape_string($columnName) . "'");
+                if ($colResult && $colResult->num_rows > 0) {
+                    $columnChecks[$columnName] = true;
+                }
+                if ($colResult) {
+                    $colResult->free();
+                }
+            }
+
+            $selectFields = ['u.id', 'u.username', 'u.full_name'];
+            if ($columnChecks['password_hash']) {
+                $selectFields[] = 'u.password_hash';
+            }
+            if ($columnChecks['password']) {
+                $selectFields[] = 'u.password AS legacy_password';
+            }
+            if ($columnChecks['status']) {
+                $selectFields[] = 'u.status';
+            }
+            if ($columnChecks['is_active']) {
+                $selectFields[] = 'u.is_active';
+            }
+
+            $sql = 'SELECT ' . implode(', ', $selectFields) . ' FROM users u WHERE u.username = ? LIMIT 1';
             $stmt = $conn->prepare($sql);
-            
+
             if ($stmt) {
-                $stmt->bind_param("s", $username);
+                $stmt->bind_param('s', $username);
                 $stmt->execute();
                 $result = $stmt->get_result();
-                
-                // Check if user exists
-                if ($result->num_rows === 1) {
+
+                if ($result && $result->num_rows === 1) {
                     $user = $result->fetch_assoc();
-                    
-                    // Check if user is active
-                    if ($user['is_active'] != 1) {
+
+                    $passwordHash = null;
+                    if ($columnChecks['password_hash'] && !empty($user['password_hash'])) {
+                        $passwordHash = $user['password_hash'];
+                    } elseif ($columnChecks['password'] && !empty($user['legacy_password'])) {
+                        $passwordHash = $user['legacy_password'];
+                    }
+
+                    $accountActive = true;
+                    if ($columnChecks['status'] && isset($user['status'])) {
+                        $accountActive = ($user['status'] === 'Active');
+                    } elseif ($columnChecks['is_active'] && isset($user['is_active'])) {
+                        $accountActive = ((int) $user['is_active'] === 1);
+                    }
+
+                    if (!$accountActive) {
                         $error_message = 'Your account has been deactivated. Please contact administrator.';
-                    } 
-                    // Verify password
-                    elseif (password_verify($password, $user['password_hash'])) {
-                        // Password is correct, create session
-                        session_regenerate_id(true); // Prevent session fixation
-                        
-                        $_SESSION['user_id'] = $user['id'];
+                    } elseif ($passwordHash && password_verify($password, $passwordHash)) {
+                        session_regenerate_id(true);
+
+                        $_SESSION['user_id'] = (int) $user['id'];
                         $_SESSION['username'] = $user['username'];
                         $_SESSION['full_name'] = $user['full_name'];
-                        $_SESSION['role'] = $user['role'];
                         $_SESSION['login_time'] = time();
 
-                        // Ensure the user has an RBAC role assignment aligned with the permissions manager.
-                        authz_ensure_user_role_assignment($conn, (int)$user['id'], $user['role'] ?? null);
+                        if (authz_roles_tables_exist($conn)) {
+                            // Ensure at least one role assignment exists, falling back to Employee if needed.
+                            authz_ensure_user_role_assignment($conn, (int) $user['id']);
+
+                            $roleNames = [];
+                            $roleStmt = $conn->prepare('SELECT r.name FROM user_roles ur INNER JOIN roles r ON ur.role_id = r.id WHERE ur.user_id = ?');
+                            if ($roleStmt) {
+                                $userIdForRole = (int) $user['id'];
+                                $roleStmt->bind_param('i', $userIdForRole);
+                                $roleStmt->execute();
+                                $roleResult = $roleStmt->get_result();
+                                while ($roleRow = $roleResult->fetch_assoc()) {
+                                    $roleNames[] = $roleRow['name'];
+                                }
+                                $roleStmt->close();
+                            }
+                            $_SESSION['role_names'] = $roleNames;
+                        } else {
+                            $_SESSION['role_names'] = [];
+                        }
+
                         authz_refresh_context($conn);
-                        
-                        // Redirect to dashboard
+
                         header('Location: index.php');
                         exit;
                     } else {
@@ -89,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 } else {
                     $error_message = 'Invalid username or password.';
                 }
-                
+
                 $stmt->close();
             } else {
                 $error_message = 'Database error. Please try again later.';

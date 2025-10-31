@@ -7,12 +7,32 @@
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'notebook', 'view');
-
-// Check if tables exist
+// If Notebook tables are missing, show an in-page setup prompt instead of redirecting away
 if (!notebook_tables_exist($conn)) {
-    header('Location: /KaryalayERP/setup/index.php?module=notebook');
+    $page_title = 'Notebook Module Setup Required - ' . APP_NAME;
+    require_once __DIR__ . '/../../includes/header_sidebar.php';
+    require_once __DIR__ . '/../../includes/sidebar.php';
+    echo '<div class="main-wrapper"><div class="main-content">';
+    echo '<div class="card" style="max-width:720px;margin:40px auto;">';
+    echo '<h3 class="card-title">📒 Notebook Module Not Set Up</h3>';
+    echo '<p class="text-muted">The Notebook module database tables have not been created yet. To use this module, please run the setup for Notebook.</p>';
+    echo '<div style="margin-top:16px;display:flex;gap:10px;">';
+    echo '<a href="/KaryalayERP/scripts/setup_notebook_tables.php" class="btn btn-primary">Run Notebook Setup</a>';
+    echo '<a href="/KaryalayERP/setup/index.php" class="btn btn-secondary">Open Setup Wizard</a>';
+    echo '</div>';
+    echo '</div>';
+    echo '</div></div>';
+    require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
+}
+
+// Now check permissions (tables exist, so permissions should be defined)
+if (!authz_user_can_any($conn, [
+    ['table' => 'notebook_notes', 'permission' => 'view_all'],
+    ['table' => 'notebook_notes', 'permission' => 'view_assigned'],
+    ['table' => 'notebook_notes', 'permission' => 'view_own'],
+])) {
+    authz_require_permission($conn, 'notebook_notes', 'view_all');
 }
 
 // Get filters from request
@@ -33,7 +53,7 @@ $stats = get_notebook_statistics($conn, $CURRENT_USER_ID);
 $all_tags = get_all_tags($conn);
 
 // Check permissions
-$notebook_permissions = authz_get_permission_set($conn, 'notebook');
+$notebook_permissions = authz_get_permission_set($conn, 'notebook_notes');
 $can_create = $notebook_permissions['can_create'] || $IS_SUPER_ADMIN;
 
 $page_title = 'Notebook - ' . APP_NAME;

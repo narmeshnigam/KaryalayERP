@@ -6,6 +6,7 @@
 session_start();
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../../config/db_connect.php';
+require_once __DIR__ . '/../../reimbursements/helpers.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../login.php');
@@ -25,17 +26,7 @@ if (!$conn) {
     exit;
 }
 
-function tableExists($conn, $table) {
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
-}
-
-if (!tableExists($conn, 'reimbursements')) {
+if (!reimbursements_table_exists($conn)) {
     closeConnection($conn);
     echo '<div class="main-wrapper"><div class="main-content">';
     echo '<div class="card" style="max-width:720px;margin:0 auto;">';
@@ -75,17 +66,11 @@ if ($claim_id <= 0) {
     exit;
 }
 
-$detail_sql = 'SELECT r.*, e.first_name, e.last_name, e.employee_code FROM reimbursements r INNER JOIN employees e ON r.employee_id = e.id WHERE r.id = ? AND r.employee_id = ? LIMIT 1';
-$detail_stmt = mysqli_prepare($conn, $detail_sql);
-mysqli_stmt_bind_param($detail_stmt, 'ii', $claim_id, $employee['id']);
-mysqli_stmt_execute($detail_stmt);
-$result = mysqli_stmt_get_result($detail_stmt);
-$claim = mysqli_fetch_assoc($result);
-mysqli_stmt_close($detail_stmt);
+$claim = reimbursements_fetch_claim($conn, $claim_id);
 
 closeConnection($conn);
 
-if (!$claim) {
+if (!$claim || (int) $claim['employee_id'] !== (int) $employee['id']) {
     echo '<div class="main-wrapper"><div class="main-content">';
     echo '<div class="alert alert-error">Reimbursement not found.</div>';
     echo '<a href="index.php" class="btn" style="margin-top:20px;">← Back</a>';

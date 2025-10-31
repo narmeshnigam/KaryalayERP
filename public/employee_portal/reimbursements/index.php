@@ -7,6 +7,7 @@
 session_start();
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../../config/db_connect.php';
+require_once __DIR__ . '/../../reimbursements/helpers.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../login.php');
@@ -26,17 +27,7 @@ if (!$conn) {
     exit;
 }
 
-function tableExists($conn, $table) {
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
-}
-
-if (!tableExists($conn, 'reimbursements')) {
+if (!reimbursements_table_exists($conn)) {
     closeConnection($conn);
     echo '<div class="main-wrapper"><div class="main-content">';
     echo '<div class="card" style="max-width:720px;margin:0 auto;">';
@@ -86,12 +77,7 @@ $where_clause = implode(' AND ', $where);
 $query = "SELECT * FROM reimbursements WHERE $where_clause ORDER BY expense_date DESC, id DESC";
 $stmt = mysqli_prepare($conn, $query);
 
-$bind_params = [];
-$bind_params[] = &$types;
-foreach ($params as $key => $value) {
-  $bind_params[] = &$params[$key];
-}
-call_user_func_array([$stmt, 'bind_param'], $bind_params);
+reimbursements_stmt_bind($stmt, $types, $params);
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 $claims = [];

@@ -4,27 +4,55 @@
  */
 
 require_once __DIR__ . '/../../includes/auth_check.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/../../includes/flash.php';
+require_once __DIR__ . '/helpers.php';
 
 authz_require_permission($conn, 'reimbursements', 'export');
 
-$conn = $conn ?? createConnection(true);
-
-function tableExists($conn, $table) {
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
+$closeManagedConnection = static function () use (&$conn): void {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
     }
-    return $exists;
+};
+
+if (!($conn instanceof mysqli)) {
+    flash_add('error', 'Unable to connect to the database.', 'reimbursements');
+    $closeManagedConnection();
+    header('Location: index.php');
+    exit;
 }
 
-if (!tableExists($conn, 'reimbursements')) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-    header('Location: index.php?export_error=1');
+$prereq_check = get_prerequisite_check_result($conn, 'reimbursements');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    display_prerequisite_error('reimbursements', $prereq_check['missing_modules']);
     exit;
+}
+
+if (!reimbursements_table_exists($conn)) {
+    flash_add('error', 'Reimbursements module not set up yet.', 'reimbursements');
+    $closeManagedConnection();
+    header('Location: index.php');
+    exit;
+}
+
+$reimbursement_permissions = authz_get_permission_set($conn, 'reimbursements');
+$can_view_all = $IS_SUPER_ADMIN || !empty($reimbursement_permissions['can_view_all']);
+$can_view_own = !empty($reimbursement_permissions['can_view_own']);
+$can_view_assigned = !empty($reimbursement_permissions['can_view_assigned']);
+
+$current_employee_id = reimbursements_current_employee_id($conn, (int) $CURRENT_USER_ID);
+$restricted_employee_id = null;
+if (!$can_view_all) {
+    if ($can_view_own && $current_employee_id) {
+        $restricted_employee_id = $current_employee_id;
+    } elseif ($can_view_assigned) {
+        authz_require_permission($conn, 'reimbursements', 'view_all');
+    } else {
+        authz_require_permission($conn, 'reimbursements', 'view_all');
+    }
 }
 
 $status_filter = isset($_GET['status']) ? $_GET['status'] : 'All';
@@ -33,20 +61,24 @@ $category_filter = isset($_GET['category']) ? trim($_GET['category']) : '';
 $from_date = isset($_GET['from_date']) ? $_GET['from_date'] : date('Y-m-01');
 $to_date = isset($_GET['to_date']) ? $_GET['to_date'] : date('Y-m-d');
 
+if ($restricted_employee_id !== null) {
+    $employee_filter = $restricted_employee_id;
+}
+
 $where = ['r.expense_date BETWEEN ? AND ?'];
 $params = [$from_date, $to_date];
 $types = 'ss';
-
-if ($status_filter !== 'All') {
-    $where[] = 'r.status = ?';
-    $params[] = $status_filter;
-    $types .= 's';
-}
 
 if ($employee_filter > 0) {
     $where[] = 'r.employee_id = ?';
     $params[] = $employee_filter;
     $types .= 'i';
+}
+
+if ($status_filter !== 'All') {
+    $where[] = 'r.status = ?';
+    $params[] = $status_filter;
+    $types .= 's';
 }
 
 if ($category_filter !== '') {
@@ -64,13 +96,25 @@ $sql = "SELECT r.id, r.date_submitted, r.expense_date, r.category, r.amount, r.d
         ORDER BY r.date_submitted DESC, r.id DESC";
 
 $stmt = mysqli_prepare($conn, $sql);
-$bind_params = [];
-$bind_params[] = &$types;
-foreach ($params as $key => $value) {
-    $bind_params[] = &$params[$key];
+if (!$stmt) {
+    flash_add('error', 'Unable to prepare export query.', 'reimbursements');
+    $closeManagedConnection();
+    header('Location: index.php');
+    exit;
 }
-call_user_func_array([$stmt, 'bind_param'], $bind_params);
-mysqli_stmt_execute($stmt);
+
+if ($types !== '') {
+    reimbursements_stmt_bind($stmt, $types, $params);
+}
+
+if (!mysqli_stmt_execute($stmt)) {
+    mysqli_stmt_close($stmt);
+    flash_add('error', 'Failed to run export query.', 'reimbursements');
+    $closeManagedConnection();
+    header('Location: index.php');
+    exit;
+}
+
 $result = mysqli_stmt_get_result($stmt);
 
 $filename = 'reimbursements_' . date('Y-m-d_His') . '.csv';
@@ -93,7 +137,7 @@ $headers = [
     'Admin Remarks',
     'Action Date',
     'Proof Path',
-    'Description'
+    'Description',
 ];
 fputcsv($output, $headers);
 
@@ -106,20 +150,18 @@ while ($row = mysqli_fetch_assoc($result)) {
         $row['date_submitted'],
         $row['expense_date'],
         $row['category'],
-        number_format((float)$row['amount'], 2, '.', ''),
+        number_format((float) $row['amount'], 2, '.', ''),
         $row['status'],
         $row['admin_remarks'],
         $row['action_date'],
         $row['proof_file'],
-        preg_replace("/\s+/", ' ', $row['description'])
+        preg_replace("/\s+/", ' ', $row['description']),
     ];
     fputcsv($output, $csv_row);
 }
 
 fclose($output);
 mysqli_stmt_close($stmt);
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
-}
+$closeManagedConnection();
 exit;
 ?>

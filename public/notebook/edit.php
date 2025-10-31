@@ -7,12 +7,18 @@
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'notebook', 'view');
-
-// Check if tables exist
+// Check if tables exist first
 if (!notebook_tables_exist($conn)) {
     header('Location: /KaryalayERP/setup/index.php?module=notebook');
     exit;
+}
+
+if (!authz_user_can_any($conn, [
+    ['table' => 'notebook_notes', 'permission' => 'edit_all'],
+    ['table' => 'notebook_notes', 'permission' => 'edit_assigned'],
+    ['table' => 'notebook_notes', 'permission' => 'edit_own'],
+])) {
+    authz_require_permission($conn, 'notebook_notes', 'edit_all');
 }
 
 // Get note ID
@@ -32,7 +38,24 @@ if (!$note) {
     exit;
 }
 
-// Check edit permission
+$notebook_permissions = authz_get_permission_set($conn, 'notebook_notes');
+$can_edit_all = !empty($notebook_permissions['can_edit_all']);
+$can_edit_own = !empty($notebook_permissions['can_edit_own']);
+$can_edit_assigned = !empty($notebook_permissions['can_edit_assigned']);
+$is_creator = ((int) ($note['created_by'] ?? 0) === (int) $CURRENT_USER_ID);
+
+$has_rbac_edit_scope = $IS_SUPER_ADMIN
+    || $can_edit_all
+    || ($is_creator && $can_edit_own)
+    || (!$is_creator && $can_edit_assigned);
+
+if (!$has_rbac_edit_scope) {
+    $_SESSION['flash_error'] = 'You do not have permission to edit notes.';
+    header('Location: view.php?id=' . $note_id);
+    exit;
+}
+
+// Check edit permission against note sharing/access rules
 if (!can_edit_note($conn, $note_id, $CURRENT_USER_ID)) {
     $_SESSION['flash_error'] = 'You do not have permission to edit this note';
     header('Location: view.php?id=' . $note_id);

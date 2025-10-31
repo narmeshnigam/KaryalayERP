@@ -4,6 +4,8 @@ header('Content-Type: application/json');
 
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../../config/db_connect.php';
+require_once __DIR__ . '/../../../config/module_dependencies.php';
+require_once __DIR__ . '/../../../includes/authz.php';
 require_once __DIR__ . '/../../salary/helpers.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -25,6 +27,18 @@ if (!$conn) {
     exit;
 }
 
+$prereq_check = get_prerequisite_check_result($conn, 'salary');
+if (!$prereq_check['allowed']) {
+    closeConnection($conn);
+    http_response_code(503);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Salary module prerequisites missing',
+        'missing' => $prereq_check['missing_modules'],
+    ]);
+    exit;
+}
+
 if (!salary_table_exists($conn)) {
     closeConnection($conn);
     http_response_code(503);
@@ -32,12 +46,22 @@ if (!salary_table_exists($conn)) {
     exit;
 }
 
-$user_role = $_SESSION['role'] ?? 'employee';
+$hasViewAll = authz_user_can($conn, 'salary_records', 'view_all');
+$hasViewOwn = authz_user_can($conn, 'salary_records', 'view_own');
+$hasViewAssigned = authz_user_can($conn, 'salary_records', 'view_assigned');
+
 $current_employee_id = salary_current_employee_id($conn, (int) $_SESSION['user_id']);
 
 $requested_employee = isset($_GET['employee_id']) ? (int) $_GET['employee_id'] : 0;
-if (!salary_role_can_manage($user_role) || $requested_employee <= 0) {
-    $requested_employee = (int) ($current_employee_id ?: 0);
+if (!$hasViewAll) {
+    if ($hasViewOwn) {
+        $requested_employee = (int) ($current_employee_id ?: 0);
+    } else {
+        closeConnection($conn);
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'You are not allowed to view salary records']);
+        exit;
+    }
 }
 
 if ($requested_employee <= 0) {

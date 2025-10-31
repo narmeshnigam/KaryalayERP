@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/setup_helper.php';
+require_once __DIR__ . '/rbac_bootstrap.php';
 
 $status = getSetupStatus();
 $error = '';
@@ -25,43 +26,84 @@ if ($status['users_table_exists']) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_tables'])) {
+    $transactionStarted = false;
+
     try {
         $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-        
+
         if ($conn->connect_error) {
-            $error = 'Connection failed: ' . $conn->connect_error;
-        } else {
-            // Create users table
-            $sql = "CREATE TABLE IF NOT EXISTS `users` (
-                `id` int(11) NOT NULL AUTO_INCREMENT,
-                `username` varchar(50) NOT NULL,
-                `password` varchar(255) NOT NULL,
-                `full_name` varchar(100) NOT NULL,
-                `email` varchar(100) DEFAULT NULL,
-                `role` enum('admin','manager','employee') NOT NULL DEFAULT 'employee',
-                `is_active` tinyint(1) NOT NULL DEFAULT 1,
-                `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (`id`),
-                UNIQUE KEY `username` (`username`),
-                UNIQUE KEY `email` (`email`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-            
-            if ($conn->query($sql)) {
-                $success = 'Users table created successfully!';
-                $conn->close();
-                
-                // Redirect to admin creation
-                header('Location: create_admin.php');
-                exit;
-            } else {
-                $error = 'Error creating table: ' . $conn->error;
+            throw new RuntimeException('Connection failed: ' . $conn->connect_error);
+        }
+
+        if (!$conn->set_charset(DB_CHARSET)) {
+            throw new RuntimeException('Unable to set database charset to ' . DB_CHARSET);
+        }
+
+        $conn->begin_transaction();
+        $transactionStarted = true;
+
+        $usersSql = "CREATE TABLE IF NOT EXISTS users (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            entity_id INT NULL,
+            entity_type ENUM('Employee','Client','Other') NULL,
+            username VARCHAR(100) NOT NULL,
+            full_name VARCHAR(150) NOT NULL,
+            email VARCHAR(150) NULL,
+            phone VARCHAR(20) NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            role_id INT NULL,
+            status ENUM('Active','Inactive','Suspended') NOT NULL DEFAULT 'Active',
+            is_active TINYINT(1) NOT NULL DEFAULT 1,
+            last_login DATETIME NULL,
+            created_by INT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_users_username (username),
+            UNIQUE KEY uniq_users_email (email),
+            INDEX idx_users_entity (entity_id, entity_type),
+            INDEX idx_users_role (role_id),
+            INDEX idx_users_status (status),
+            INDEX idx_users_last_login (last_login)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        if (!$conn->query($usersSql)) {
+            throw new RuntimeException('Failed to create users table: ' . $conn->error);
+        }
+
+        $activitySql = "CREATE TABLE IF NOT EXISTS user_activity_log (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            ip_address VARCHAR(45) NULL,
+            device VARCHAR(100) NULL,
+            login_time DATETIME NOT NULL,
+            status ENUM('Success','Failed') NOT NULL DEFAULT 'Success',
+            failure_reason VARCHAR(255) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_user_activity_user (user_id),
+            INDEX idx_user_activity_status (status),
+            INDEX idx_user_activity_login (login_time)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        if (!$conn->query($activitySql)) {
+            throw new RuntimeException('Failed to create user activity log table: ' . $conn->error);
+        }
+
+        setup_rbac_bootstrap($conn);
+
+        $conn->commit();
+        $transactionStarted = false;
+        $conn->close();
+
+        header('Location: create_admin.php');
+        exit;
+    } catch (Throwable $e) {
+        if (isset($conn) && $conn instanceof mysqli) {
+            if ($transactionStarted) {
+                $conn->rollback();
             }
-            
             $conn->close();
         }
-    } catch (Exception $e) {
-        $error = 'Error: ' . $e->getMessage();
+        $error = 'Error creating tables: ' . $e->getMessage();
     }
 }
 
@@ -227,8 +269,9 @@ $page_title = 'Create Tables - Setup';
         <div class="info-box" style="flex:1;">
             <h3>What will be created?</h3>
             <p>
-                This step will create the <strong>users</strong> table in your database.
-                This table is required for user authentication and access control.
+                This step initialises the <strong>Users</strong> table, activity log, and the
+                <strong>Roles &amp; Permissions</strong> tables required for fine-grained access control.
+                Default roles (Super Admin, Admin, Manager, Employee, etc.) and permission presets will be seeded automatically.
             </p>
             <p style="margin-top: 8px;">
                 <strong>Database:</strong> <?php echo htmlspecialchars(DB_NAME); ?><br>
@@ -238,7 +281,7 @@ $page_title = 'Create Tables - Setup';
         
         <form method="POST" action="">
             <input type="hidden" name="create_tables" value="1">
-            <button type="submit" class="btn">Create Users Table →</button>
+            <button type="submit" class="btn">Create Core Tables →</button>
         </form>
         
         <div style="text-align: center;">

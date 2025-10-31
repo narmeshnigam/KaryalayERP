@@ -78,6 +78,19 @@ return [
         ],
     ],
     [
+        'pattern' => 'public/notebook/',
+        'table' => 'notebook_notes',
+        'default' => 'view_all',
+        'routes' => [
+            'add.php' => 'create',
+            'edit.php' => 'edit_all',
+            'delete.php' => 'delete_all',
+            'my.php' => 'view_own',
+            'shared.php' => 'view_all',
+            'helpers.php' => ['skip' => true],
+        ],
+    ],
+    [
         'pattern' => 'public/visitors/',
         'table' => 'visitor_logs',
         'default' => 'view_all',

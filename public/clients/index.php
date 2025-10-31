@@ -7,11 +7,27 @@
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'clients', 'view');
+if (!authz_user_can_any($conn, [
+    ['table' => 'clients', 'permission' => 'view_all'],
+    ['table' => 'clients', 'permission' => 'view_assigned'],
+    ['table' => 'clients', 'permission' => 'view_own'],
+])) {
+    authz_require_permission($conn, 'clients', 'view_all');
+}
 
 // Check if tables exist
+
 if (!clients_tables_exist($conn)) {
-    header('Location: /KaryalayERP/setup/index.php?module=clients');
+    $page_title = 'Clients Module Setup Required - ' . APP_NAME;
+    require_once __DIR__ . '/../../includes/header_sidebar.php';
+    require_once __DIR__ . '/../../includes/sidebar.php';
+    echo '<div class="main-wrapper"><div class="main-content">';
+    echo '<div class="alert alert-warning" style="margin:40px auto;max-width:600px;padding:32px 28px;font-size:1.1em;">';
+    echo '<h2 style="margin-bottom:16px;color:#b85c00;">Clients Module Not Set Up</h2>';
+    echo '<p>The clients module database tables have not been created yet. To use this module, please run the setup for clients.</p>';
+    echo '<a href="/KaryalayERP/scripts/setup_clients_tables.php" class="btn btn-primary" style="margin-top:18px;">Set Up Clients Module</a>';
+    echo '</div></div></div>';
+    require_once __DIR__ . '/../../includes/footer.php';
     exit;
 }
 

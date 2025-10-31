@@ -7,8 +7,13 @@
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
-// Check permission
-authz_require_permission($conn, 'clients', 'view');
+if (!authz_user_can_any($conn, [
+    ['table' => 'clients', 'permission' => 'view_all'],
+    ['table' => 'clients', 'permission' => 'view_assigned'],
+    ['table' => 'clients', 'permission' => 'view_own'],
+])) {
+    authz_require_permission($conn, 'clients', 'view_all');
+}
 
 // Get client ID
 $client_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -192,7 +197,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 <?php endif; ?>
                 
-                <?php if ($client['lead_name']): ?>
+                <?php if (!empty($client['lead_name'])): ?>
                     <div style="padding: 16px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef;">
                         <div style="font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-weight: 600;">
                             🎯 Converted from Lead
@@ -465,7 +470,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                             </div>
                             <div style="font-weight: 600; color: #1b2a57; margin-bottom: 4px;">🎯 Converted from Lead</div>
                             <div style="font-size: 14px; color: #6c757d;">
-                                <?= htmlspecialchars($client['lead_name'] ?? 'Lead #' . $client['lead_id']) ?>
+                                <?= htmlspecialchars(isset($client['lead_name']) ? $client['lead_name'] : ('Lead #' . $client['lead_id'])) ?>
                             </div>
                         </div>
                     </div>

@@ -7,6 +7,14 @@
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
+if (!authz_user_can_any($conn, [
+    ['table' => 'notebook_notes', 'permission' => 'delete_all'],
+    ['table' => 'notebook_notes', 'permission' => 'delete_assigned'],
+    ['table' => 'notebook_notes', 'permission' => 'delete_own'],
+])) {
+    authz_require_permission($conn, 'notebook_notes', 'delete_all');
+}
+
 // Must be POST request
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: index.php');
@@ -32,7 +40,17 @@ if (!$note) {
 }
 
 // Check permission
-$can_delete = ($note['created_by'] == $CURRENT_USER_ID) || $IS_SUPER_ADMIN;
+$notebook_permissions = authz_get_permission_set($conn, 'notebook_notes');
+$can_delete_all = !empty($notebook_permissions['can_delete_all']);
+$can_delete_own = !empty($notebook_permissions['can_delete_own']);
+$can_delete_assigned = !empty($notebook_permissions['can_delete_assigned']);
+$is_creator = ((int) ($note['created_by'] ?? 0) === (int) $CURRENT_USER_ID);
+
+$can_delete = $IS_SUPER_ADMIN || $can_delete_all || ($can_delete_own && $is_creator);
+
+if (!$can_delete && $can_delete_assigned) {
+    $can_delete = can_access_note($conn, $note_id, $CURRENT_USER_ID);
+}
 
 if (!$can_delete) {
     $_SESSION['flash_error'] = 'You do not have permission to delete this note';

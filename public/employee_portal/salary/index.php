@@ -3,44 +3,39 @@
  * Salary Viewer - Employee portal listing page.
  */
 
-require_once __DIR__ . '/../../../includes/bootstrap.php';
-require_once __DIR__ . '/../../../config/config.php';
-require_once __DIR__ . '/../../../config/db_connect.php';
+require_once __DIR__ . '/../../../includes/auth_check.php';
 require_once __DIR__ . '/../../../config/module_dependencies.php';
 require_once __DIR__ . '/../../salary/helpers.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../login.php');
-    exit;
-}
+authz_require_permission($conn, 'salary_records', 'view_own');
 
-// Check salary module prerequisites
-$conn_check = createConnection(true);
-if ($conn_check) {
-    $prereq_check = get_prerequisite_check_result($conn_check, 'salary');
-    if (!$prereq_check['allowed']) {
-        closeConnection($conn_check);
-        display_prerequisite_error('salary', $prereq_check['missing_modules']);
-    }
-    closeConnection($conn_check);
-}
-
-$user_role = $_SESSION['role'] ?? 'employee';
 $page_title = 'My Salary Records - ' . APP_NAME;
 
-require_once __DIR__ . '/../../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../../includes/sidebar.php';
-
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
-    require_once __DIR__ . '/../../../includes/footer_sidebar.php';
+$prereq_check = get_prerequisite_check_result($conn, 'salary');
+if (!$prereq_check['allowed']) {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+    }
+    display_prerequisite_error('salary', $prereq_check['missing_modules']);
     exit;
 }
 
 if (!salary_table_exists($conn)) {
-    closeConnection($conn);
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+    }
     require_once __DIR__ . '/../../salary/onboarding.php';
+    exit;
+}
+
+require_once __DIR__ . '/../../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../../includes/sidebar.php';
+
+if (!($conn instanceof mysqli)) {
+    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
+    require_once __DIR__ . '/../../../includes/footer_sidebar.php';
     exit;
 }
 
@@ -248,3 +243,4 @@ closeConnection($conn);
 </div>
 
 <?php require_once __DIR__ . '/../../../includes/footer_sidebar.php'; ?>
+<?php if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) { closeConnection($conn); } ?>

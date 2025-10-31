@@ -43,16 +43,50 @@ function getSetupStatus() {
                     if ($result && $result->num_rows > 0) {
                         $status['users_table_exists'] = true;
                         $status['current_step'] = 'create_admin';
-                        
-                        // Check if at least one admin user exists
-                        $result = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
-                        if ($result) {
-                            $row = $result->fetch_assoc();
-                            if ($row['count'] > 0) {
+
+                        $hasStatusColumn = false;
+                        $statusColumnCheck = $conn->query("SHOW COLUMNS FROM users LIKE 'status'");
+                        if ($statusColumnCheck && $statusColumnCheck->num_rows > 0) {
+                            $hasStatusColumn = true;
+                        }
+                        if ($statusColumnCheck) {
+                            $statusColumnCheck->free();
+                        }
+
+                        $rolesTablesExist = false;
+                        $rolesTableCheck = $conn->query("SHOW TABLES LIKE 'roles'");
+                        if ($rolesTableCheck && $rolesTableCheck->num_rows > 0) {
+                            $rolesTablesExist = true;
+                        }
+                        if ($rolesTableCheck) {
+                            $rolesTableCheck->free();
+                        }
+
+                        if ($hasStatusColumn && $rolesTablesExist) {
+                            $adminQuery = "
+                                SELECT COUNT(*) AS count
+                                FROM users u
+                                LEFT JOIN user_roles ur ON ur.user_id = u.id
+                                LEFT JOIN roles r ON ur.role_id = r.id
+                                WHERE u.status = 'Active'
+                                  AND (r.name IN ('Super Admin', 'Admin') OR r.is_system_role = 1)
+                                LIMIT 1
+                            ";
+                        } elseif ($hasStatusColumn) {
+                            $adminQuery = "SELECT COUNT(*) AS count FROM users WHERE status = 'Active'";
+                        } else {
+                            $adminQuery = "SELECT COUNT(*) AS count FROM users WHERE role = 'admin'";
+                        }
+
+                        $adminResult = $conn->query($adminQuery);
+                        if ($adminResult) {
+                            $row = $adminResult->fetch_assoc();
+                            if (!empty($row['count'])) {
                                 $status['admin_exists'] = true;
                                 $status['setup_complete'] = true;
                                 $status['current_step'] = 'complete';
                             }
+                            $adminResult->free();
                         }
                     } else {
                         $status['current_step'] = 'create_tables';

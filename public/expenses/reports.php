@@ -4,31 +4,62 @@
  */
 
 require_once __DIR__ . '/../../includes/auth_check.php';
-
-authz_require_permission($conn, 'office_expenses', 'view_all');
-
-$page_title = 'Expense Reports - ' . APP_NAME;
-require_once __DIR__ . '/../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../includes/sidebar.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/../../includes/flash.php';
+require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/../../includes/date_range_selector.php';
 
-$conn = $conn ?? createConnection(true);
-if (!$conn) {
+$closeManagedConnection = static function () use (&$conn): void {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+    }
+};
+
+if (!authz_user_can_any($conn, [
+    ['table' => 'office_expenses', 'permission' => 'view_all'],
+    ['table' => 'office_expenses', 'permission' => 'view_own'],
+])) {
+    authz_require_permission($conn, 'office_expenses', 'view_all');
+}
+
+$expense_permissions = authz_get_permission_set($conn, 'office_expenses');
+$can_view_all = !empty($expense_permissions['can_view_all']);
+$can_view_own = !empty($expense_permissions['can_view_own']);
+
+if (!($conn instanceof mysqli)) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
 }
 
-function tableExists($conn, $table)
-{
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
+$prereq_check = get_prerequisite_check_result($conn, 'office_expenses');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    display_prerequisite_error('office_expenses', $prereq_check['missing_modules']);
+    exit;
 }
+
+if (!office_expenses_table_exists($conn)) {
+    $closeManagedConnection();
+    require_once __DIR__ . '/onboarding.php';
+    exit;
+}
+
+$current_employee = office_expenses_current_employee($conn, (int) $CURRENT_USER_ID);
+$restricted_employee_id = null;
+if (!$can_view_all) {
+    if ($can_view_own && $current_employee) {
+        $restricted_employee_id = (int) $current_employee['id'];
+    } else {
+        $closeManagedConnection();
+        authz_require_permission($conn, 'office_expenses', 'view_all');
+    }
+}
+
+$page_title = 'Expense Reports - ' . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 
 function refValues(array &$arr)
 {
@@ -39,7 +70,7 @@ function refValues(array &$arr)
     return $refs;
 }
 
-function fetchAllRows($conn, $sql, $types = '', array $params = [])
+function fetchAllRows(mysqli $conn, string $sql, string $types = '', array $params = []): array
 {
     $rows = [];
     $stmt = mysqli_prepare($conn, $sql);
@@ -65,44 +96,20 @@ function fetchAllRows($conn, $sql, $types = '', array $params = [])
     return $rows;
 }
 
-function fetchSingleRow($conn, $sql, $types = '', array $params = [])
+function fetchSingleRow(mysqli $conn, string $sql, string $types = '', array $params = []): array
 {
     $rows = fetchAllRows($conn, $sql, $types, $params);
     return $rows[0] ?? [];
 }
 
-if (!tableExists($conn, 'office_expenses')) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-    echo '<div class="main-wrapper"><div class="main-content">';
-    echo '<div class="card" style="max-width:760px;margin:0 auto;">';
-    echo '<h2 style="margin-top:0;color:#003581;">Expense Tracker module not ready</h2>';
-    echo '<p>The <code>office_expenses</code> table is missing. Please run the setup script.</p>';
-    echo '<a href="index.php" class="btn" style="margin-top:20px;">← Back</a>';
-    echo '</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
+$category_options = office_expenses_fetch_categories($conn);
+if (empty($category_options)) {
+    $category_options = office_expenses_default_categories();
 }
 
-$category_options = [];
-$category_sql = 'SELECT DISTINCT category FROM office_expenses ORDER BY category';
-if ($category_res = mysqli_query($conn, $category_sql)) {
-    while ($row = mysqli_fetch_assoc($category_res)) {
-        if (!empty($row['category'])) {
-            $category_options[] = $row['category'];
-        }
-    }
-}
-
-$payment_options = [];
-$payment_sql = 'SELECT DISTINCT payment_mode FROM office_expenses ORDER BY payment_mode';
-if ($payment_res = mysqli_query($conn, $payment_sql)) {
-    while ($row = mysqli_fetch_assoc($payment_res)) {
-        if (!empty($row['payment_mode'])) {
-            $payment_options[] = $row['payment_mode'];
-        }
-    }
+$payment_options = office_expenses_fetch_payment_modes($conn);
+if (empty($payment_options)) {
+    $payment_options = office_expenses_default_payment_modes();
 }
 
 $today = date('Y-m-d');
@@ -140,6 +147,11 @@ if ($vendor_filter !== '') {
     $params[] = '%' . $vendor_filter . '%';
     $types .= 's';
 }
+if ($restricted_employee_id !== null) {
+    $where[] = 'e.added_by = ?';
+    $params[] = $restricted_employee_id;
+    $types .= 'i';
+}
 $where_clause = implode(' AND ', $where);
 
 $summary = [];
@@ -168,9 +180,7 @@ if (empty($errors)) {
     $expense_list = fetchAllRows($conn, $expense_list_sql, $types, $params);
 }
 
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
-}
+$closeManagedConnection();
 
 $total_amount = isset($summary['total_amount']) ? (float) $summary['total_amount'] : 0.0;
 $total_entries = isset($summary['total_entries']) ? (int) $summary['total_entries'] : 0;
@@ -192,6 +202,8 @@ $average_amount = $total_entries > 0 ? $total_amount / $total_entries : 0.0;
                 </div>
             </div>
         </div>
+
+    <?php echo flash_render(); ?>
 
         <?php if (!empty($errors)) : ?>
             <div class="alert alert-error" style="margin-bottom:20px;">
@@ -706,7 +718,7 @@ $average_amount = $total_entries > 0 ? $total_amount / $total_entries : 0.0;
                                         </td>
                                         <td style="padding:12px;text-align:center;white-space:nowrap;">
                                             <?php if (!empty($expense['receipt_file'])) : ?>
-                                                <a href="<?php echo htmlspecialchars(APP_URL . '/uploads/office_expenses/' . $expense['receipt_file'], ENT_QUOTES); ?>" 
+                                                <a href="<?php echo htmlspecialchars(APP_URL . '/' . ltrim($expense['receipt_file'], '/'), ENT_QUOTES); ?>" 
                                                    target="_blank" 
                                                    class="btn" 
                                                    style="padding:6px 14px;font-size:13px;background:#faa718;"
@@ -732,4 +744,7 @@ $average_amount = $total_entries > 0 ? $total_amount / $total_entries : 0.0;
         <?php endif; ?>
     </div>
 </div>
-<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php
+$closeManagedConnection();
+require_once __DIR__ . '/../../includes/footer_sidebar.php';
+?>

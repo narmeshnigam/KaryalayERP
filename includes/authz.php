@@ -26,28 +26,45 @@ if (!defined('AUTHZ_PERMISSION_FIELDS')) {
  * Check if RBAC tables exist in the current schema. Result is cached per-request.
  */
 function authz_roles_tables_exist(mysqli $conn): bool {
-    static $cache = null;
-    if ($cache !== null) {
-        return $cache;
+    static $cache = [];
+    if (!($conn instanceof mysqli) || $conn->connect_errno) {
+        return false;
+    }
+    // Avoid calling ping() on closed connections
+    if (method_exists($conn, 'thread_id') && $conn->thread_id === 0) {
+        return false;
+    }
+    $hash = spl_object_hash($conn);
+    if (isset($cache[$hash])) {
+        return $cache[$hash];
     }
 
     $required_tables = ['roles', 'permissions', 'role_permissions', 'user_roles'];
-
     foreach ($required_tables as $table) {
-        $table_esc = mysqli_real_escape_string($conn, $table);
+        // Defensive: check connection is open before each query
+        if (!($conn instanceof mysqli) || $conn->connect_errno || (method_exists($conn, 'thread_id') && $conn->thread_id === 0)) {
+            $cache[$hash] = false;
+            return false;
+        }
+        // Try/catch to avoid fatal if connection is closed between checks
+        try {
+            $table_esc = mysqli_real_escape_string($conn, $table);
+        } catch (Throwable $e) {
+            $cache[$hash] = false;
+            return false;
+        }
         $result = @mysqli_query($conn, "SHOW TABLES LIKE '$table_esc'");
         if (!$result || mysqli_num_rows($result) === 0) {
             if ($result) {
                 @mysqli_free_result($result);
             }
-            $cache = false;
-            return $cache;
+            $cache[$hash] = false;
+            return false;
         }
         @mysqli_free_result($result);
     }
-
-    $cache = true;
-    return $cache;
+    $cache[$hash] = true;
+    return true;
 }
 
 /**

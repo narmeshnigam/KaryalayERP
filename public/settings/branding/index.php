@@ -1,14 +1,12 @@
 <?php
+require_once __DIR__ . '/../../../includes/auth_check.php';
+
+authz_require_permission($conn, 'branding_settings', 'edit_all');
+
+$page_title = 'Branding & Organization Settings - ' . APP_NAME;
 require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
-require_once __DIR__ . '/../../../config/db_connect.php';
-require_once __DIR__ . '/../../../includes/bootstrap.php';
 
-if (!isset($_SESSION['user_id'])) { header('Location: ../../login.php'); exit; }
-$role = strtolower($_SESSION['role'] ?? 'employee');
-if ($role !== 'admin') { header('Location: /unauthorized'); exit; }
-
-$conn = createConnection(true);
 $branding = null;
 if ($conn) {
   $res = mysqli_query($conn, 'SELECT * FROM branding_settings ORDER BY id ASC LIMIT 1');
@@ -130,4 +128,4 @@ document.getElementById('delSquare').onclick = ()=> del('square', document.getEl
 </script>
 
 <?php require_once __DIR__ . '/../../../includes/footer_sidebar.php'; ?>
-<?php if($conn) closeConnection($conn); ?>
+<?php if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) closeConnection($conn); ?>

@@ -4,202 +4,199 @@
  */
 
 require_once __DIR__ . '/../../includes/auth_check.php';
-require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../includes/flash.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/helpers.php';
 
-// Enforce permission to edit documents
-authz_require_permission($conn, 'documents', 'edit_all');
+$closeManagedConnection = static function () use (&$conn): void {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+    }
+};
 
-$document_permissions = authz_get_permission_set($conn, 'documents');
-$can_edit_document = $document_permissions['can_edit_all'] ?? false;
+if (!authz_user_can_any($conn, [
+    ['table' => 'documents', 'permission' => 'edit_all'],
+    ['table' => 'documents', 'permission' => 'edit_assigned'],
+    ['table' => 'documents', 'permission' => 'edit_own'],
+])) {
+    authz_require_permission($conn, 'documents', 'edit_all');
+}
 
-$page_title = 'Edit Document - ' . APP_NAME;
+if (!($conn instanceof mysqli)) {
+    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
+    require_once __DIR__ . '/../../includes/footer_sidebar.php';
+    exit;
+}
 
-require_once __DIR__ . '/../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../includes/sidebar.php';
+$prereq_check = get_prerequisite_check_result($conn, 'documents');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    display_prerequisite_error('documents', $prereq_check['missing_modules']);
+    exit;
+}
 
 if (!documents_table_exists($conn)) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
+    $closeManagedConnection();
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
 
-$doc_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
-if ($doc_id <= 0) {
-  flash_add('error', 'Invalid document id.', 'documents');
-    header('Location: index.php');
-    exit;
-}
-
+$document_permissions = authz_get_permission_set($conn, 'documents');
 $current_employee_id = documents_current_employee_id($conn, (int) $CURRENT_USER_ID);
 
-// fetch document
-$sql = 'SELECT * FROM documents WHERE id = ? AND deleted_at IS NULL LIMIT 1';
-$stmt = mysqli_prepare($conn, $sql);
-if (!$stmt) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-  flash_add('error', 'Unable to prepare statement.', 'documents');
+$doc_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+if ($doc_id <= 0) {
+    flash_add('error', 'Invalid document reference.', 'documents');
+    $closeManagedConnection();
     header('Location: index.php');
     exit;
 }
-mysqli_stmt_bind_param($stmt, 'i', $doc_id);
-mysqli_stmt_execute($stmt);
-$res = mysqli_stmt_get_result($stmt);
-$document = $res ? mysqli_fetch_assoc($res) : null;
-mysqli_stmt_close($stmt);
+
+$fetch_stmt = mysqli_prepare($conn, 'SELECT * FROM documents WHERE id = ? AND deleted_at IS NULL LIMIT 1');
+if (!$fetch_stmt) {
+    $closeManagedConnection();
+    flash_add('error', 'Unable to look up the document.', 'documents');
+    header('Location: index.php');
+    exit;
+}
+mysqli_stmt_bind_param($fetch_stmt, 'i', $doc_id);
+mysqli_stmt_execute($fetch_stmt);
+$fetch_result = mysqli_stmt_get_result($fetch_stmt);
+$document = $fetch_result ? mysqli_fetch_assoc($fetch_result) : null;
+mysqli_stmt_close($fetch_stmt);
 
 if (!$document) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-  flash_add('error', 'Document not found.', 'documents');
+    flash_add('error', 'Document not found.', 'documents');
+    $closeManagedConnection();
     header('Location: index.php');
     exit;
 }
 
 $is_uploader = $current_employee_id && ((int) $document['uploaded_by'] === (int) $current_employee_id);
-$can_edit = $IS_SUPER_ADMIN || $document_permissions['can_edit_all'] || $is_uploader;
+$is_assigned = $current_employee_id && ((int) $document['employee_id'] === (int) $current_employee_id);
+$can_edit = $IS_SUPER_ADMIN
+    || !empty($document_permissions['can_edit_all'])
+    || (!empty($document_permissions['can_edit_own']) && $is_uploader)
+    || (!empty($document_permissions['can_edit_assigned']) && $is_assigned);
+
 if (!$can_edit) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-  flash_add('error', 'You do not have permission to edit this document.', 'documents');
+    flash_add('error', 'You do not have permission to edit this document.', 'documents');
+    $closeManagedConnection();
     header('Location: view.php?id=' . $doc_id);
     exit;
 }
 
 $employees = documents_fetch_employees($conn);
+$visibility_options = (!empty($document_permissions['can_view_all']) || $IS_SUPER_ADMIN)
+    ? ['employee', 'manager', 'admin']
+    : documents_allowed_visibilities_for_permissions($document_permissions);
+
+$form_data = [
+    'title' => $document['title'] ?? '',
+    'doc_type' => $document['doc_type'] ?? '',
+    'employee_id' => $document['employee_id'] !== null ? (string) $document['employee_id'] : '0',
+    'project_id' => $document['project_id'] !== null ? (string) $document['project_id'] : '',
+    'tags' => $document['tags'] ?? '',
+    'visibility' => $document['visibility'] ?? 'employee',
+    'uploaded_by' => (string) ($document['uploaded_by'] ?? ''),
+];
+
 $errors = [];
+$new_file_path = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = trim($_POST['title'] ?? '');
-    $doc_type = trim($_POST['doc_type'] ?? '');
-    $employee_id = isset($_POST['employee_id']) ? (int) $_POST['employee_id'] : 0;
-    $project_id = isset($_POST['project_id']) ? (int) $_POST['project_id'] : 0;
-    $tags = trim($_POST['tags'] ?? '');
-    $visibility = trim($_POST['visibility'] ?? $document['visibility']);
-    // admin only: change uploaded_by
-    $uploaded_by = $document['uploaded_by'];
+    $form_data['title'] = trim($_POST['title'] ?? '');
+    $form_data['doc_type'] = trim($_POST['doc_type'] ?? '');
+    $form_data['employee_id'] = isset($_POST['employee_id']) ? (string) (int) $_POST['employee_id'] : '0';
+    $form_data['project_id'] = isset($_POST['project_id']) ? trim((string) $_POST['project_id']) : '';
+    $form_data['tags'] = trim($_POST['tags'] ?? '');
+    $form_data['visibility'] = trim($_POST['visibility'] ?? $form_data['visibility']);
+
+    $uploaded_by_value = (int) $document['uploaded_by'];
     if ($IS_SUPER_ADMIN) {
-        $uploaded_by = isset($_POST['uploaded_by']) ? (int) $_POST['uploaded_by'] : $uploaded_by;
+        $uploaded_by_value = isset($_POST['uploaded_by']) ? (int) $_POST['uploaded_by'] : $uploaded_by_value;
+        $form_data['uploaded_by'] = (string) $uploaded_by_value;
     }
 
-    if ($title === '') {
+    if ($form_data['title'] === '') {
         $errors[] = 'Title is required.';
     }
 
-    $allowed_visibilities = documents_allowed_visibilities_for_permissions($document_permissions);
-    if (!in_array($visibility, $allowed_visibilities, true)) {
+    $allowed_visibilities = (!empty($document_permissions['can_view_all']) || $IS_SUPER_ADMIN)
+        ? ['employee', 'manager', 'admin']
+        : documents_allowed_visibilities_for_permissions($document_permissions);
+    if (!in_array($form_data['visibility'], $allowed_visibilities, true)) {
         $errors[] = 'Invalid visibility selected.';
     }
 
-    // file replacement
-    $new_file_path = null;
-    if (isset($_FILES['document_file']) && $_FILES['document_file']['error'] !== UPLOAD_ERR_NO_FILE) {
-        $file_error = $_FILES['document_file']['error'];
-        if ($file_error !== UPLOAD_ERR_OK) {
-            $errors[] = 'File upload error (code ' . $file_error . ').';
-        } else {
-            $allowed_extensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'txt'];
-            $original_name = $_FILES['document_file']['name'];
-            $file_tmp = $_FILES['document_file']['tmp_name'];
-            $file_size = (int) $_FILES['document_file']['size'];
-            $extension = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
-
-            if (!in_array($extension, $allowed_extensions, true)) {
-                $errors[] = 'Unsupported file type. Allowed: ' . implode(', ', $allowed_extensions) . '.';
-            }
-            $max_size_bytes = 10 * 1024 * 1024;
-            if ($file_size > $max_size_bytes) {
-                $errors[] = 'File exceeds 10 MB size limit.';
-            }
-
-            if (empty($errors)) {
-                $upload_dir = __DIR__ . '/../../uploads/documents/';
-                if (!is_dir($upload_dir) && !mkdir($upload_dir, 0755, true)) {
-                    $errors[] = 'Unable to create uploads directory.';
-                } else {
-                    $safe_title = preg_replace('/[^a-z0-9\-]+/i', '-', strtolower($title));
-                    $safe_title = trim($safe_title, '-') ?: 'document';
-                    $unique_suffix = bin2hex(random_bytes(4));
-                    $file_name = date('YmdHis') . '_' . $safe_title . '_' . $unique_suffix . '.' . $extension;
-                    $dest = $upload_dir . $file_name;
-                    if (move_uploaded_file($file_tmp, $dest)) {
-                        $new_file_path = 'uploads/documents/' . $file_name;
-                    } else {
-                        $errors[] = 'Failed to store uploaded file.';
-                    }
-                }
-            }
-        }
+    $has_replacement_file = isset($_FILES['document_file']) && $_FILES['document_file']['error'] !== UPLOAD_ERR_NO_FILE;
+    if ($has_replacement_file && empty($errors)) {
+        $filename_seed = $form_data['title'] !== '' ? $form_data['title'] : ($document['title'] ?? 'document');
+        $new_file_path = documents_store_uploaded_file($_FILES['document_file'], $filename_seed, $errors);
     }
 
     if (empty($errors)) {
-        // prepare update
+        $employee_value = (int) $form_data['employee_id'];
+        $employee_value = $employee_value > 0 ? $employee_value : null;
+        $project_value = $form_data['project_id'] !== '' ? (int) $form_data['project_id'] : 0;
+        $project_value = $project_value > 0 ? $project_value : null;
+        $doc_type_value = $form_data['doc_type'] !== '' ? $form_data['doc_type'] : null;
+        $tags_value = $form_data['tags'] !== '' ? $form_data['tags'] : null;
+
         $update_sql = 'UPDATE documents SET title = ?, doc_type = ?, employee_id = ?, project_id = ?, tags = ?, visibility = ?, uploaded_by = ?';
-        $params = [];
-        $types = '';
-        $params[] = $title; $types .= 's';
-        $params[] = $doc_type !== '' ? $doc_type : null; $types .= 's';
-        $params[] = $employee_id > 0 ? $employee_id : null; $types .= 'i';
-        $params[] = $project_id > 0 ? $project_id : null; $types .= 'i';
-        $params[] = $tags !== '' ? $tags : null; $types .= 's';
-        $params[] = $visibility; $types .= 's';
-        $params[] = $uploaded_by; $types .= 'i';
+        $update_params = [
+            $form_data['title'],
+            $doc_type_value,
+            $employee_value,
+            $project_value,
+            $tags_value,
+            $form_data['visibility'],
+            $uploaded_by_value,
+        ];
+        $update_type_parts = ['s', 's', 'i', 'i', 's', 's', 'i'];
 
         if ($new_file_path !== null) {
             $update_sql .= ', file_path = ?';
-            $params[] = $new_file_path; $types .= 's';
+            $update_params[] = $new_file_path;
+            $update_type_parts[] = 's';
         }
 
         $update_sql .= ', updated_at = CURRENT_TIMESTAMP WHERE id = ?';
-        $params[] = $doc_id; $types .= 'i';
+        $update_params[] = $doc_id;
+        $update_type_parts[] = 'i';
 
-        $stmt = mysqli_prepare($conn, $update_sql);
-        if ($stmt) {
-            // bind params
-            $bind = [$types];
-            foreach ($params as $i => &$p) { $bind[] = &$params[$i]; }
-            array_unshift($bind, $stmt);
-            call_user_func_array('mysqli_stmt_bind_param', $bind);
-
-            if (mysqli_stmt_execute($stmt)) {
-                mysqli_stmt_close($stmt);
-                // delete old file if replaced
+        $update_stmt = mysqli_prepare($conn, $update_sql);
+        if ($update_stmt) {
+            $update_types = implode('', $update_type_parts);
+            documents_stmt_bind($update_stmt, $update_types, $update_params);
+            if (mysqli_stmt_execute($update_stmt)) {
+                mysqli_stmt_close($update_stmt);
                 if ($new_file_path !== null && !empty($document['file_path'])) {
-                    $old = __DIR__ . '/../../' . ltrim($document['file_path'], '/');
-                    if (is_file($old)) { @unlink($old); }
+                    documents_delete_file($document['file_path']);
                 }
-        flash_add('success', 'Document updated successfully.', 'documents');
-                if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-                    closeConnection($conn);
-                }
+                flash_add('success', 'Document updated successfully.', 'documents');
+                $closeManagedConnection();
                 header('Location: view.php?id=' . $doc_id);
                 exit;
-            } else {
-                $errors[] = 'Database error: ' . mysqli_stmt_error($stmt);
-                mysqli_stmt_close($stmt);
             }
+            $errors[] = 'Unable to save the document. Please try again.';
+            mysqli_stmt_close($update_stmt);
         } else {
             $errors[] = 'Unable to prepare update statement.';
         }
     }
 
-    // if new file was uploaded but we had errors later, remove the new file to avoid orphan
-    if (!empty($new_file_path)) {
-        $maybe = __DIR__ . '/../../' . ltrim($new_file_path, '/');
-        if (is_file($maybe)) { @unlink($maybe); }
+    if (!empty($errors) && $new_file_path) {
+        documents_delete_file($new_file_path);
+        $new_file_path = null;
     }
 }
 
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
-}
+$page_title = 'Edit Document - ' . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 <div class="main-wrapper">
   <div class="main-content">
@@ -210,7 +207,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
           <p>Modify metadata or replace the file. Changes are audited in updated_at.</p>
         </div>
         <div>
-          <a href="view.php?id=<?php echo (int)$doc_id; ?>" class="btn btn-accent">← Back</a>
+          <a href="view.php?id=<?php echo (int) $doc_id; ?>" class="btn btn-accent">← Back</a>
         </div>
       </div>
     </div>
@@ -220,9 +217,9 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
     <?php if (!empty($errors)): ?>
       <div class="alert alert-error">
         <ul style="margin:0;padding-left:20px;">
-        <?php foreach ($errors as $e): ?>
-          <li><?php echo htmlspecialchars($e); ?></li>
-        <?php endforeach; ?>
+          <?php foreach ($errors as $error): ?>
+            <li><?php echo htmlspecialchars($error, ENT_QUOTES); ?></li>
+          <?php endforeach; ?>
         </ul>
       </div>
     <?php endif; ?>
@@ -231,12 +228,12 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
       <form method="POST" enctype="multipart/form-data" style="display:grid;gap:16px;">
         <div class="form-group">
           <label for="title">Title</label>
-          <input id="title" name="title" class="form-control" maxlength="100" required value="<?php echo htmlspecialchars($document['title'] ?? '', ENT_QUOTES); ?>">
+          <input id="title" name="title" class="form-control" maxlength="100" required value="<?php echo htmlspecialchars($form_data['title'], ENT_QUOTES); ?>">
         </div>
 
         <div class="form-group">
           <label for="doc_type">Document type</label>
-          <input id="doc_type" name="doc_type" class="form-control" maxlength="50" value="<?php echo htmlspecialchars($document['doc_type'] ?? '', ENT_QUOTES); ?>">
+          <input id="doc_type" name="doc_type" class="form-control" maxlength="50" value="<?php echo htmlspecialchars($form_data['doc_type'], ENT_QUOTES); ?>">
         </div>
 
         <div class="form-group">
@@ -244,29 +241,28 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
           <select id="employee_id" name="employee_id" class="form-control">
             <option value="0">Not linked</option>
             <?php foreach ($employees as $emp): ?>
-              <option value="<?php echo (int)$emp['id']; ?>" <?php echo ((int)$document['employee_id'] === (int)$emp['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars(($emp['employee_code'] ?? '') . ' - ' . trim(($emp['first_name'] ?? '') . ' ' . ($emp['last_name'] ?? ''))); ?></option>
+              <?php $selected = $form_data['employee_id'] === (string) (int) $emp['id'] ? 'selected' : ''; ?>
+              <option value="<?php echo (int) $emp['id']; ?>" <?php echo $selected; ?>><?php echo htmlspecialchars(($emp['employee_code'] ?? '') . ' - ' . trim(($emp['first_name'] ?? '') . ' ' . ($emp['last_name'] ?? ''))); ?></option>
             <?php endforeach; ?>
           </select>
         </div>
 
         <div class="form-group">
           <label for="project_id">Project ID</label>
-          <input id="project_id" name="project_id" type="number" min="0" class="form-control" value="<?php echo htmlspecialchars($document['project_id'] ?? '', ENT_QUOTES); ?>">
+          <input id="project_id" name="project_id" type="number" min="0" class="form-control" value="<?php echo htmlspecialchars($form_data['project_id'], ENT_QUOTES); ?>">
           <small style="color:#6c757d;">Optional numeric project id (if applicable)</small>
         </div>
 
         <div class="form-group">
           <label for="tags">Tags</label>
-          <input id="tags" name="tags" class="form-control" maxlength="255" value="<?php echo htmlspecialchars($document['tags'] ?? '', ENT_QUOTES); ?>">
+          <input id="tags" name="tags" class="form-control" maxlength="255" value="<?php echo htmlspecialchars($form_data['tags'], ENT_QUOTES); ?>">
         </div>
 
         <div class="form-group">
           <label for="visibility">Visibility</label>
           <select id="visibility" name="visibility" class="form-control">
-            <?php 
-            $allowed_visibilities = documents_allowed_visibilities_for_permissions($document_permissions);
-            foreach ($allowed_visibilities as $c): ?>
-              <option value="<?php echo $c; ?>" <?php echo ($document['visibility'] === $c) ? 'selected' : ''; ?>><?php echo htmlspecialchars(documents_visibility_label($c)); ?></option>
+            <?php foreach ($visibility_options as $option): ?>
+              <option value="<?php echo htmlspecialchars($option, ENT_QUOTES); ?>" <?php echo $form_data['visibility'] === $option ? 'selected' : ''; ?>><?php echo htmlspecialchars(documents_visibility_label($option)); ?></option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -276,7 +272,8 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
             <label for="uploaded_by">Uploaded by (admin only)</label>
             <select id="uploaded_by" name="uploaded_by" class="form-control">
               <?php foreach ($employees as $emp): ?>
-                <option value="<?php echo (int)$emp['id']; ?>" <?php echo ((int)$document['uploaded_by'] === (int)$emp['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars(($emp['employee_code'] ?? '') . ' - ' . trim(($emp['first_name'] ?? '') . ' ' . ($emp['last_name'] ?? ''))); ?></option>
+                <?php $selectedUploader = $form_data['uploaded_by'] === (string) (int) $emp['id'] ? 'selected' : ''; ?>
+                <option value="<?php echo (int) $emp['id']; ?>" <?php echo $selectedUploader; ?>><?php echo htmlspecialchars(($emp['employee_code'] ?? '') . ' - ' . trim(($emp['first_name'] ?? '') . ' ' . ($emp['last_name'] ?? ''))); ?></option>
               <?php endforeach; ?>
             </select>
           </div>
@@ -295,5 +292,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
     </div>
   </div>
 </div>
-
-<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php
+$closeManagedConnection();
+require_once __DIR__ . '/../../includes/footer_sidebar.php';
+?>

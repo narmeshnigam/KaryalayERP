@@ -7,6 +7,7 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/setup_helper.php';
 require_once __DIR__ . '/../includes/authz.php';
+require_once __DIR__ . '/rbac_bootstrap.php';
 
 $status = getSetupStatus();
 $error = '';
@@ -44,61 +45,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Invalid email address.';
     } else {
+        $transactionStarted = false;
+
         try {
             $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-            
+
             if ($conn->connect_error) {
-                $error = 'Connection failed: ' . $conn->connect_error;
-            } else {
-                // Check if username already exists
-                $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
-                $stmt->bind_param("s", $username);
-                $stmt->execute();
-                $result = $stmt->get_result();
-                
-                if ($result->num_rows > 0) {
-                    $error = 'Username already exists. Please choose a different username.';
-                } else {
-                    // Hash password
-                    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                    
-                    // Insert admin user
-                    $stmt = $conn->prepare("INSERT INTO users (username, password, full_name, email, role, is_active) VALUES (?, ?, ?, ?, 'admin', 1)");
-                    $stmt->bind_param("ssss", $username, $hashed_password, $full_name, $email);
-                    
-                    if ($stmt->execute()) {
-                        $success = 'Administrator account created successfully!';
-                        $new_user_id = (int)$stmt->insert_id;
+                throw new RuntimeException('Connection failed: ' . $conn->connect_error);
+            }
 
-                        // Attach the Super Admin role for RBAC alignment.
-                        authz_ensure_user_role_assignment($conn, $new_user_id, 'admin');
-                        
-                        // Auto-login the new admin user
-                        session_start();
-                        $_SESSION['user_id'] = $new_user_id;
-                        $_SESSION['username'] = $username;
-                        $_SESSION['full_name'] = $full_name;
-                        $_SESSION['role'] = 'admin';
-                        $_SESSION['login_time'] = time();
+            if (!$conn->set_charset(DB_CHARSET)) {
+                throw new RuntimeException('Unable to set database charset to ' . DB_CHARSET);
+            }
 
-                        authz_refresh_context($conn);
-                        
-                        $conn->close();
-                        
-                        // Redirect to branding setup
-                        sleep(1);
-                        header('Location: ../public/branding/onboarding.php');
-                        exit;
-                    } else {
-                        $error = 'Error creating account: ' . $conn->error;
-                    }
-                }
-                
+            $conn->begin_transaction();
+            $transactionStarted = true;
+
+            // Ensure RBAC tables and defaults exist before creating the admin account
+            setup_rbac_bootstrap($conn);
+
+            // Check if username already exists
+            $stmt = $conn->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
+            if (!$stmt) {
+                throw new RuntimeException('Failed to prepare user lookup: ' . $conn->error);
+            }
+            $stmt->bind_param('s', $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result && $result->num_rows > 0) {
                 $stmt->close();
+                throw new RuntimeException('Username already exists. Please choose a different username.');
+            }
+            $stmt->close();
+
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+            $insert = $conn->prepare('INSERT INTO users (username, full_name, email, password_hash, status, is_active) VALUES (?, ?, ?, ?, \'Active\', 1)');
+            if (!$insert) {
+                throw new RuntimeException('Failed to prepare admin insert: ' . $conn->error);
+            }
+            $insert->bind_param('ssss', $username, $full_name, $email, $hashed_password);
+
+            if (!$insert->execute()) {
+                $insert->close();
+                throw new RuntimeException('Error creating account: ' . $conn->error);
+            }
+
+            $new_user_id = (int) $insert->insert_id;
+            $insert->close();
+
+            setup_rbac_assign_role($conn, $new_user_id, 'Super Admin', $new_user_id);
+
+            $conn->commit();
+            $transactionStarted = false;
+
+            // Auto-login the new admin user
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+
+            $_SESSION['user_id'] = $new_user_id;
+            $_SESSION['username'] = $username;
+            $_SESSION['full_name'] = $full_name;
+            $_SESSION['login_time'] = time();
+
+            authz_refresh_context($conn);
+            $conn->close();
+
+            header('Location: ../public/branding/onboarding.php');
+            exit;
+        } catch (Throwable $e) {
+            if (isset($conn) && $conn instanceof mysqli) {
+                if ($transactionStarted) {
+                    $conn->rollback();
+                }
                 $conn->close();
             }
-        } catch (Exception $e) {
-            $error = 'Error: ' . $e->getMessage();
+            $error = 'Error creating administrator account: ' . $e->getMessage();
         }
     }
 }

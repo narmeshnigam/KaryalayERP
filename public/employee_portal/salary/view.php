@@ -3,40 +3,49 @@
  * Salary Viewer - Detailed salary record view (Employee Portal).
  */
 
-require_once __DIR__ . '/../../../includes/bootstrap.php';
-require_once __DIR__ . '/../../../config/config.php';
-require_once __DIR__ . '/../../../config/db_connect.php';
+require_once __DIR__ . '/../../../includes/auth_check.php';
+require_once __DIR__ . '/../../../config/module_dependencies.php';
 require_once __DIR__ . '/../../salary/helpers.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../login.php');
-    exit;
+$closeManagedConnection = static function () use (&$conn): void {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+    }
+};
+
+$hasViewAll = authz_user_can($conn, 'salary_records', 'view_all');
+$hasViewOwn = authz_user_can($conn, 'salary_records', 'view_own');
+if (!$hasViewAll && !$hasViewOwn) {
+    authz_require_permission($conn, 'salary_records', 'view_all');
 }
 
 $record_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($record_id <= 0) {
     flash_add('error', 'Missing salary record identifier.', 'salary');
+    if (isset($closeManagedConnection)) {
+        $closeManagedConnection();
+    }
     header('Location: index.php');
     exit;
 }
 
-$user_role = $_SESSION['role'] ?? 'employee';
 $page_title = 'Salary Details - ' . APP_NAME;
 
-$conn = createConnection(true);
-if (!$conn) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
-    require_once __DIR__ . '/../../../includes/footer_sidebar.php';
+$prereq_check = get_prerequisite_check_result($conn, 'salary');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    display_prerequisite_error('salary', $prereq_check['missing_modules']);
     exit;
 }
 
 if (!salary_table_exists($conn)) {
-    closeConnection($conn);
+    $closeManagedConnection();
     require_once __DIR__ . '/../../salary/onboarding.php';
     exit;
 }
 
-$current_employee_id = salary_current_employee_id($conn, (int) $_SESSION['user_id']);
+$current_employee_id = salary_current_employee_id($conn, $CURRENT_USER_ID);
 
 $select_sql = "SELECT sr.*, 
              emp.employee_code AS emp_code, emp.first_name AS emp_first, emp.last_name AS emp_last,
@@ -61,22 +70,28 @@ $record = $result ? mysqli_fetch_assoc($result) : null;
 mysqli_stmt_close($select);
 
 if (!$record) {
-    closeConnection($conn);
+    $closeManagedConnection();
     flash_add('error', 'Salary record not found.', 'salary');
     header('Location: index.php');
     exit;
 }
 
 $owns_record = $current_employee_id && ((int) $record['employee_id'] === (int) $current_employee_id);
-$can_manage = salary_role_can_manage($user_role);
-if (!$can_manage && !$owns_record) {
-    closeConnection($conn);
+if (!$hasViewAll && !$owns_record) {
+    $closeManagedConnection();
     flash_add('error', 'You are not allowed to view this salary record.', 'salary');
     header('Location: index.php');
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_manage) {
+$canEditAll = authz_user_can($conn, 'salary_records', 'edit_all');
+$canEditOwn = authz_user_can($conn, 'salary_records', 'edit_own');
+$canDeleteAll = authz_user_can($conn, 'salary_records', 'delete_all');
+$canDeleteOwn = authz_user_can($conn, 'salary_records', 'delete_own');
+$canManage = $canEditAll || ($canEditOwn && $owns_record) || authz_is_super_admin($conn);
+$canDelete = $canDeleteAll || ($canDeleteOwn && $owns_record) || authz_is_super_admin($conn);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canManage) {
     $action = $_POST['action'] ?? '';
     if ($action === 'lock' || $action === 'unlock') {
         $desired = $action === 'lock' ? 1 : 0;
@@ -95,15 +110,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_manage) {
                 mysqli_stmt_close($update);
             }
         }
-        closeConnection($conn);
+        $closeManagedConnection();
         header('Location: view.php?id=' . $record_id);
         exit;
     }
 
-    if ($action === 'delete' && salary_role_can_edit($user_role)) {
+    if ($action === 'delete' && $canDelete) {
         if ((int) $record['is_locked'] === 1) {
             flash_add('error', 'Locked salary records cannot be deleted.', 'salary');
-            closeConnection($conn);
+            $closeManagedConnection();
             header('Location: view.php?id=' . $record_id);
             exit;
         }
@@ -118,20 +133,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_manage) {
                     }
                 }
                 flash_add('success', 'Salary record deleted.', 'salary');
-                closeConnection($conn);
+                $closeManagedConnection();
                 header('Location: ../../salary/admin.php');
                 exit;
             }
             mysqli_stmt_close($delete);
         }
         flash_add('error', 'Unable to delete salary record.', 'salary');
-        closeConnection($conn);
+        $closeManagedConnection();
         header('Location: view.php?id=' . $record_id);
         exit;
     }
 
     flash_add('warning', 'Unsupported action.', 'salary');
-    closeConnection($conn);
+    $closeManagedConnection();
     header('Location: view.php?id=' . $record_id);
     exit;
 }
@@ -146,14 +161,14 @@ $record['emp_email'] = salary_get_employee_email($conn, (int) ($record['employee
 if (isset($_GET['download'])) {
     if (empty($record['slip_path'])) {
         flash_add('error', 'Salary slip not available for download.', 'salary');
-        closeConnection($conn);
+        $closeManagedConnection();
         header('Location: view.php?id=' . $record_id);
         exit;
     }
     $file_path = salary_upload_directory() . DIRECTORY_SEPARATOR . basename($record['slip_path']);
     if (!is_file($file_path)) {
         flash_add('error', 'Salary slip file is missing.', 'salary');
-        closeConnection($conn);
+        $closeManagedConnection();
         header('Location: view.php?id=' . $record_id);
         exit;
     }
@@ -163,7 +178,7 @@ if (isset($_GET['download'])) {
     $file_name = 'salary-slip-' . str_replace('-', '', $record['month']) . '.pdf';
 
     // Close DB connection before streaming
-    closeConnection($conn);
+    $closeManagedConnection();
 
     // Ensure no prior output is sent; PHP's output buffering may be active via bootstrap.
     // Send proper headers for PDF and stream the file.
@@ -178,7 +193,7 @@ if (isset($_GET['download'])) {
     exit;
 }
 
-closeConnection($conn);
+$closeManagedConnection();
 
 // Now it's safe to include the header and sidebar which emit HTML
 require_once __DIR__ . '/../../../includes/header_sidebar.php';
@@ -193,11 +208,11 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                     <p>Summary of earnings for <?php echo salary_format_month_label($record['month']); ?>.</p>
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                    <a href="<?php echo $can_manage ? '../../salary/admin.php' : 'index.php'; ?>" class="btn btn-secondary">← Back</a>
+                    <a href="<?php echo $canManage ? '../../salary/admin.php' : 'index.php'; ?>" class="btn btn-secondary">← Back</a>
                     <?php if (!empty($record['slip_path'])): ?>
                         <a href="view.php?id=<?php echo $record_id; ?>&download=1" class="btn" style="background:#17a2b8;color:#fff;">⬇ Download Slip</a>
                     <?php endif; ?>
-                    <?php if ($can_manage): ?>
+                    <?php if ($canManage): ?>
                         <a href="../../salary/edit.php?id=<?php echo $record_id; ?>" class="btn" style="background:#003581;color:#fff;">✏️ Edit</a>
                     <?php endif; ?>
                 </div>
@@ -305,7 +320,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
             <?php endif; ?>
         </div>
 
-        <?php if ($can_manage): ?>
+    <?php if ($canManage): ?>
             <div class="card" style="border:1px solid #dee2e6;background:#fff8e1;">
                 <h3 style="margin-top:0;color:#b35c00;">Admin actions</h3>
                 <div style="display:flex;flex-wrap:wrap;gap:12px;">
@@ -315,7 +330,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                             <?php echo (int) $record['is_locked'] === 1 ? 'Unlock record' : 'Lock record'; ?>
                         </button>
                     </form>
-                    <?php if (salary_role_can_edit($user_role)): ?>
+                    <?php if ($canDelete): ?>
                         <form method="POST" onsubmit="return confirm('Delete this salary record? This cannot be undone.');">
                             <input type="hidden" name="action" value="delete">
                             <button type="submit" class="btn" style="padding:6px 14px;font-size:13px;background:#dc3545;color:#fff;">Delete record</button>

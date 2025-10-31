@@ -5,63 +5,94 @@
 
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'reimbursements', 'view_all');
+$closeManagedConnection = static function () use (&$conn): void {
+  if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+    closeConnection($conn);
+    $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+  }
+};
+
+if (!authz_user_can_any($conn, [
+  ['table' => 'reimbursements', 'permission' => 'view_all'],
+  ['table' => 'reimbursements', 'permission' => 'view_assigned'],
+  ['table' => 'reimbursements', 'permission' => 'view_own'],
+])) {
+  authz_require_permission($conn, 'reimbursements', 'view_all');
+}
+
 $reimbursement_permissions = authz_get_permission_set($conn, 'reimbursements');
-$can_review = !empty($reimbursement_permissions['can_edit_all']);
+$can_view_all = !empty($reimbursement_permissions['can_view_all']);
+$can_view_own = !empty($reimbursement_permissions['can_view_own']);
+$can_view_assigned = !empty($reimbursement_permissions['can_view_assigned']);
+$can_review_all = !empty($reimbursement_permissions['can_edit_all']);
+$can_review_own = !empty($reimbursement_permissions['can_edit_own']);
+$can_review_assigned = !empty($reimbursement_permissions['can_edit_assigned']);
 $can_export = !empty($reimbursement_permissions['can_export']);
 
-// Check reimbursements module prerequisites
-$conn_check = createConnection(true);
-if ($conn_check) {
-    $prereq_check = get_prerequisite_check_result($conn_check, 'reimbursements');
-    if (!$prereq_check['allowed']) {
-        closeConnection($conn_check);
-        display_prerequisite_error('reimbursements', $prereq_check['missing_modules']);
-    }
-    closeConnection($conn_check);
+if (!($conn instanceof mysqli)) {
+  echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
+  require_once __DIR__ . '/../../includes/footer_sidebar.php';
+  exit;
+}
+
+$prereq_check = get_prerequisite_check_result($conn, 'reimbursements');
+if (!$prereq_check['allowed']) {
+  $closeManagedConnection();
+  display_prerequisite_error('reimbursements', $prereq_check['missing_modules']);
+  exit;
+}
+
+if (!reimbursements_table_exists($conn)) {
+  $closeManagedConnection();
+  require_once __DIR__ . '/onboarding.php';
+  exit;
 }
 
 $page_title = 'Reimbursements - ' . APP_NAME;
+
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = $conn ?? createConnection(true);
+$current_employee_id = reimbursements_current_employee_id($conn, (int) $CURRENT_USER_ID);
+$restricted_employee_id = null;
 
-function tableExists($conn, $table) {
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
-}
-
-if (!tableExists($conn, 'reimbursements')) {
-  if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
+if (!$can_view_all) {
+  if ($can_view_own && $current_employee_id) {
+    $restricted_employee_id = $current_employee_id;
+  } elseif ($can_view_assigned) {
+    // No assignment model yet; fall back to requiring elevated permission.
+    authz_require_permission($conn, 'reimbursements', 'view_all');
+  } else {
+    authz_require_permission($conn, 'reimbursements', 'view_all');
   }
-    echo '<div class="main-wrapper"><div class="main-content">';
-    echo '<div class="card" style="max-width:760px;margin:0 auto;">';
-    echo '<h2 style="margin-top:0;color:#003581;">Reimbursement module not set up</h2>';
-    echo '<p>Run the setup script to create the reimbursements table.</p>';
-    echo '<a href="../../scripts/setup_reimbursements_table.php" class="btn" style="margin-top:20px;">🚀 Setup Reimbursements Module</a>';
-    echo '<a href="../index.php" class="btn btn-accent" style="margin-left:10px;margin-top:20px;">Back to dashboard</a>';
-    echo '</div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
 }
 
+$allowed_statuses = reimbursements_allowed_statuses();
 $status_filter = isset($_GET['status']) ? $_GET['status'] : 'All';
+if (!in_array($status_filter, $allowed_statuses, true)) {
+  $status_filter = 'All';
+}
+
 $employee_filter = isset($_GET['employee']) ? (int) $_GET['employee'] : 0;
 $category_filter = isset($_GET['category']) ? trim($_GET['category']) : '';
 $from_date = isset($_GET['from_date']) ? $_GET['from_date'] : date('Y-m-01');
 $to_date = isset($_GET['to_date']) ? $_GET['to_date'] : date('Y-m-d');
 
+if ($restricted_employee_id !== null) {
+  $employee_filter = $restricted_employee_id;
+}
+
 $where = ['r.expense_date BETWEEN ? AND ?'];
 $params = [$from_date, $to_date];
 $types = 'ss';
+
+if ($restricted_employee_id !== null) {
+  $where[] = 'r.employee_id = ?';
+  $params[] = $restricted_employee_id;
+  $types .= 'i';
+}
 
 if ($status_filter !== 'All') {
     $where[] = 'r.status = ?';
@@ -84,54 +115,48 @@ if ($category_filter !== '') {
 $where_clause = implode(' AND ', $where);
 $sql = "SELECT r.*, e.employee_code, e.first_name, e.last_name, e.department FROM reimbursements r INNER JOIN employees e ON r.employee_id = e.id WHERE $where_clause ORDER BY r.date_submitted DESC, r.id DESC";
 $stmt = mysqli_prepare($conn, $sql);
-
-$bind_params = [];
-$bind_params[] = &$types;
-foreach ($params as $key => $value) {
-  $bind_params[] = &$params[$key];
-}
-call_user_func_array([$stmt, 'bind_param'], $bind_params);
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
 $claims = [];
-while ($row = mysqli_fetch_assoc($result)) {
+if ($stmt) {
+  if ($types !== '') {
+    reimbursements_stmt_bind($stmt, $types, $params);
+  }
+  mysqli_stmt_execute($stmt);
+  $result = mysqli_stmt_get_result($stmt);
+  while ($row = mysqli_fetch_assoc($result)) {
     $claims[] = $row;
-}
-mysqli_stmt_close($stmt);
-
-$employees = [];
-$emp_sql = "SELECT id, employee_code, first_name, last_name FROM employees ORDER BY first_name, last_name";
-$emp_res = mysqli_query($conn, $emp_sql);
-if ($emp_res) {
-    while ($row = mysqli_fetch_assoc($emp_res)) {
-        $employees[] = $row;
-    }
+  }
+  mysqli_stmt_close($stmt);
 }
 
-$categories = [];
-$cat_sql = "SELECT DISTINCT category FROM reimbursements ORDER BY category";
-$cat_res = mysqli_query($conn, $cat_sql);
-if ($cat_res) {
-    while ($row = mysqli_fetch_assoc($cat_res)) {
-        if (!empty($row['category'])) {
-            $categories[] = $row['category'];
-        }
-    }
+$employees = reimbursements_fetch_employees($conn);
+if ($restricted_employee_id !== null) {
+  $employees = array_values(array_filter($employees, static function (array $row) use ($restricted_employee_id) {
+    return (int) ($row['id'] ?? 0) === $restricted_employee_id;
+  }));
 }
+
+$categories = reimbursements_fetch_categories($conn);
 
 $stats_sql = "SELECT status, COUNT(*) as total FROM reimbursements WHERE expense_date BETWEEN ? AND ? GROUP BY status";
-$stats_stmt = mysqli_prepare($conn, $stats_sql);
-mysqli_stmt_bind_param($stats_stmt, 'ss', $from_date, $to_date);
-mysqli_stmt_execute($stats_stmt);
-$stats_res = mysqli_stmt_get_result($stats_stmt);
-$stats = ['Pending' => 0, 'Approved' => 0, 'Rejected' => 0];
-while ($row = mysqli_fetch_assoc($stats_res)) {
-  $stats[$row['status']] = (int) $row['total'];
-}
-mysqli_stmt_close($stats_stmt);
+$stats_params = [$from_date, $to_date];
+$stats_types = 'ss';
 
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-  closeConnection($conn);
+if ($restricted_employee_id !== null) {
+  $stats_sql = "SELECT status, COUNT(*) as total FROM reimbursements WHERE expense_date BETWEEN ? AND ? AND employee_id = ? GROUP BY status";
+  $stats_params[] = $restricted_employee_id;
+  $stats_types .= 'i';
+}
+
+$stats_stmt = mysqli_prepare($conn, $stats_sql);
+$stats = ['Pending' => 0, 'Approved' => 0, 'Rejected' => 0];
+if ($stats_stmt) {
+  reimbursements_stmt_bind($stats_stmt, $stats_types, $stats_params);
+  mysqli_stmt_execute($stats_stmt);
+  $stats_res = mysqli_stmt_get_result($stats_stmt);
+  while ($row = mysqli_fetch_assoc($stats_res)) {
+    $stats[$row['status']] = (int) $row['total'];
+  }
+  mysqli_stmt_close($stats_stmt);
 }
 ?>
 
@@ -150,6 +175,8 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
         </div>
       </div>
     </div>
+
+    <?php echo flash_render(); ?>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
       <div class="card" style="background:linear-gradient(135deg,#ffc107 0%,#ff9800 100%);color:#fff;text-align:center;">
@@ -172,7 +199,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
         <div class="form-group" style="margin:0;">
           <label>Status</label>
           <select name="status" class="form-control">
-            <?php foreach (['All','Pending','Approved','Rejected'] as $option): ?>
+            <?php foreach ($allowed_statuses as $option): ?>
               <option value="<?php echo htmlspecialchars($option); ?>" <?php echo ($status_filter === $option) ? 'selected' : ''; ?>><?php echo htmlspecialchars($option); ?></option>
             <?php endforeach; ?>
           </select>
@@ -237,6 +264,13 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
             </thead>
             <tbody>
               <?php foreach ($claims as $claim): ?>
+                <?php
+                  $is_owner = $current_employee_id && (int) ($claim['employee_id'] ?? 0) === (int) $current_employee_id;
+                  $can_review_claim = $IS_SUPER_ADMIN
+                    || $can_review_all
+                    || ($can_review_own && $is_owner)
+                    || ($can_review_assigned && $is_owner);
+                ?>
                 <tr style="border-bottom:1px solid #e1e8ed;">
                   <td style="padding:12px;">#<?php echo (int) $claim['id']; ?></td>
                   <td style="padding:12px;">
@@ -269,7 +303,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
                     <?php endif; ?>
                   </td>
                   <td style="padding:12px;text-align:center;white-space:nowrap;">
-                    <?php if ($can_review): ?>
+                    <?php if ($can_review_claim): ?>
                       <a href="review.php?id=<?php echo (int) $claim['id']; ?>" class="btn btn-accent" style="padding:6px 16px;font-size:13px;">Review</a>
                     <?php else: ?>
                       <span style="color:#6c757d;font-size:13px;">No access</span>
@@ -285,4 +319,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php
+$closeManagedConnection();
+require_once __DIR__ . '/../../includes/footer_sidebar.php';
+?>

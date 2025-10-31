@@ -4,22 +4,30 @@
  * Aligns with CRM Dashboard visual language and adds consolidated KPIs/charts.
  */
 
-// Start session
-session_start();
 
-// Includes
-require_once __DIR__ . '/../config/db_connect.php';
+require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/setup_helper.php';
 
-if (!isSetupComplete()) { header('Location: ' . APP_URL . '/setup/index.php'); exit; }
-if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
+if (!isSetupComplete()) {
+    header('Location: ' . APP_URL . '/setup/index.php');
+    exit;
+}
 
-$user_id = $_SESSION['user_id'];
+require_once __DIR__ . '/../includes/auth_check.php';
+
+$user_id = (int) ($_SESSION['user_id'] ?? 0);
 $username = $_SESSION['username'] ?? 'user';
 $full_name = $_SESSION['full_name'] ?? 'User';
-$role = strtolower($_SESSION['role'] ?? 'employee');
-$isAdmin = in_array($role, ['admin']);
-$isManager = in_array($role, ['manager']);
+
+$roleNamesSession = array_map('strtolower', $_SESSION['role_names'] ?? []);
+$roleNamesContext = array_map(static function ($role) {
+    return strtolower($role['name'] ?? '');
+}, $AUTHZ_CONTEXT['roles'] ?? []);
+
+$roleNames = array_values(array_filter(array_unique(array_merge($roleNamesSession, $roleNamesContext))));
+
+$isAdmin = authz_is_super_admin($conn) || in_array('admin', $roleNames, true) || in_array('super admin', $roleNames, true);
+$isManager = in_array('manager', $roleNames, true);
 
 $page_title = 'Dashboard - ' . APP_NAME;
 
@@ -384,4 +392,9 @@ include __DIR__ . '/../includes/sidebar.php';
     function escapeHtml(s){ return String(s).replace(/[&<>"]+/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[m])); }
 </script>
 
-<?php include __DIR__ . '/../includes/footer_sidebar.php'; if (isset($conn)) { closeConnection($conn); } ?>
+<?php
+include __DIR__ . '/../includes/footer_sidebar.php';
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
+?>

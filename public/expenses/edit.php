@@ -4,110 +4,104 @@
  */
 
 require_once __DIR__ . '/../../includes/auth_check.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/../../includes/flash.php';
+require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'office_expenses', 'edit_all');
-
-$page_title = 'Edit Expense - ' . APP_NAME;
-require_once __DIR__ . '/../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../includes/sidebar.php';
+$closeManagedConnection = static function () use (&$conn): void {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+    }
+};
 
 $expense_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($expense_id <= 0) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Invalid expense identifier supplied.</div></div></div>';
+    flash_add('error', 'Invalid expense identifier supplied.', 'office_expenses');
+    header('Location: index.php');
+    exit;
+}
+
+if (!authz_user_can_any($conn, [
+    ['table' => 'office_expenses', 'permission' => 'edit_all'],
+    ['table' => 'office_expenses', 'permission' => 'edit_own'],
+])) {
+    authz_require_permission($conn, 'office_expenses', 'edit_all');
+}
+
+$expense_permissions = authz_get_permission_set($conn, 'office_expenses');
+$can_edit_all = !empty($expense_permissions['can_edit_all']);
+$can_edit_own = !empty($expense_permissions['can_edit_own']);
+
+if (!($conn instanceof mysqli)) {
+    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
 }
 
-$conn = $conn ?? createConnection(true);
-
-function tableExists($conn, $table)
-{
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
-}
-
-if (!tableExists($conn, 'office_expenses')) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-    echo '<div class="main-wrapper"><div class="main-content">';
-    echo '<div class="card" style="max-width:760px;margin:0 auto;">';
-    echo '<h2 style="margin-top:0;color:#003581;">Expense Tracker module not ready</h2>';
-    echo '<p>The <code>office_expenses</code> table is missing. Please run the setup script.</p>';
-    echo '<a href="index.php" class="btn" style="margin-top:20px;">← Back</a>';
-    echo '</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
+$prereq_check = get_prerequisite_check_result($conn, 'office_expenses');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    display_prerequisite_error('office_expenses', $prereq_check['missing_modules']);
     exit;
 }
 
-$sql = 'SELECT e.*, emp.employee_code, emp.first_name, emp.last_name
-        FROM office_expenses e
-        LEFT JOIN employees emp ON e.added_by = emp.id
-        WHERE e.id = ?
-        LIMIT 1';
-$stmt = mysqli_prepare($conn, $sql);
-if (!$stmt) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to load the expense record.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
-mysqli_stmt_bind_param($stmt, 'i', $expense_id);
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
-$expense = mysqli_fetch_assoc($result);
-mysqli_stmt_close($stmt);
-
-if (!$expense) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Expense record not found.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
+if (!office_expenses_table_exists($conn)) {
+    $closeManagedConnection();
+    require_once __DIR__ . '/onboarding.php';
     exit;
 }
 
-$category_options = [];
-$category_query = 'SELECT DISTINCT category FROM office_expenses ORDER BY category';
-if ($category_res = mysqli_query($conn, $category_query)) {
-    while ($row = mysqli_fetch_assoc($category_res)) {
-        if (!empty($row['category'])) {
-            $category_options[] = $row['category'];
-        }
+$current_employee = office_expenses_current_employee($conn, (int) $CURRENT_USER_ID);
+$restricted_employee_id = null;
+if (!$can_edit_all) {
+    if ($can_edit_own && $current_employee) {
+        $restricted_employee_id = (int) $current_employee['id'];
+    } else {
+        $closeManagedConnection();
+        authz_require_permission($conn, 'office_expenses', 'edit_all');
     }
 }
+
+$expense = office_expenses_fetch_expense($conn, $expense_id);
+
+if ($restricted_employee_id !== null && $expense && (int) ($expense['added_by'] ?? 0) !== $restricted_employee_id) {
+    $expense = null;
+}
+
+if (!$expense || (!empty($expense['deleted_at']))) {
+    $closeManagedConnection();
+    flash_add('error', 'Expense record not found or access denied.', 'office_expenses');
+    header('Location: index.php');
+    exit;
+}
+
+$is_owner = $current_employee && (int) ($expense['added_by'] ?? 0) === (int) $current_employee['id'];
+if (!$can_edit_all && !$is_owner) {
+    $closeManagedConnection();
+    flash_add('error', 'You do not have permission to modify this expense.', 'office_expenses');
+    header('Location: index.php');
+    exit;
+}
+
+$category_options = office_expenses_fetch_categories($conn);
 if (empty($category_options)) {
-    $category_options = ['Utilities', 'Office Supplies', 'Staff Welfare', 'Travel & Conveyance', 'Maintenance', 'Marketing', 'IT & Software', 'Miscellaneous'];
+    $category_options = office_expenses_default_categories();
 }
 if (!empty($expense['category']) && !in_array($expense['category'], $category_options, true)) {
     array_unshift($category_options, $expense['category']);
 }
 
-$payment_options = [];
-$payment_query = 'SELECT DISTINCT payment_mode FROM office_expenses ORDER BY payment_mode';
-if ($payment_res = mysqli_query($conn, $payment_query)) {
-    while ($row = mysqli_fetch_assoc($payment_res)) {
-        if (!empty($row['payment_mode'])) {
-            $payment_options[] = $row['payment_mode'];
-        }
-    }
-}
+$payment_options = office_expenses_fetch_payment_modes($conn);
 if (empty($payment_options)) {
-    $payment_options = ['Cash', 'Bank Transfer', 'UPI', 'Credit Card', 'Debit Card', 'Cheque'];
+    $payment_options = office_expenses_default_payment_modes();
 }
 if (!empty($expense['payment_mode']) && !in_array($expense['payment_mode'], $payment_options, true)) {
     array_unshift($payment_options, $expense['payment_mode']);
 }
 
 $errors = [];
-$success = '';
+$new_receipt_path = null;
 
 $date = isset($_POST['date']) ? trim($_POST['date']) : ($expense['date'] ?: date('Y-m-d'));
 $category = isset($_POST['category']) ? trim($_POST['category']) : ($expense['category'] ?? '');
@@ -119,73 +113,40 @@ $remove_receipt = isset($_POST['remove_receipt']) && $_POST['remove_receipt'] ==
 $existing_receipt = $expense['receipt_file'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($date === '') {
-        $errors[] = 'Date is required.';
+    if ($category !== '' && !in_array($category, $category_options, true)) {
+        array_unshift($category_options, $category);
+    }
+    if ($payment_mode !== '' && !in_array($payment_mode, $payment_options, true)) {
+        array_unshift($payment_options, $payment_mode);
     }
 
-    if ($category === '') {
-        $errors[] = 'Category is required.';
+    if ($date === '') {
+        $errors[] = 'Date is required.';
     }
 
     if ($vendor_name === '') {
         $errors[] = 'Vendor / Payee name is required.';
     }
 
+    if ($category === '' || !in_array($category, $category_options, true)) {
+        $errors[] = 'Please select a valid category.';
+    }
+
     if ($amount === '' || !is_numeric($amount) || (float) $amount <= 0) {
         $errors[] = 'Amount must be greater than zero.';
     }
 
-    if ($payment_mode === '') {
-        $errors[] = 'Payment mode is required.';
+    if ($payment_mode === '' || !in_array($payment_mode, $payment_options, true)) {
+        $errors[] = 'Please choose a valid payment mode.';
     }
 
     if ($description === '') {
         $errors[] = 'Description is required.';
     }
 
-    $receipt_to_store = $existing_receipt;
-    $new_receipt_path = null;
-    $receipt_sql_fragment = '';
-
-    if (isset($_FILES['receipt']) && $_FILES['receipt']['error'] !== UPLOAD_ERR_NO_FILE) {
-        $file = $_FILES['receipt'];
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            $errors[] = 'Error uploading receipt file.';
-        } else {
-            $allowed_types = ['image/jpeg', 'image/png', 'application/pdf'];
-            $max_size = 2 * 1024 * 1024;
-            $file_type = mime_content_type($file['tmp_name']);
-            if ($file_type === false || !in_array($file_type, $allowed_types, true)) {
-                $errors[] = 'Receipt must be a PDF, JPG, or PNG file.';
-            }
-            if ($file['size'] > $max_size) {
-                $errors[] = 'Receipt file must be under 2 MB.';
-            }
-            if (empty($errors)) {
-                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                try {
-                    $token = bin2hex(random_bytes(4));
-                } catch (Exception $e) {
-                    $token = substr(md5(uniqid((string) microtime(true), true)), 0, 8);
-                }
-                $filename = 'expense_' . time() . '_' . $token . '.' . $ext;
-                $dest_dir = __DIR__ . '/../../uploads/office_expenses';
-                if (!is_dir($dest_dir)) {
-                    mkdir($dest_dir, 0755, true);
-                }
-                $dest_path = $dest_dir . DIRECTORY_SEPARATOR . $filename;
-                if (!move_uploaded_file($file['tmp_name'], $dest_path)) {
-                    $errors[] = 'Failed to store the uploaded receipt.';
-                } else {
-                    $receipt_to_store = 'uploads/office_expenses/' . $filename;
-                    $new_receipt_path = $receipt_to_store;
-                    $receipt_sql_fragment = 'receipt_file = ?';
-                }
-            }
-        }
-    } elseif ($remove_receipt && !empty($existing_receipt)) {
-        $receipt_to_store = null;
-        $receipt_sql_fragment = 'receipt_file = NULL';
+    $new_receipt_path = office_expenses_store_receipt_file($_FILES['receipt'] ?? ['error' => UPLOAD_ERR_NO_FILE], $errors);
+    if ($new_receipt_path !== null) {
+        $remove_receipt = false;
     }
 
     if (empty($errors)) {
@@ -194,12 +155,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $params = [$date, $category, $vendor_name, $description, $amount_param, $payment_mode];
         $types = 'ssssss';
 
-        if ($receipt_sql_fragment === 'receipt_file = ?' && $new_receipt_path !== null) {
-            $fields[] = $receipt_sql_fragment;
+        if ($new_receipt_path !== null) {
+            $fields[] = 'receipt_file = ?';
             $params[] = $new_receipt_path;
             $types .= 's';
-        } elseif ($receipt_sql_fragment === 'receipt_file = NULL') {
-            $fields[] = $receipt_sql_fragment;
+        } elseif ($remove_receipt && !empty($existing_receipt)) {
+            $fields[] = 'receipt_file = NULL';
         }
 
         $params[] = $expense_id;
@@ -208,67 +169,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $update_sql = 'UPDATE office_expenses SET ' . implode(', ', $fields) . ' WHERE id = ?';
         $update_stmt = mysqli_prepare($conn, $update_sql);
         if ($update_stmt) {
-            $bind_params = [];
-            $bind_params[] = &$types;
-            foreach ($params as $key => $value) {
-                $bind_params[] = &$params[$key];
-            }
-            if (call_user_func_array([$update_stmt, 'bind_param'], $bind_params) && mysqli_stmt_execute($update_stmt)) {
-                $success = 'Expense details updated successfully.';
-                if ($receipt_sql_fragment === 'receipt_file = ?' && $new_receipt_path !== null) {
-                    if (!empty($existing_receipt)) {
-                        $old_path = __DIR__ . '/../../' . ltrim($existing_receipt, '/');
-                        if (is_file($old_path)) {
-                            @unlink($old_path);
-                        }
-                    }
-                    $existing_receipt = $new_receipt_path;
-                } elseif ($receipt_sql_fragment === 'receipt_file = NULL' && !empty($existing_receipt)) {
-                    $old_path = __DIR__ . '/../../' . ltrim($existing_receipt, '/');
-                    if (is_file($old_path)) {
-                        @unlink($old_path);
-                    }
-                    $existing_receipt = null;
+            office_expenses_stmt_bind($update_stmt, $types, $params);
+            if (mysqli_stmt_execute($update_stmt) && mysqli_stmt_affected_rows($update_stmt) >= 0) {
+                if ($new_receipt_path !== null && !empty($existing_receipt)) {
+                    office_expenses_delete_receipt_file($existing_receipt);
                 }
-                $expense['date'] = $date;
-                $expense['category'] = $category;
-                $expense['vendor_name'] = $vendor_name;
-                $expense['description'] = $description;
-                $expense['amount'] = $amount_param;
-                $expense['payment_mode'] = $payment_mode;
-                $expense['receipt_file'] = $existing_receipt;
-                $remove_receipt = false;
-            } else {
-                $errors[] = 'Unable to save changes. Please try again.';
-                if ($new_receipt_path !== null) {
-                    $stored_path = __DIR__ . '/../../' . ltrim($new_receipt_path, '/');
-                    if (is_file($stored_path)) {
-                        @unlink($stored_path);
-                    }
+                if ($new_receipt_path === null && $remove_receipt && !empty($existing_receipt)) {
+                    office_expenses_delete_receipt_file($existing_receipt);
                 }
+                mysqli_stmt_close($update_stmt);
+                $closeManagedConnection();
+                flash_add('success', 'Expense details updated successfully.', 'office_expenses');
+                header('Location: view.php?id=' . $expense_id);
+                exit;
             }
+            $errors[] = 'Unable to save changes. Please try again.';
             mysqli_stmt_close($update_stmt);
         } else {
             $errors[] = 'Failed to prepare database statement.';
-            if ($new_receipt_path !== null) {
-                $stored_path = __DIR__ . '/../../' . ltrim($new_receipt_path, '/');
-                if (is_file($stored_path)) {
-                    @unlink($stored_path);
-                }
-            }
-        }
-    } else {
-        if ($new_receipt_path !== null) {
-            $stored_path = __DIR__ . '/../../' . ltrim($new_receipt_path, '/');
-            if (is_file($stored_path)) {
-                @unlink($stored_path);
-            }
         }
     }
-}
 
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
+    if (!empty($errors) && $new_receipt_path !== null) {
+        office_expenses_delete_receipt_file($new_receipt_path);
+        $new_receipt_path = null;
+    }
 }
 
 $employee_label = '—';
@@ -282,6 +207,10 @@ $receipt_url = null;
 if (!empty($existing_receipt)) {
     $receipt_url = APP_URL . '/' . ltrim($existing_receipt, '/');
 }
+
+$page_title = 'Edit Expense - ' . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 <div class="main-wrapper">
     <div class="main-content">
@@ -298,9 +227,7 @@ if (!empty($existing_receipt)) {
             </div>
         </div>
 
-        <?php if ($success) : ?>
-            <div class="alert alert-success"><?php echo htmlspecialchars($success, ENT_QUOTES); ?></div>
-        <?php endif; ?>
+    <?php echo flash_render(); ?>
 
         <?php if (!empty($errors)) : ?>
             <div class="alert alert-error">
@@ -355,9 +282,9 @@ if (!empty($existing_receipt)) {
                     <label for="receipt">Receipt (PDF/JPG/PNG, max 2&nbsp;MB)</label>
                     <input type="file" class="form-control" name="receipt" id="receipt" accept=".pdf,.jpg,.jpeg,.png">
                     <small style="color:#6c757d;display:block;margin-top:6px;">Upload a file to replace the current receipt. Leave empty to keep it unchanged.</small>
-                    <?php if ($receipt_url) : ?>
+                    <?php if (!empty($existing_receipt)) : ?>
                         <div style="margin-top:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                            <a href="<?php echo htmlspecialchars($receipt_url, ENT_QUOTES); ?>" target="_blank" class="btn btn-secondary">📄 View current receipt</a>
+                            <a href="<?php echo htmlspecialchars($receipt_url ?? '', ENT_QUOTES); ?>" target="_blank" class="btn btn-secondary">📄 View current receipt</a>
                             <label style="display:flex;align-items:center;gap:6px;color:#dc3545;font-size:14px;">
                                 <input type="checkbox" name="remove_receipt" value="1" <?php echo $remove_receipt ? 'checked' : ''; ?>>
                                 Remove existing receipt
@@ -375,4 +302,7 @@ if (!empty($existing_receipt)) {
         </div>
     </div>
 </div>
-<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php
+$closeManagedConnection();
+require_once __DIR__ . '/../../includes/footer_sidebar.php';
+?>

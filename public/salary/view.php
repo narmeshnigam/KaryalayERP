@@ -7,10 +7,10 @@ require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/module_dependencies.php';
 require_once __DIR__ . '/helpers.php';
 
-$close_managed = static function () use (&$conn): void {
+$closeManagedConnection = static function () use (&$conn): void {
     if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
         closeConnection($conn);
-        $conn = null;
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
     }
 };
 
@@ -26,36 +26,31 @@ $redirect_back = $can_view_all ? 'admin.php' : '../employee_portal/salary/index.
 
 if ($record_id <= 0) {
     flash_add('error', 'Missing salary record identifier.', 'salary');
+    $closeManagedConnection();
     header('Location: ' . $redirect_back);
     exit;
 }
 
-$conn_check = createConnection(true);
-if ($conn_check) {
-    $prereq_check = get_prerequisite_check_result($conn_check, 'salary');
-    if (!$prereq_check['allowed']) {
-        closeConnection($conn_check);
-        display_prerequisite_error('salary', $prereq_check['missing_modules']);
-    }
-    closeConnection($conn_check);
-}
-
-$page_title = 'Salary Details - ' . APP_NAME;
-
-$conn = $conn ?? createConnection(true);
-if (!$conn) {
+if (!($conn instanceof mysqli)) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
 }
 
+$prereq_check = get_prerequisite_check_result($conn, 'salary');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    display_prerequisite_error('salary', $prereq_check['missing_modules']);
+    exit;
+}
+
 if (!salary_table_exists($conn)) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
+    $closeManagedConnection();
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
+
+$page_title = 'Salary Details - ' . APP_NAME;
 
 $current_employee_id = salary_current_employee_id($conn, (int) $CURRENT_USER_ID);
 
@@ -69,7 +64,7 @@ $select_sql = "SELECT sr.*,
          LIMIT 1";
 $select = mysqli_prepare($conn, $select_sql);
 if (!$select) {
-    $close_managed();
+    $closeManagedConnection();
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to load salary record.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
@@ -82,7 +77,7 @@ $record = $result ? mysqli_fetch_assoc($result) : null;
 mysqli_stmt_close($select);
 
 if (!$record) {
-    $close_managed();
+    $closeManagedConnection();
     flash_add('error', 'Salary record not found.', 'salary');
     header('Location: ' . $redirect_back);
     exit;
@@ -92,7 +87,7 @@ $owns_record = $current_employee_id && ((int) $record['employee_id'] === (int) $
 
 if (!$can_view_all) {
     if (!$can_view_own || !$owns_record) {
-        $close_managed();
+    $closeManagedConnection();
         flash_add('error', 'You are not allowed to view this salary record.', 'salary');
         header('Location: ' . $redirect_back);
         exit;
@@ -104,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'lock' || $action === 'unlock') {
         if (!$can_edit_salary) {
             flash_add('error', 'You do not have permission to change lock state.', 'salary');
-            $close_managed();
+            $closeManagedConnection();
             header('Location: view.php?id=' . $record_id);
             exit;
         }
@@ -124,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_close($update);
             }
         }
-        $close_managed();
+        $closeManagedConnection();
         header('Location: view.php?id=' . $record_id);
         exit;
     }
@@ -132,13 +127,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         if (!$can_delete_salary) {
             flash_add('error', 'You do not have permission to delete salary records.', 'salary');
-            $close_managed();
+            $closeManagedConnection();
             header('Location: view.php?id=' . $record_id);
             exit;
         }
         if ((int) $record['is_locked'] === 1) {
             flash_add('error', 'Locked salary records cannot be deleted.', 'salary');
-            $close_managed();
+            $closeManagedConnection();
             header('Location: view.php?id=' . $record_id);
             exit;
         }
@@ -153,20 +148,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 flash_add('success', 'Salary record deleted.', 'salary');
-                $close_managed();
+                $closeManagedConnection();
                 header('Location: admin.php');
                 exit;
             }
             mysqli_stmt_close($delete);
         }
         flash_add('error', 'Unable to delete salary record.', 'salary');
-        $close_managed();
+        $closeManagedConnection();
         header('Location: view.php?id=' . $record_id);
         exit;
     }
 
     flash_add('warning', 'Unsupported action.', 'salary');
-    $close_managed();
+    $closeManagedConnection();
     header('Location: view.php?id=' . $record_id);
     exit;
 }
@@ -181,14 +176,14 @@ $record['emp_email'] = salary_get_employee_email($conn, (int) ($record['employee
 if (isset($_GET['download'])) {
     if (empty($record['slip_path'])) {
         flash_add('error', 'Salary slip not available for download.', 'salary');
-        $close_managed();
+        $closeManagedConnection();
         header('Location: view.php?id=' . $record_id);
         exit;
     }
     $file_path = salary_upload_directory() . DIRECTORY_SEPARATOR . basename($record['slip_path']);
     if (!is_file($file_path)) {
         flash_add('error', 'Salary slip file is missing.', 'salary');
-        $close_managed();
+        $closeManagedConnection();
         header('Location: view.php?id=' . $record_id);
         exit;
     }
@@ -198,7 +193,7 @@ if (isset($_GET['download'])) {
     $file_name = 'salary-slip-' . str_replace('-', '', $record['month']) . '.pdf';
 
     // Close DB connection before streaming
-    $close_managed();
+    $closeManagedConnection();
 
     // Ensure no prior output is sent; PHP's output buffering may be active via bootstrap.
     // Send proper headers for PDF and stream the file.
@@ -213,7 +208,7 @@ if (isset($_GET['download'])) {
     exit;
 }
 
-$close_managed();
+$closeManagedConnection();
 
 // Now it's safe to include the header and sidebar which emit HTML
 require_once __DIR__ . '/../../includes/header_sidebar.php';

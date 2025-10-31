@@ -179,7 +179,7 @@ $nav_items = [
     [
         'icon' => 'documents.png',
         'label' => 'Projects',
-        'link' => APP_URL . '/public/projects/dashboard.php',
+        'link' => APP_URL . '/public/projects/index.php',
         'active' => (strpos($current_path, '/projects/') !== false),
         'requires' => ['table' => 'projects', 'permission' => 'view']
     ],

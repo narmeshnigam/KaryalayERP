@@ -7,13 +7,13 @@
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'notebook', 'create');
-
-// Check if tables exist
+// Check if tables exist first
 if (!notebook_tables_exist($conn)) {
     header('Location: /KaryalayERP/setup/index.php?module=notebook');
     exit;
 }
+
+authz_require_permission($conn, 'notebook_notes', 'create');
 
 $errors = [];
 $success_message = '';

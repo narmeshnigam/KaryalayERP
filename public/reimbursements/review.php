@@ -4,85 +4,113 @@
  */
 
 require_once __DIR__ . '/../../includes/auth_check.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/../../includes/flash.php';
+require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'reimbursements', 'edit_all');
+$closeManagedConnection = static function () use (&$conn): void {
+  if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+    closeConnection($conn);
+    $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+  }
+};
+
+if (!authz_user_can_any($conn, [
+  ['table' => 'reimbursements', 'permission' => 'edit_all'],
+  ['table' => 'reimbursements', 'permission' => 'edit_assigned'],
+  ['table' => 'reimbursements', 'permission' => 'edit_own'],
+])) {
+  authz_require_permission($conn, 'reimbursements', 'edit_all');
+}
+
+$reimbursement_permissions = authz_get_permission_set($conn, 'reimbursements');
+$can_edit_all = !empty($reimbursement_permissions['can_edit_all']);
+$can_edit_own = !empty($reimbursement_permissions['can_edit_own']);
+$can_edit_assigned = !empty($reimbursement_permissions['can_edit_assigned']);
 
 $claim_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($claim_id <= 0) {
-    header('Location: index.php');
-    exit;
+  flash_add('error', 'Invalid claim reference.', 'reimbursements');
+  $closeManagedConnection();
+  header('Location: index.php');
+  exit;
+}
+
+if (!($conn instanceof mysqli)) {
+  echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
+  require_once __DIR__ . '/../../includes/footer_sidebar.php';
+  exit;
+}
+
+$prereq_check = get_prerequisite_check_result($conn, 'reimbursements');
+if (!$prereq_check['allowed']) {
+  $closeManagedConnection();
+  display_prerequisite_error('reimbursements', $prereq_check['missing_modules']);
+  exit;
+}
+
+if (!reimbursements_table_exists($conn)) {
+  $closeManagedConnection();
+  require_once __DIR__ . '/onboarding.php';
+  exit;
 }
 
 $page_title = 'Review Reimbursement - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-$conn = $conn ?? createConnection(true);
+$current_employee_id = reimbursements_current_employee_id($conn, (int) $CURRENT_USER_ID);
 
-function tableExists($conn, $table) {
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
-}
-
-if (!tableExists($conn, 'reimbursements')) {
-  if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
-  }
-    echo '<div class="main-wrapper"><div class="main-content">';
-    echo '<div class="alert alert-error">Reimbursement module is not set up.</div>';
-    echo '<a href="index.php" class="btn" style="margin-top:20px;">← Back</a>';
-    echo '</div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
-
-$message = '';
-$error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $decision = $_POST['decision'] ?? '';
-    $remarks = trim($_POST['remarks'] ?? '');
-    $allowed = ['Approved', 'Rejected', 'Pending'];
-
-    if (!in_array($decision, $allowed, true)) {
-        $error = 'Invalid action selected.';
-    } else {
-        $update_sql = 'UPDATE reimbursements SET status = ?, admin_remarks = ?, action_date = NOW() WHERE id = ?';
-        $stmt = mysqli_prepare($conn, $update_sql);
-        mysqli_stmt_bind_param($stmt, 'ssi', $decision, $remarks, $claim_id);
-    if (mysqli_stmt_execute($stmt) && mysqli_stmt_affected_rows($stmt) >= 0) {
-            $message = 'Claim updated successfully.';
-        } else {
-            $error = 'Failed to update claim. Please try again.';
-        }
-        mysqli_stmt_close($stmt);
-    }
-}
-
-$detail_sql = 'SELECT r.*, e.employee_code, e.first_name, e.last_name, e.department, e.designation FROM reimbursements r INNER JOIN employees e ON r.employee_id = e.id WHERE r.id = ? LIMIT 1';
-$detail_stmt = mysqli_prepare($conn, $detail_sql);
-mysqli_stmt_bind_param($detail_stmt, 'i', $claim_id);
-mysqli_stmt_execute($detail_stmt);
-$result = mysqli_stmt_get_result($detail_stmt);
-$claim = mysqli_fetch_assoc($result);
-mysqli_stmt_close($detail_stmt);
-
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-  closeConnection($conn);
-}
+$claim = reimbursements_fetch_claim($conn, $claim_id);
 
 if (!$claim) {
-    echo '<div class="main-wrapper"><div class="main-content">';
-    echo '<div class="alert alert-error">Claim not found.</div>';
-    echo '<a href="index.php" class="btn" style="margin-top:20px;">← Back</a>';
-    echo '</div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
+  flash_add('error', 'Claim not found or may have been deleted.', 'reimbursements');
+  $closeManagedConnection();
+  header('Location: index.php');
+  exit;
+}
+
+$is_owner = $current_employee_id && (int) $claim['employee_id'] === (int) $current_employee_id;
+$has_access = $IS_SUPER_ADMIN
+  || $can_edit_all
+  || ($can_edit_own && $is_owner)
+  || ($can_edit_assigned && $is_owner);
+
+if (!$has_access) {
+  $closeManagedConnection();
+  flash_add('error', 'You do not have permission to modify this claim.', 'reimbursements');
+  header('Location: index.php');
+  exit;
+}
+
+$form_error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $decision = $_POST['decision'] ?? '';
+  $remarks = trim($_POST['remarks'] ?? '');
+  $allowed = ['Approved', 'Rejected', 'Pending'];
+
+  if (!in_array($decision, $allowed, true)) {
+    $form_error = 'Invalid action selected.';
+  } else {
+    $update_sql = 'UPDATE reimbursements SET status = ?, admin_remarks = ?, action_date = NOW() WHERE id = ?';
+    $stmt = mysqli_prepare($conn, $update_sql);
+    if ($stmt) {
+  $params = [$decision, $remarks, $claim_id];
+  reimbursements_stmt_bind($stmt, 'ssi', $params);
+      if (mysqli_stmt_execute($stmt)) {
+        mysqli_stmt_close($stmt);
+        flash_add('success', 'Claim updated successfully.', 'reimbursements');
+        $closeManagedConnection();
+        header('Location: review.php?id=' . $claim_id);
+        exit;
+      }
+      $form_error = 'Failed to update claim. Please try again.';
+      mysqli_stmt_close($stmt);
+    } else {
+      $form_error = 'Unable to prepare statement.';
+    }
+  }
 }
 
 $status_colors = [
@@ -107,12 +135,10 @@ $badge_style = $status_colors[$claim['status']] ?? 'background:#e2e3e5;color:#41
       </div>
     </div>
 
-    <?php if (!empty($message)): ?>
-      <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
-    <?php endif; ?>
+    <?php echo flash_render(); ?>
 
-    <?php if (!empty($error)): ?>
-      <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
+    <?php if (!empty($form_error)): ?>
+      <div class="alert alert-error"><?php echo htmlspecialchars($form_error); ?></div>
     <?php endif; ?>
 
     <div class="card" style="margin-bottom:24px;">
@@ -187,4 +213,7 @@ $badge_style = $status_colors[$claim['status']] ?? 'background:#e2e3e5;color:#41
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php
+$closeManagedConnection();
+require_once __DIR__ . '/../../includes/footer_sidebar.php';
+?>

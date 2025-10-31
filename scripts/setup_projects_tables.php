@@ -14,9 +14,17 @@ $conn_check = createConnection(true);
 $prerequisite_check = $conn_check ? get_prerequisite_check_result($conn_check, 'projects') : ['allowed' => false, 'missing_modules' => []];
 if ($conn_check) closeConnection($conn_check);
 
-// Only allow admin
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    die('Access denied. Admin only.');
+// Only allow super-admin or admin (RBAC)
+require_once __DIR__ . '/../includes/authz.php';
+$isSuperAdmin = false;
+if (function_exists('authz_is_super_admin')) {
+    $isSuperAdmin = authz_is_super_admin($conn);
+} else if (isset($_SESSION['role_names']) && is_array($_SESSION['role_names'])) {
+    $roleNames = array_map('strtolower', $_SESSION['role_names']);
+    $isSuperAdmin = in_array('super admin', $roleNames) || in_array('admin', $roleNames);
+}
+if (!$isSuperAdmin) {
+    die('Access denied. Admin or Super Admin only.');
 }
 
 $conn = createConnection();
@@ -31,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['setup'])) {
         project_code VARCHAR(30) UNIQUE NOT NULL,
         title VARCHAR(200) NOT NULL,
         type ENUM('Internal','Client') DEFAULT 'Internal',
-        client_id INT NULL,
-        owner_id INT NOT NULL,
+        client_id INT UNSIGNED NULL,
+        owner_id INT UNSIGNED NOT NULL,
         description TEXT NULL,
         start_date DATE NULL,
         end_date DATE NULL,
@@ -40,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['setup'])) {
         progress DECIMAL(5,2) DEFAULT 0.00,
         status ENUM('Draft','Active','On Hold','Completed','Archived') DEFAULT 'Draft',
         tags TEXT NULL,
-        created_by INT NOT NULL,
+        created_by INT UNSIGNED NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_project_code (project_code),
@@ -97,9 +105,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['setup'])) {
         priority ENUM('Low','Medium','High','Critical') DEFAULT 'Medium',
         status ENUM('Pending','In Progress','Review','Completed') DEFAULT 'Pending',
         progress DECIMAL(5,2) DEFAULT 0.00,
-        marked_done_by INT NULL,
+        marked_done_by INT UNSIGNED NULL,
         closing_notes TEXT NULL,
-        created_by INT NOT NULL,
+        created_by INT UNSIGNED NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_project_id (project_id),
@@ -123,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['setup'])) {
     $sql = "CREATE TABLE IF NOT EXISTS project_task_assignees (
         id INT AUTO_INCREMENT PRIMARY KEY,
         task_id INT NOT NULL,
-        user_id INT NOT NULL,
+        user_id INT UNSIGNED NOT NULL,
         assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_task_id (task_id),
         INDEX idx_user_id (user_id),
@@ -142,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['setup'])) {
     $sql = "CREATE TABLE IF NOT EXISTS project_members (
         id INT AUTO_INCREMENT PRIMARY KEY,
         project_id INT NOT NULL,
-        user_id INT NOT NULL,
+        user_id INT UNSIGNED NOT NULL,
         role ENUM('Owner','Contributor','Viewer') DEFAULT 'Contributor',
         joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         removed_at TIMESTAMP NULL,
@@ -167,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['setup'])) {
         file_name VARCHAR(255) NOT NULL,
         file_path TEXT NOT NULL,
         doc_type VARCHAR(100) NULL,
-        uploaded_by INT NOT NULL,
+        uploaded_by INT UNSIGNED NOT NULL,
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         version INT DEFAULT 1,
         is_active BOOLEAN DEFAULT 1,
@@ -189,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['setup'])) {
         id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(150) NOT NULL,
         description TEXT NULL,
-        created_by INT NOT NULL,
+        created_by INT UNSIGNED NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_created_by (created_by),
         FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
@@ -224,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['setup'])) {
     $sql = "CREATE TABLE IF NOT EXISTS project_activity_log (
         id INT AUTO_INCREMENT PRIMARY KEY,
         project_id INT NOT NULL,
-        user_id INT NOT NULL,
+        user_id INT UNSIGNED NOT NULL,
         activity_type ENUM('Task','Phase','Document','Status','Member','General') DEFAULT 'General',
         reference_id INT NULL,
         description TEXT NOT NULL,

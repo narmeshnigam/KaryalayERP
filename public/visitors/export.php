@@ -5,29 +5,55 @@
 
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/config.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/helpers.php';
 
-// Enforce permission to export visitor logs
+$closeManagedConnection = static function () use (&$conn): void {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+    }
+};
+
 authz_require_permission($conn, 'visitor_logs', 'export');
 
-function tableExists($conn, $table)
-{
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
+if (!($conn instanceof mysqli)) {
+    header('Content-Type: text/plain');
+    http_response_code(500);
+    echo 'Unable to connect to the database.';
+    exit;
 }
 
-if (!tableExists($conn, 'visitor_logs')) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
+$prereq_check = get_prerequisite_check_result($conn, 'visitors');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    header('Content-Type: text/plain');
+    http_response_code(503);
+    echo 'Visitors module prerequisites missing.';
+    exit;
+}
+
+if (!visitor_logs_table_exists($conn)) {
+    $closeManagedConnection();
     header('Content-Type: text/plain');
     http_response_code(503);
     echo 'Visitor Log module not initialised.';
     exit;
+}
+
+$visitor_permissions = authz_get_permission_set($conn, 'visitor_logs');
+$can_view_all = !empty($visitor_permissions['can_view_all']);
+$can_view_own = !empty($visitor_permissions['can_view_own']);
+
+$current_employee_id = visitor_logs_current_employee_id($conn, (int) $CURRENT_USER_ID);
+$restricted_employee_id = null;
+if (!$can_view_all) {
+    if ($can_view_own && $current_employee_id) {
+        $restricted_employee_id = $current_employee_id;
+    } else {
+        $closeManagedConnection();
+        authz_require_permission($conn, 'visitor_logs', 'view_all');
+    }
 }
 
 $from_date = isset($_GET['from_date']) ? trim($_GET['from_date']) : date('Y-m-01');
@@ -58,6 +84,12 @@ if ($status_filter === 'checked_in') {
     $where[] = 'vl.check_out_time IS NOT NULL';
 }
 
+if ($restricted_employee_id !== null) {
+    $where[] = 'vl.added_by = ?';
+    $params[] = $restricted_employee_id;
+    $types .= 'i';
+}
+
 $where_clause = implode(' AND ', $where);
 $sql = "SELECT vl.visitor_name, vl.phone, vl.purpose, vl.check_in_time, vl.check_out_time,
                emp.employee_code AS visiting_code, emp.first_name AS visiting_first, emp.last_name AS visiting_last,
@@ -69,11 +101,15 @@ $sql = "SELECT vl.visitor_name, vl.phone, vl.purpose, vl.check_in_time, vl.check
         ORDER BY vl.check_in_time DESC";
 
 $stmt = mysqli_prepare($conn, $sql);
-$bind = [$types];
-foreach ($params as $index => $value) {
-    $bind[] = &$params[$index];
+if (!$stmt) {
+    $closeManagedConnection();
+    header('Content-Type: text/plain');
+    http_response_code(500);
+    echo 'Unable to prepare export statement.';
+    exit;
 }
-call_user_func_array([$stmt, 'bind_param'], $bind);
+
+visitor_logs_stmt_bind($stmt, $types, $params);
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 
@@ -84,7 +120,7 @@ header('Content-Disposition: attachment; filename="' . $filename . '"');
 $output = fopen('php://output', 'w');
 fputcsv($output, ['Visitor Name', 'Phone', 'Purpose', 'Check-in', 'Check-out', 'Meeting With', 'Logged By']);
 
-while ($row = mysqli_fetch_assoc($result)) {
+while ($result && ($row = mysqli_fetch_assoc($result))) {
     $meeting_with = trim(($row['visiting_code'] ?? '') . ' ' . ($row['visiting_first'] ?? '') . ' ' . ($row['visiting_last'] ?? ''));
     $logged_by = trim(($row['added_code'] ?? '') . ' ' . ($row['added_first'] ?? '') . ' ' . ($row['added_last'] ?? ''));
     fputcsv($output, [
@@ -94,13 +130,11 @@ while ($row = mysqli_fetch_assoc($result)) {
         date('d M Y H:i', strtotime($row['check_in_time'])),
         $row['check_out_time'] ? date('d M Y H:i', strtotime($row['check_out_time'])) : '',
         $meeting_with,
-        $logged_by
+        $logged_by,
     ]);
 }
 
 fclose($output);
 mysqli_stmt_close($stmt);
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
-}
+$closeManagedConnection();
 exit;

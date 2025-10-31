@@ -7,55 +7,64 @@ require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../includes/flash.php';
 require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/helpers.php';
+
+$closeManagedConnection = static function () use (&$conn): void {
+  if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+    closeConnection($conn);
+    $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+  }
+};
 
 // Check visitors module prerequisites
 $prereq_check = get_prerequisite_check_result($conn, 'visitors');
 if (!$prereq_check['allowed']) {
-    display_prerequisite_error('visitors', $prereq_check['missing_modules']);
+  $closeManagedConnection();
+  display_prerequisite_error('visitors', $prereq_check['missing_modules']);
+  exit;
 }
 
-// Enforce permission to view visitor logs
-authz_require_permission($conn, 'visitor_logs', 'view_all');
+if (!authz_user_can_any($conn, [
+  ['table' => 'visitor_logs', 'permission' => 'view_all'],
+  ['table' => 'visitor_logs', 'permission' => 'view_own'],
+])) {
+  authz_require_permission($conn, 'visitor_logs', 'view_all');
+}
 
 $visitor_permissions = authz_get_permission_set($conn, 'visitor_logs');
+$can_view_all = !empty($visitor_permissions['can_view_all']);
+$can_view_own = !empty($visitor_permissions['can_view_own']);
+$can_edit_all = !empty($visitor_permissions['can_edit_all']);
+$can_edit_own = !empty($visitor_permissions['can_edit_own']);
+
+if (!($conn instanceof mysqli)) {
+  echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
+  require_once __DIR__ . '/../../includes/footer_sidebar.php';
+  exit;
+}
 
 $page_title = 'Visitor Log - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
-function tableExists($conn, $table)
-{
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
+if (!visitor_logs_table_exists($conn)) {
+  $closeManagedConnection();
+  require_once __DIR__ . '/onboarding.php';
+  exit;
 }
 
-if (!tableExists($conn, 'visitor_logs')) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-    require_once __DIR__ . '/onboarding.php';
-    exit;
+$current_employee = visitor_logs_current_employee($conn, (int) $CURRENT_USER_ID);
+$restricted_employee_id = null;
+if (!$can_view_all) {
+  if ($can_view_own && $current_employee) {
+    $restricted_employee_id = (int) $current_employee['id'];
+  } else {
+    $closeManagedConnection();
+    authz_require_permission($conn, 'visitor_logs', 'view_all');
+  }
 }
 
-function fetchEmployees($conn)
-{
-    $rows = [];
-    $sql = 'SELECT id, employee_code, first_name, last_name FROM employees ORDER BY first_name, last_name';
-    if ($result = mysqli_query($conn, $sql)) {
-        while ($row = mysqli_fetch_assoc($result)) {
-            $rows[] = $row;
-        }
-        mysqli_free_result($result);
-    }
-    return $rows;
-}
-
-$employees = fetchEmployees($conn);
+$employees = visitor_logs_fetch_employees($conn);
 
 $from_date = isset($_GET['from_date']) ? trim($_GET['from_date']) : date('Y-m-01');
 $to_date = isset($_GET['to_date']) ? trim($_GET['to_date']) : date('Y-m-d');
@@ -65,11 +74,18 @@ $status_filter = isset($_GET['status']) ? trim($_GET['status']) : '';
 
 // Summary statistics (matching other module dashboards)
 $stats_sql = "SELECT COUNT(*) AS total, COUNT(check_out_time) AS checked_out FROM visitor_logs WHERE DATE(check_in_time) BETWEEN ? AND ? AND deleted_at IS NULL";
+$stats_params = [$from_date, $to_date];
+$stats_types = 'ss';
+if ($restricted_employee_id !== null) {
+    $stats_sql .= ' AND added_by = ?';
+    $stats_params[] = $restricted_employee_id;
+    $stats_types .= 'i';
+}
 $stats_stmt = mysqli_prepare($conn, $stats_sql);
 $total_visitors = 0;
 $checked_out_count = 0;
 if ($stats_stmt) {
-  mysqli_stmt_bind_param($stats_stmt, 'ss', $from_date, $to_date);
+  visitor_logs_stmt_bind($stats_stmt, $stats_types, $stats_params);
   mysqli_stmt_execute($stats_stmt);
   $stats_res = mysqli_stmt_get_result($stats_stmt);
   if ($stats_row = mysqli_fetch_assoc($stats_res)) {
@@ -80,72 +96,92 @@ if ($stats_stmt) {
 }
 $pending_count = $total_visitors - $checked_out_count;
 
-$can_edit_visitor = $IS_SUPER_ADMIN || $visitor_permissions['can_edit_all'];
+$can_edit_visitor = $IS_SUPER_ADMIN || $can_edit_all || ($can_edit_own && $current_employee);
 $original_query = $_SERVER['QUERY_STRING'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $redirect_target = 'index.php';
-    if ($original_query !== '') {
-        $redirect_target .= '?' . $original_query;
-    }
+  $redirect_target = 'index.php';
+  if ($original_query !== '') {
+    $redirect_target .= '?' . $original_query;
+  }
 
-    if (isset($_POST['checkout_id']) && $can_edit_visitor) {
-        $checkout_id = (int) $_POST['checkout_id'];
-        if ($checkout_id > 0) {
-            $stmt = mysqli_prepare($conn, 'SELECT check_in_time, check_out_time FROM visitor_logs WHERE id = ? AND deleted_at IS NULL LIMIT 1');
-            if ($stmt) {
-                mysqli_stmt_bind_param($stmt, 'i', $checkout_id);
-                mysqli_stmt_execute($stmt);
-                $result = mysqli_stmt_get_result($stmt);
-                $log = mysqli_fetch_assoc($result);
-                mysqli_stmt_close($stmt);
+  if (isset($_POST['checkout_id']) && $can_edit_visitor) {
+    $checkout_id = (int) $_POST['checkout_id'];
+    if ($checkout_id > 0) {
+      $stmt = mysqli_prepare($conn, 'SELECT check_in_time, check_out_time, added_by FROM visitor_logs WHERE id = ? AND deleted_at IS NULL LIMIT 1');
+      if ($stmt) {
+        visitor_logs_stmt_bind($stmt, 'i', [$checkout_id]);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $log = mysqli_fetch_assoc($result);
+        mysqli_stmt_close($stmt);
 
-                if ($log) {
-          if (!empty($log['check_out_time'])) {
+        if ($log) {
+          $is_owner = $current_employee && (int) ($log['added_by'] ?? 0) === (int) ($current_employee['id'] ?? 0);
+          if (!$IS_SUPER_ADMIN && !$can_edit_all && (!$can_edit_own || !$is_owner)) {
+            flash_add('error', 'You do not have permission to update this visitor entry.', 'visitors');
+          } elseif (!empty($log['check_out_time'])) {
             flash_add('error', 'Visitor already checked out.', 'visitors');
-                    } else {
-                        $now = date('Y-m-d H:i:s');
-                        if (strtotime($now) < strtotime($log['check_in_time'])) {
+          } else {
+            $now = date('Y-m-d H:i:s');
+            if (strtotime($now) < strtotime($log['check_in_time'])) {
               flash_add('error', 'Checkout time cannot be earlier than check-in time.', 'visitors');
-                        } else {
-                            $update = mysqli_prepare($conn, 'UPDATE visitor_logs SET check_out_time = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
-                            if ($update) {
-                                mysqli_stmt_bind_param($update, 'si', $now, $checkout_id);
-                                if (mysqli_stmt_execute($update)) {
+            } else {
+              $update = mysqli_prepare($conn, 'UPDATE visitor_logs SET check_out_time = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+              if ($update) {
+                visitor_logs_stmt_bind($update, 'si', [$now, $checkout_id]);
+                if (mysqli_stmt_execute($update)) {
                   flash_add('success', 'Visitor checked out successfully.', 'visitors');
-                                } else {
-                  flash_add('error', 'Unable to update checkout time.', 'visitors');
-                                }
-                                mysqli_stmt_close($update);
-                            }
-                        }
-                    }
                 } else {
-          flash_add('error', 'Visitor record not found.', 'visitors');
+                  flash_add('error', 'Unable to update checkout time.', 'visitors');
                 }
+                mysqli_stmt_close($update);
+              }
             }
-        }
-        header('Location: ' . $redirect_target);
-        exit;
-    }
-
-    if (isset($_POST['delete_id']) && $user_role === 'admin') {
-        $delete_id = (int) $_POST['delete_id'];
-        if ($delete_id > 0) {
-            $delete_stmt = mysqli_prepare($conn, 'UPDATE visitor_logs SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL');
-            if ($delete_stmt) {
-                mysqli_stmt_bind_param($delete_stmt, 'i', $delete_id);
-        if (mysqli_stmt_execute($delete_stmt) && mysqli_stmt_affected_rows($delete_stmt) > 0) {
-          flash_add('success', 'Visitor entry archived successfully.', 'visitors');
+          }
         } else {
-          flash_add('error', 'Unable to archive visitor entry.', 'visitors');
-                }
-                mysqli_stmt_close($delete_stmt);
-            }
+          flash_add('error', 'Visitor record not found.', 'visitors');
         }
-        header('Location: ' . $redirect_target);
-        exit;
+      }
     }
+    $closeManagedConnection();
+    header('Location: ' . $redirect_target);
+    exit;
+  }
+
+  if (isset($_POST['delete_id'])) {
+    $delete_id = (int) $_POST['delete_id'];
+    $can_archive = $IS_SUPER_ADMIN || $can_edit_all || ($can_edit_own && $current_employee);
+    if ($delete_id > 0 && $can_archive) {
+      $check_stmt = mysqli_prepare($conn, 'SELECT added_by FROM visitor_logs WHERE id = ? AND deleted_at IS NULL LIMIT 1');
+      if ($check_stmt) {
+        visitor_logs_stmt_bind($check_stmt, 'i', [$delete_id]);
+        mysqli_stmt_execute($check_stmt);
+        $check_result = mysqli_stmt_get_result($check_stmt);
+        $record = mysqli_fetch_assoc($check_result);
+        mysqli_stmt_close($check_stmt);
+
+        $is_owner = $current_employee && (int) ($record['added_by'] ?? 0) === (int) ($current_employee['id'] ?? 0);
+        if ($record && ($IS_SUPER_ADMIN || $can_edit_all || ($can_edit_own && $is_owner))) {
+          $delete_stmt = mysqli_prepare($conn, 'UPDATE visitor_logs SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL');
+          if ($delete_stmt) {
+            visitor_logs_stmt_bind($delete_stmt, 'i', [$delete_id]);
+            if (mysqli_stmt_execute($delete_stmt) && mysqli_stmt_affected_rows($delete_stmt) > 0) {
+              flash_add('success', 'Visitor entry archived successfully.', 'visitors');
+            } else {
+              flash_add('error', 'Unable to archive visitor entry.', 'visitors');
+            }
+            mysqli_stmt_close($delete_stmt);
+          }
+        } else {
+          flash_add('error', 'You do not have permission to archive this visitor entry.', 'visitors');
+        }
+      }
+    }
+    $closeManagedConnection();
+    header('Location: ' . $redirect_target);
+    exit;
+  }
 }
 
 $where = ['vl.deleted_at IS NULL', 'DATE(vl.check_in_time) BETWEEN ? AND ?'];
@@ -165,13 +201,19 @@ if ($visitor_filter !== '') {
 }
 
 if ($status_filter === 'checked_in') {
-    $where[] = 'vl.check_out_time IS NULL';
+  $where[] = 'vl.check_out_time IS NULL';
 } elseif ($status_filter === 'checked_out') {
-    $where[] = 'vl.check_out_time IS NOT NULL';
+  $where[] = 'vl.check_out_time IS NOT NULL';
+}
+
+if ($restricted_employee_id !== null) {
+  $where[] = 'vl.added_by = ?';
+  $params[] = $restricted_employee_id;
+  $types .= 'i';
 }
 
 $where_clause = implode(' AND ', $where);
-$sql = "SELECT vl.id, vl.visitor_name, vl.phone, vl.purpose, vl.check_in_time, vl.check_out_time, vl.photo,
+$sql = "SELECT vl.id, vl.visitor_name, vl.phone, vl.purpose, vl.check_in_time, vl.check_out_time, vl.photo, vl.added_by,
                emp.employee_code AS visiting_code, emp.first_name AS visiting_first, emp.last_name AS visiting_last,
                added.employee_code AS added_code, added.first_name AS added_first, added.last_name AS added_last
         FROM visitor_logs vl
@@ -181,22 +223,18 @@ $sql = "SELECT vl.id, vl.visitor_name, vl.phone, vl.purpose, vl.check_in_time, v
         ORDER BY vl.check_in_time DESC";
 
 $stmt = mysqli_prepare($conn, $sql);
-$bind = [$types];
-foreach ($params as $index => $value) {
-    $bind[] = &$params[$index];
-}
-call_user_func_array([$stmt, 'bind_param'], $bind);
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
 $visitor_rows = [];
-while ($row = mysqli_fetch_assoc($result)) {
+if ($stmt) {
+  visitor_logs_stmt_bind($stmt, $types, $params);
+  mysqli_stmt_execute($stmt);
+  $result = mysqli_stmt_get_result($stmt);
+  while ($row = mysqli_fetch_assoc($result)) {
     $visitor_rows[] = $row;
+  }
+  mysqli_stmt_close($stmt);
 }
-mysqli_stmt_close($stmt);
 
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
-}
+$closeManagedConnection();
 
 function formatEmployeeName($code, $first, $last)
 {
@@ -320,6 +358,8 @@ function formatEmployeeName($code, $first, $last)
                           $duration = ($hours > 0 ? $hours . 'h ' : '') . $minutes . 'm';
                       }
                   }
+                  $is_owner = $current_employee && (int) ($row['added_by'] ?? 0) === (int) ($current_employee['id'] ?? 0);
+                  $can_manage_row = $IS_SUPER_ADMIN || $can_edit_all || ($can_edit_own && $is_owner);
                 ?>
                 <tr style="border-bottom:1px solid #e1e8ed;">
                   <td style="padding:12px;">
@@ -348,17 +388,17 @@ function formatEmployeeName($code, $first, $last)
                   </td>
                   <td style="padding:12px;text-align:center;"><?php echo $status_label; ?></td>
                   <td style="padding:12px;text-align:center;white-space:nowrap;">
-                    <?php if ($can_edit_visitor): ?>
+                    <?php if ($can_manage_row): ?>
                       <a href="edit.php?id=<?php echo (int) $row['id']; ?>" class="btn" style="padding:6px 14px;font-size:13px;background:#003581;color:#fff;margin-right:6px;">Edit</a>
                     <?php endif; ?>
                     <a href="view.php?id=<?php echo (int) $row['id']; ?>" class="btn btn-accent" style="padding:6px 14px;font-size:13px;">View</a>
-                    <?php if (empty($row['check_out_time']) && $can_edit_visitor): ?>
+                    <?php if (empty($row['check_out_time']) && $can_manage_row): ?>
                       <form method="POST" style="display:inline;" onsubmit="return confirm('Mark this visitor as checked out?');">
                         <input type="hidden" name="checkout_id" value="<?php echo (int) $row['id']; ?>">
                         <button type="submit" class="btn" style="padding:6px 14px;font-size:13px;background:#17a2b8;">Checkout</button>
                       </form>
                     <?php endif; ?>
-                    <?php if ($user_role === 'admin'): ?>
+                    <?php if ($can_manage_row): ?>
                       <form method="POST" style="display:inline;" onsubmit="return confirm('Archive this visitor log?');">
                         <input type="hidden" name="delete_id" value="<?php echo (int) $row['id']; ?>">
                         <button type="submit" class="btn" style="padding:6px 14px;font-size:13px;background:#dc3545;">Archive</button>

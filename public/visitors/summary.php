@@ -6,29 +6,42 @@
 require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../includes/flash.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/helpers.php';
 
-// Enforce permission to view visitor logs
-authz_require_permission($conn, 'visitor_logs', 'view_all');
-
-$page_title = 'Visitor Summary - ' . APP_NAME;
-require_once __DIR__ . '/../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../includes/sidebar.php';
-
-function tableExists($conn, $table)
-{
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
+$closeManagedConnection = static function () use (&$conn): void {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
     }
-    return $exists;
+};
+
+if (!authz_user_can_any($conn, [
+    ['table' => 'visitor_logs', 'permission' => 'view_all'],
+    ['table' => 'visitor_logs', 'permission' => 'view_own'],
+])) {
+    authz_require_permission($conn, 'visitor_logs', 'view_all');
 }
 
-if (!tableExists($conn, 'visitor_logs')) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
+$visitor_permissions = authz_get_permission_set($conn, 'visitor_logs');
+$can_view_all = !empty($visitor_permissions['can_view_all']);
+$can_view_own = !empty($visitor_permissions['can_view_own']);
+
+if (!($conn instanceof mysqli)) {
+    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
+    require_once __DIR__ . '/../../includes/footer_sidebar.php';
+    exit;
+}
+
+$prereq_check = get_prerequisite_check_result($conn, 'visitors');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    display_prerequisite_error('visitors', $prereq_check['missing_modules']);
+    exit;
+}
+
+if (!visitor_logs_table_exists($conn)) {
+    $closeManagedConnection();
     require_once __DIR__ . '/onboarding.php';
     exit;
 }
@@ -38,28 +51,51 @@ if ($summary_date === '') {
     $summary_date = date('Y-m-d');
 }
 
-$where_sql = 'DATE(vl.check_in_time) = ? AND vl.deleted_at IS NULL';
+$current_employee = visitor_logs_current_employee($conn, (int) $CURRENT_USER_ID);
+$restricted_employee_id = null;
+if (!$can_view_all) {
+    if ($can_view_own && $current_employee) {
+        $restricted_employee_id = (int) $current_employee['id'];
+    } else {
+        $closeManagedConnection();
+        authz_require_permission($conn, 'visitor_logs', 'view_all');
+    }
+}
+
 $sql = "SELECT vl.visitor_name, vl.phone, vl.purpose, vl.check_in_time, vl.check_out_time,
                emp.employee_code AS visiting_code, emp.first_name AS visiting_first, emp.last_name AS visiting_last,
                added.employee_code AS added_code, added.first_name AS added_first, added.last_name AS added_last
         FROM visitor_logs vl
         LEFT JOIN employees emp ON vl.employee_id = emp.id
         LEFT JOIN employees added ON vl.added_by = added.id
-        WHERE $where_sql
-        ORDER BY vl.check_in_time ASC";
+        WHERE DATE(vl.check_in_time) = ? AND vl.deleted_at IS NULL";
+$params = [$summary_date];
+$types = 's';
+
+if ($restricted_employee_id !== null) {
+  $sql .= ' AND vl.added_by = ?';
+    $params[] = $restricted_employee_id;
+    $types .= 'i';
+}
+
+$sql .= ' ORDER BY vl.check_in_time ASC';
 
 $stmt = mysqli_prepare($conn, $sql);
-mysqli_stmt_bind_param($stmt, 's', $summary_date);
+if (!$stmt) {
+    $closeManagedConnection();
+    flash_add('error', 'Unable to load visitor summary.', 'visitors');
+    header('Location: index.php');
+    exit;
+}
+
+visitor_logs_stmt_bind($stmt, $types, $params);
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 $rows = [];
-while ($row = mysqli_fetch_assoc($result)) {
+while ($result && ($row = mysqli_fetch_assoc($result))) {
     $rows[] = $row;
 }
 mysqli_stmt_close($stmt);
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
-}
 
 $total_visitors = count($rows);
 $checked_out = 0;
@@ -69,6 +105,10 @@ foreach ($rows as $row) {
     }
 }
 $pending = $total_visitors - $checked_out;
+
+$page_title = 'Visitor Summary - ' . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 <div class="main-wrapper">
   <div class="main-content">
@@ -80,7 +120,7 @@ $pending = $total_visitors - $checked_out;
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
           <form method="GET" style="display:flex;gap:10px;align-items:center;margin:0;">
-            <input type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($summary_date); ?>" style="width:170px;">
+            <input type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($summary_date, ENT_QUOTES); ?>" style="width:170px;">
             <button type="submit" class="btn summary-action" style="min-width:120px;display:inline-flex;justify-content:center;align-items:center;padding:10px 18px;">Refresh</button>
           </form>
           <button type="button" class="btn summary-action btn-secondary" onclick="window.print();" style="min-width:120px;display:inline-flex;justify-content:center;align-items:center;padding:10px 18px;">🖨 Print</button>
@@ -88,6 +128,8 @@ $pending = $total_visitors - $checked_out;
         </div>
       </div>
     </div>
+
+    <?php echo flash_render(); ?>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
       <div class="card" style="padding:20px;border-left:4px solid #003581;">
@@ -160,4 +202,7 @@ $pending = $total_visitors - $checked_out;
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php
+$closeManagedConnection();
+require_once __DIR__ . '/../../includes/footer_sidebar.php';
+?>

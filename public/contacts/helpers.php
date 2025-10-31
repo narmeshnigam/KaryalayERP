@@ -25,32 +25,34 @@ function contacts_tables_exist($conn) {
  * Get all contacts with filters and pagination
  */
 function get_all_contacts($conn, $user_id, $filters = []) {
-    // Get user's role for permission checking
-    $user_role_query = "SELECT role FROM users WHERE id = ?";
+    // Get user's role for permission checking (join roles table)
+    $user_role_query = "SELECT r.name as role_name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = ?";
     $stmt = $conn->prepare($user_role_query);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
-    $user_role = $stmt->get_result()->fetch_assoc()['role'];
+    $result = $stmt->get_result();
+    $user_role = null;
+    if ($row = $result->fetch_assoc()) {
+        $user_role = $row['role_name'];
+    }
     $stmt->close();
     
     $sql = "SELECT c.*, u.username as created_by_username
-            FROM contacts c
-            LEFT JOIN users u ON c.created_by = u.id
-            WHERE 1=1";
-    
+        FROM contacts c
+        LEFT JOIN users u ON c.created_by = u.id
+        WHERE 1=1";
+
     $params = [];
     $types = "";
     
     // Share scope filtering based on role
     if ($user_role !== 'Admin') {
-        $sql .= " AND (c.share_scope = 'Organization' 
-                   OR (c.share_scope = 'Team' AND c.created_by IN (
-                       SELECT id FROM users WHERE role = ?
-                   ))
-                   OR c.created_by = ?)";
+        // Use a simple single-line subquery and concatenate SQL
+        $teamSubquery = "SELECT u2.id FROM users u2 WHERE u2.role_id = (SELECT id FROM roles WHERE name = ? LIMIT 1)";
+        $sql .= " AND (c.share_scope = 'Organization' OR (c.share_scope = 'Team' AND c.created_by IN ($teamSubquery)) OR c.created_by = ?)";
         $params[] = $user_role;
         $params[] = $user_id;
-        $types .= "si";
+        $types .= 'si';
     }
     
     // Search filter
@@ -112,10 +114,11 @@ function get_all_contacts($conn, $user_id, $filters = []) {
  * Get contact by ID with permission check
  */
 function get_contact_by_id($conn, $contact_id, $user_id) {
-    $sql = "SELECT c.*, u.username as created_by_username, u.role as creator_role
-            FROM contacts c
-            LEFT JOIN users u ON c.created_by = u.id
-            WHERE c.id = ?";
+    $sql = "SELECT c.*, u.username as created_by_username, r.name as creator_role
+        FROM contacts c
+        LEFT JOIN users u ON c.created_by = u.id
+        LEFT JOIN roles r ON u.role_id = r.id
+        WHERE c.id = ?";
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $contact_id);
@@ -140,11 +143,13 @@ function get_contact_by_id($conn, $contact_id, $user_id) {
  * Check if user can access a contact
  */
 function can_access_contact($conn, $contact_id, $user_id) {
-    $sql = "SELECT c.created_by, c.share_scope, u.role as user_role, creator.role as creator_role
-            FROM contacts c
-            LEFT JOIN users u ON u.id = ?
-            LEFT JOIN users creator ON creator.id = c.created_by
-            WHERE c.id = ?";
+    $sql = "SELECT c.created_by, c.share_scope, ur.name as user_role, cr.name as creator_role
+        FROM contacts c
+        LEFT JOIN users u ON u.id = ?
+        LEFT JOIN roles ur ON u.role_id = ur.id
+        LEFT JOIN users creator ON creator.id = c.created_by
+        LEFT JOIN roles cr ON creator.role_id = cr.id
+        WHERE c.id = ?";
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $user_id, $contact_id);
@@ -184,10 +189,11 @@ function can_access_contact($conn, $contact_id, $user_id) {
  * Check if user can edit a contact
  */
 function can_edit_contact($conn, $contact_id, $user_id) {
-    $sql = "SELECT c.created_by, u.role
-            FROM contacts c
-            LEFT JOIN users u ON u.id = ?
-            WHERE c.id = ?";
+    $sql = "SELECT c.created_by, r.name as role
+        FROM contacts c
+        LEFT JOIN users u ON u.id = ?
+        LEFT JOIN roles r ON u.role_id = r.id
+        WHERE c.id = ?";
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $user_id, $contact_id);

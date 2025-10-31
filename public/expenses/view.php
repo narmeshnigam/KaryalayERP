@@ -4,85 +4,106 @@
  */
 
 require_once __DIR__ . '/../../includes/auth_check.php';
+require_once __DIR__ . '/../../config/module_dependencies.php';
+require_once __DIR__ . '/../../includes/flash.php';
+require_once __DIR__ . '/helpers.php';
 
-authz_require_permission($conn, 'office_expenses', 'view_all');
+$closeManagedConnection = static function () use (&$conn): void {
+    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED']) && $conn instanceof mysqli) {
+        closeConnection($conn);
+        $GLOBALS['AUTHZ_CONN_MANAGED'] = false;
+    }
+};
+
+if (!authz_user_can_any($conn, [
+    ['table' => 'office_expenses', 'permission' => 'view_all'],
+    ['table' => 'office_expenses', 'permission' => 'view_own'],
+])) {
+    authz_require_permission($conn, 'office_expenses', 'view_all');
+}
+
 $expense_permissions = authz_get_permission_set($conn, 'office_expenses');
-$can_edit_expense = !empty($expense_permissions['can_edit_all']);
+$can_view_all = !empty($expense_permissions['can_view_all']);
+$can_view_own = !empty($expense_permissions['can_view_own']);
+$can_edit_all = !empty($expense_permissions['can_edit_all']);
+$can_edit_own = !empty($expense_permissions['can_edit_own']);
 
-$page_title = 'Expense Details - ' . APP_NAME;
-require_once __DIR__ . '/../../includes/header_sidebar.php';
-require_once __DIR__ . '/../../includes/sidebar.php';
-
-$conn = $conn ?? createConnection(true);
-if (!$conn) {
+if (!($conn instanceof mysqli)) {
     echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to connect to the database.</div></div></div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
 }
 
-function tableExists($conn, $table)
-{
-    $table = mysqli_real_escape_string($conn, $table);
-    $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-    $exists = ($res && mysqli_num_rows($res) > 0);
-    if ($res) {
-        mysqli_free_result($res);
-    }
-    return $exists;
+$prereq_check = get_prerequisite_check_result($conn, 'office_expenses');
+if (!$prereq_check['allowed']) {
+    $closeManagedConnection();
+    display_prerequisite_error('office_expenses', $prereq_check['missing_modules']);
+    exit;
 }
 
-if (!tableExists($conn, 'office_expenses')) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-    echo '<div class="main-wrapper"><div class="main-content">';
-    echo '<div class="card" style="max-width:720px;margin:0 auto;">';
-    echo '<h2 style="margin-top:0;color:#003581;">Expense Tracker module not ready</h2>';
-    echo '<p>The <code>office_expenses</code> table is missing. Please run the setup script.</p>';
-    echo '<a href="index.php" class="btn" style="margin-top:20px;">← Back</a>';
-    echo '</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
+if (!office_expenses_table_exists($conn)) {
+    $closeManagedConnection();
+    require_once __DIR__ . '/onboarding.php';
     exit;
 }
 
 $expense_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($expense_id <= 0) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Invalid expense identifier supplied.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
+    $closeManagedConnection();
+    flash_add('error', 'Invalid expense identifier supplied.', 'office_expenses');
+    header('Location: index.php');
     exit;
+}
+
+$current_employee = office_expenses_current_employee($conn, (int) $CURRENT_USER_ID);
+$restricted_employee_id = null;
+if (!$can_view_all) {
+    if ($can_view_own && $current_employee) {
+        $restricted_employee_id = (int) $current_employee['id'];
+    } else {
+        $closeManagedConnection();
+        authz_require_permission($conn, 'office_expenses', 'view_all');
+    }
 }
 
 $sql = 'SELECT e.*, emp.employee_code, emp.first_name, emp.last_name, emp.department
         FROM office_expenses e
         LEFT JOIN employees emp ON e.added_by = emp.id
-        WHERE e.id = ?
-        LIMIT 1';
-$statement = mysqli_prepare($conn, $sql);
-if (!$statement) {
-    if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-        closeConnection($conn);
-    }
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Unable to load the expense record.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
-    exit;
-}
-mysqli_stmt_bind_param($statement, 'i', $expense_id);
-mysqli_stmt_execute($statement);
-$result = mysqli_stmt_get_result($statement);
-$expense = mysqli_fetch_assoc($result);
-mysqli_stmt_close($statement);
-if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
-    closeConnection($conn);
+        WHERE e.id = ?';
+$params = [$expense_id];
+$types = 'i';
+
+if ($restricted_employee_id !== null) {
+    $sql .= ' AND e.added_by = ?';
+    $params[] = $restricted_employee_id;
+    $types .= 'i';
 }
 
-if (!$expense) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-error">Expense record not found.</div></div></div>';
-    require_once __DIR__ . '/../../includes/footer_sidebar.php';
+$sql .= ' LIMIT 1';
+
+$statement = mysqli_prepare($conn, $sql);
+if (!$statement) {
+    $closeManagedConnection();
+    flash_add('error', 'Unable to load the expense record.', 'office_expenses');
+    header('Location: index.php');
     exit;
 }
+
+office_expenses_stmt_bind($statement, $types, $params);
+mysqli_stmt_execute($statement);
+$result = mysqli_stmt_get_result($statement);
+$expense = $result ? mysqli_fetch_assoc($result) : null;
+mysqli_stmt_close($statement);
+
+if (!$expense || (!empty($expense['deleted_at']))) {
+    $closeManagedConnection();
+    flash_add('error', 'Expense record not found or access denied.', 'office_expenses');
+    header('Location: index.php');
+    exit;
+}
+
+$is_owner = $current_employee && (int) ($expense['added_by'] ?? 0) === (int) $current_employee['id'];
+$can_edit_expense = $IS_SUPER_ADMIN || $can_edit_all || ($can_edit_own && $is_owner);
 
 $added_by = '—';
 if (!empty($expense['employee_code'])) {
@@ -97,6 +118,9 @@ if (!empty($expense['receipt_file'])) {
     $receipt_url = APP_URL . '/' . ltrim($expense['receipt_file'], '/');
 }
 
+$page_title = 'Expense Details - ' . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 <div class="main-wrapper">
     <div class="main-content">
@@ -114,6 +138,8 @@ if (!empty($expense['receipt_file'])) {
                 </div>
             </div>
         </div>
+
+    <?php echo flash_render(); ?>
 
         <div class="card" style="padding:24px;margin-bottom:24px;">
             <h3 style="margin-top:0;color:#003581;">Expense Summary</h3>
@@ -166,4 +192,7 @@ if (!empty($expense['receipt_file'])) {
     </div>
 </div>
 
-<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php
+$closeManagedConnection();
+require_once __DIR__ . '/../../includes/footer_sidebar.php';
+?>

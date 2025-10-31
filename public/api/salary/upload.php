@@ -4,18 +4,13 @@ header('Content-Type: application/json');
 
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../../config/db_connect.php';
+require_once __DIR__ . '/../../../config/module_dependencies.php';
+require_once __DIR__ . '/../../../includes/authz.php';
 require_once __DIR__ . '/../../salary/helpers.php';
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
-
-$user_role = $_SESSION['role'] ?? 'employee';
-if (!salary_role_can_manage($user_role)) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Forbidden']);
     exit;
 }
 
@@ -29,6 +24,25 @@ $conn = createConnection(true);
 if (!$conn) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    exit;
+}
+
+if (!authz_user_can($conn, 'salary_records', 'create')) {
+    closeConnection($conn);
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Forbidden']);
+    exit;
+}
+
+$prereq_check = get_prerequisite_check_result($conn, 'salary');
+if (!$prereq_check['allowed']) {
+    closeConnection($conn);
+    http_response_code(503);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Salary module prerequisites missing',
+        'missing' => $prereq_check['missing_modules'],
+    ]);
     exit;
 }
 
