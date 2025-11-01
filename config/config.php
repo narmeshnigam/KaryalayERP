@@ -16,11 +16,22 @@ define('DB_CHARSET', 'utf8mb4');     // Character set
 // Application configuration
 define('APP_NAME', 'Karyalay ERP');  // Application name
 // Dynamically set APP_URL based on environment
-if (isset($_SERVER['HTTP_HOST']) && ($_SERVER['HTTP_HOST'] !== 'localhost' && $_SERVER['HTTP_HOST'] !== '127.0.0.1')) {
-	// Online/production: use actual domain and path
-	$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-	$basePath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
-	define('APP_URL', $protocol . $_SERVER['HTTP_HOST'] . ($basePath !== '' ? $basePath : ''));
+$host = $_SERVER['HTTP_HOST'] ?? null;
+if ($host && $host !== 'localhost' && $host !== '127.0.0.1') {
+	$isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443);
+	$protocol = $isSecure ? 'https://' : 'http://';
+
+	$appRoot = realpath(__DIR__ . '/..');
+	$docRoot = isset($_SERVER['DOCUMENT_ROOT']) ? realpath($_SERVER['DOCUMENT_ROOT']) : false;
+
+	$basePath = '';
+	if ($appRoot && $docRoot && strpos($appRoot, $docRoot) === 0) {
+		$relative = substr($appRoot, strlen($docRoot));
+		$relative = trim(str_replace('\\', '/', $relative), '/');
+		$basePath = $relative !== '' ? '/' . $relative : '';
+	}
+
+	define('APP_URL', rtrim($protocol . $host . $basePath, '/'));
 } else {
 	// Localhost/dev: use static local URL
 	define('APP_URL', 'http://localhost/KaryalayERP');
