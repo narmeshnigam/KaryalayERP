@@ -71,11 +71,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="page-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div style="flex: 1;">
-                    <h1 style="margin: 0 0 8px 0;">📥 Import Contacts</h1>
-                    <p style="color: #6c757d; margin: 0;">Bulk import contacts from CSV file</p>
+                    <h1>📥 Import Contacts</h1>
+                    <p>Bulk import contacts from CSV file</p>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="index.php" class="btn btn-secondary">← Back to Contacts</a>
+                    <a href="index.php" class="btn btn-accent">← Back to Contacts</a>
                 </div>
             </div>
         </div>
@@ -84,7 +84,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Error Display -->
         <?php if (!empty($errors) || !empty($import_errors)): ?>
-            <div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+            <div class="alert alert-error">
                 <strong>⚠️ Import Errors:</strong>
                 <ul style="margin: 8px 0 0 20px;">
                     <?php foreach (array_merge($errors, $import_errors) as $error): ?>
@@ -95,7 +95,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <?php endif; ?>
 
         <?php if ($success_count > 0): ?>
-            <div style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+            <div class="alert alert-success">
                 <strong>✅ Success!</strong> <?php echo $success_count; ?> contact(s) imported successfully.
                 <?php if (!empty($import_errors)): ?>
                     <br>Some contacts failed to import. See errors above.
@@ -108,7 +108,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <!-- Upload Form -->
             <div>
                 <div class="card" style="margin-bottom: 24px;">
-                    <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                    <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                         📤 Upload CSV File
                     </h3>
                     
@@ -121,7 +121,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                             </small>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        <button type="submit" class="btn" style="width: 100%;">
                             📥 Import Contacts
                         </button>
                     </form>
@@ -129,7 +129,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <!-- CSV Format Instructions -->
                 <div class="card">
-                    <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                    <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                         📋 CSV Format Requirements
                     </h3>
                     
@@ -226,7 +226,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <div>
                 <!-- Sample CSV -->
                 <div class="card" style="margin-bottom: 24px;">
-                    <h3 style="margin: 0 0 16px 0; color: #1b2a57; font-size: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+                    <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                         📄 Sample CSV
                     </h3>
                     
@@ -234,7 +234,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         Download a sample CSV file to see the correct format:
                     </p>
                     
-                    <a href="sample_contacts.csv" class="btn btn-secondary" style="width: 100%; text-align: center;" download>
+                    <a href="sample_contacts.csv" class="btn btn-accent" style="width: 100%; text-align: center;" download>
                         ⬇️ Download Sample CSV
                     </a>
                     
@@ -245,7 +245,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <!-- Tips -->
                 <div class="card">
-                    <h3 style="margin: 0 0 16px 0; color: #1b2a57; font-size: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+                    <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                         💡 Import Tips
                     </h3>
                     

@@ -43,7 +43,7 @@ function get_all_users($conn, $filters = []) {
     }
     
     if (!empty($filters['role_id'])) {
-        $where_clauses[] = "u.role_id = ?";
+        $where_clauses[] = "EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id AND ur.role_id = ?)";
         $params[] = $filters['role_id'];
         $types .= 'i';
     }
@@ -68,18 +68,20 @@ function get_all_users($conn, $filters = []) {
     $sql = "
         SELECT 
             u.*,
-            r.name as role_name,
-            r.description as role_description,
+            GROUP_CONCAT(r.name ORDER BY r.name SEPARATOR ', ') as role_name,
+            GROUP_CONCAT(r.description ORDER BY r.name SEPARATOR ' | ') as role_description,
             e.first_name as employee_first_name,
             e.last_name as employee_last_name,
             e.employee_code,
             creator.username as created_by_username,
             (SELECT COUNT(*) FROM user_activity_log WHERE user_id = u.id AND status = 'Success') as login_count
         FROM users u
-        LEFT JOIN roles r ON u.role_id = r.id
+        LEFT JOIN user_roles ur ON u.id = ur.user_id
+        LEFT JOIN roles r ON ur.role_id = r.id
         LEFT JOIN employees e ON u.entity_id = e.id AND u.entity_type = 'Employee'
         LEFT JOIN users creator ON u.created_by = creator.id
         $where_sql
+        GROUP BY u.id
         ORDER BY u.created_at DESC
     ";
     
@@ -115,8 +117,8 @@ function get_user_by_id($conn, $user_id) {
     $stmt = mysqli_prepare($conn, "
         SELECT 
             u.*,
-            r.name as role_name,
-            r.description as role_description,
+            GROUP_CONCAT(r.name ORDER BY r.name SEPARATOR ', ') as role_name,
+            GROUP_CONCAT(r.description ORDER BY r.name SEPARATOR ' | ') as role_description,
             e.first_name as employee_first_name,
             e.last_name as employee_last_name,
             e.employee_code,
@@ -127,10 +129,12 @@ function get_user_by_id($conn, $user_id) {
             (SELECT COUNT(*) FROM user_activity_log WHERE user_id = u.id AND status = 'Success') as login_count,
             (SELECT COUNT(*) FROM user_activity_log WHERE user_id = u.id AND status = 'Failed') as failed_login_count
         FROM users u
-        LEFT JOIN roles r ON u.role_id = r.id
+        LEFT JOIN user_roles ur ON u.id = ur.user_id
+        LEFT JOIN roles r ON ur.role_id = r.id
         LEFT JOIN employees e ON u.entity_id = e.id AND u.entity_type = 'Employee'
         LEFT JOIN users creator ON u.created_by = creator.id
         WHERE u.id = ?
+        GROUP BY u.id
     ");
     
     if ($stmt) {
@@ -431,6 +435,47 @@ function log_user_activity($conn, $data) {
 }
 
 /**
+ * Mark the most recent login record for a user as logged out
+ * @param mysqli $conn
+ * @param int $user_id
+ * @return bool
+ */
+function update_user_logout($conn, $user_id) {
+    // Ensure the logout_time column exists (older installs may be missing it)
+    $colCheck = mysqli_query($conn, "SHOW COLUMNS FROM user_activity_log LIKE 'logout_time'");
+    if ($colCheck === false) {
+        // Table might not exist or permission issue
+        return false;
+    }
+
+    if (mysqli_num_rows($colCheck) === 0) {
+        // Try to add the column gracefully; ignore errors if it fails
+        @mysqli_query($conn, "ALTER TABLE user_activity_log ADD COLUMN logout_time DATETIME NULL AFTER login_time");
+    }
+
+    // Find latest activity with null logout_time
+    $sql = "SELECT id FROM user_activity_log WHERE user_id = ? AND (logout_time IS NULL) ORDER BY login_time DESC LIMIT 1";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) return false;
+    mysqli_stmt_bind_param($stmt, 'i', $user_id);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($res);
+    mysqli_stmt_close($stmt);
+
+    if (!$row) return false;
+
+    $id = (int)$row['id'];
+    $update = "UPDATE user_activity_log SET logout_time = NOW() WHERE id = ?";
+    $ustmt = mysqli_prepare($conn, $update);
+    if (!$ustmt) return false;
+    mysqli_stmt_bind_param($ustmt, 'i', $id);
+    $ok = mysqli_stmt_execute($ustmt);
+    mysqli_stmt_close($ustmt);
+    return (bool)$ok;
+}
+
+/**
  * Get user activity log
  * @param mysqli $conn Database connection
  * @param int $user_id User ID (optional, null for all users)
@@ -459,10 +504,12 @@ function get_user_activity_log($conn, $user_id = null, $limit = 50) {
                 ual.*,
                 u.username,
                 u.email,
-                r.name as role_name
+                GROUP_CONCAT(r.name ORDER BY r.name SEPARATOR ', ') as role_name
             FROM user_activity_log ual
             INNER JOIN users u ON ual.user_id = u.id
-            LEFT JOIN roles r ON u.role_id = r.id
+            LEFT JOIN user_roles ur ON u.id = ur.user_id
+            LEFT JOIN roles r ON ur.role_id = r.id
+            GROUP BY ual.id
             ORDER BY ual.login_time DESC
             LIMIT ?
         ";

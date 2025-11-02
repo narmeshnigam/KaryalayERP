@@ -1,0 +1,303 @@
+<?php
+/**
+ * Catalog Module - Main Listing Page
+ * View all products and services with filters, search, and statistics
+ */
+
+require_once __DIR__ . '/../../includes/auth_check.php';
+require_once __DIR__ . '/helpers.php';
+
+// Check if tables exist - show setup prompt if not
+if (!catalog_tables_exist($conn)) {
+    $page_title = 'Catalog Module Setup Required - ' . APP_NAME;
+    require_once __DIR__ . '/../../includes/header_sidebar.php';
+    require_once __DIR__ . '/../../includes/sidebar.php';
+    echo '<div class="main-wrapper"><div class="main-content">';
+    echo '<div class="card" style="max-width:720px;margin:40px auto;">';
+    echo '<h3 class="card-title">🛍️ Catalog Module Not Set Up</h3>';
+    echo '<p class="text-muted">The Catalog module (Products & Services) database tables have not been created yet. To use this module, please run the setup.</p>';
+    echo '<div style="margin-top:16px;display:flex;gap:10px;">';
+    echo '<a href="' . APP_URL . '/scripts/setup_catalog_tables.php" class="btn btn-primary">Run Catalog Setup</a>';
+    echo '<a href="' . APP_URL . '/setup/index.php" class="btn btn-secondary">Open Setup Wizard</a>';
+    echo '</div>';
+    echo '</div>';
+    echo '</div></div>';
+    require_once __DIR__ . '/../../includes/footer_sidebar.php';
+    exit;
+}
+
+// Check permissions
+if (!authz_user_can_any($conn, [
+    ['table' => 'items_master', 'permission' => 'view_all'],
+    ['table' => 'items_master', 'permission' => 'view_assigned'],
+    ['table' => 'items_master', 'permission' => 'view_own'],
+])) {
+    authz_require_permission($conn, 'items_master', 'view_all');
+}
+
+// Get filters from request
+$filters = [
+    'search' => $_GET['search'] ?? '',
+    'type' => $_GET['type'] ?? '',
+    'status' => $_GET['status'] ?? '',
+    'category' => $_GET['category'] ?? '',
+    'low_stock' => $_GET['low_stock'] ?? '',
+    'expiring_days' => $_GET['expiring_days'] ?? ''
+];
+
+// Get all items
+$items = get_all_catalog_items($conn, $CURRENT_USER_ID, $filters);
+
+// Get statistics
+$stats = get_catalog_statistics($conn);
+
+// Get all categories for filter
+$categories = get_all_categories($conn);
+
+// Check permissions
+$catalog_permissions = authz_get_permission_set($conn, 'items_master');
+$can_create = $catalog_permissions['can_create'] || $IS_SUPER_ADMIN;
+$can_edit = $catalog_permissions['can_edit_all'] || $IS_SUPER_ADMIN;
+$can_delete = $catalog_permissions['can_delete_all'] || $IS_SUPER_ADMIN;
+$can_export = $catalog_permissions['can_export'] || $IS_SUPER_ADMIN;
+
+$page_title = 'Catalog - Products & Services - ' . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
+?>
+
+<div class="main-wrapper">
+    <div class="main-content">
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <div>
+                    <h1 style="margin: 0 0 8px 0;">🛍️ Catalog</h1>
+                    <p style="color: #6c757d; margin: 0;">Manage your products and services inventory</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <?php if ($can_export): ?>
+                        <a href="<?php echo APP_URL; ?>/public/api/catalog/export.php?<?php echo http_build_query($filters); ?>" class="btn btn-secondary">📥 Export</a>
+                    <?php endif; ?>
+                    <?php if ($can_create): ?>
+                        <a href="add.php" class="btn btn-primary">➕ Add Item</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #e3f2fd;">📊</div>
+                <div class="stat-details">
+                    <div class="stat-value"><?php echo $stats['total_items']; ?></div>
+                    <div class="stat-label">Total Items</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #f3e5f5;">📦</div>
+                <div class="stat-details">
+                    <div class="stat-value"><?php echo $stats['products']; ?></div>
+                    <div class="stat-label">Products</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #e8f5e9;">🛠️</div>
+                <div class="stat-details">
+                    <div class="stat-value"><?php echo $stats['services']; ?></div>
+                    <div class="stat-label">Services</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #fff3e0;">⚠️</div>
+                <div class="stat-details">
+                    <div class="stat-value"><?php echo $stats['low_stock_items']; ?></div>
+                    <div class="stat-label">Low Stock</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #fce4ec;">⏰</div>
+                <div class="stat-details">
+                    <div class="stat-value"><?php echo $stats['expiring_soon']; ?></div>
+                    <div class="stat-label">Expiring Soon</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #e0f2f1;">💰</div>
+                <div class="stat-details">
+                    <div class="stat-value">₹<?php echo number_format($stats['total_stock_value'], 2); ?></div>
+                    <div class="stat-label">Stock Value</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card" style="margin-bottom: 24px;">
+            <form method="GET" action="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: end;">
+                <div class="form-group" style="margin: 0;">
+                    <label>Search</label>
+                    <input type="text" name="search" class="form-control" placeholder="Name, SKU, Category..." value="<?php echo htmlspecialchars($filters['search']); ?>">
+                </div>
+                
+                <div class="form-group" style="margin: 0;">
+                    <label>Type</label>
+                    <select name="type" class="form-control">
+                        <option value="">All Types</option>
+                        <option value="Product" <?php echo $filters['type'] === 'Product' ? 'selected' : ''; ?>>Product</option>
+                        <option value="Service" <?php echo $filters['type'] === 'Service' ? 'selected' : ''; ?>>Service</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin: 0;">
+                    <label>Status</label>
+                    <select name="status" class="form-control">
+                        <option value="">All Status</option>
+                        <option value="Active" <?php echo $filters['status'] === 'Active' ? 'selected' : ''; ?>>Active</option>
+                        <option value="Inactive" <?php echo $filters['status'] === 'Inactive' ? 'selected' : ''; ?>>Inactive</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin: 0;">
+                    <label>Category</label>
+                    <select name="category" class="form-control">
+                        <option value="">All Categories</option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo htmlspecialchars($cat['category']); ?>" <?php echo $filters['category'] === $cat['category'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($cat['category']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin: 0;">
+                    <label>Expiring In</label>
+                    <select name="expiring_days" class="form-control">
+                        <option value="">Any Time</option>
+                        <option value="30" <?php echo $filters['expiring_days'] === '30' ? 'selected' : ''; ?>>30 Days</option>
+                        <option value="60" <?php echo $filters['expiring_days'] === '60' ? 'selected' : ''; ?>>60 Days</option>
+                        <option value="90" <?php echo $filters['expiring_days'] === '90' ? 'selected' : ''; ?>>90 Days</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin: 0;">
+                    <label style="display: block; margin-bottom: 8px;">
+                        <input type="checkbox" name="low_stock" value="1" <?php echo $filters['low_stock'] ? 'checked' : ''; ?>>
+                        Low Stock Only
+                    </label>
+                </div>
+                
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="index.php" class="btn btn-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Items Table -->
+        <div class="card">
+            <h3 class="card-title">All Items (<?php echo count($items); ?>)</h3>
+            
+            <?php if (empty($items)): ?>
+                <div class="alert alert-info">
+                    <p style="margin: 0;">No items found. <?php if ($can_create): ?><a href="add.php">Add your first item</a>.<?php endif; ?></p>
+                </div>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>SKU</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                                <th>Expiry</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($items as $item): ?>
+                                <tr>
+                                    <td>
+                                        <?php if ($item['primary_image']): ?>
+                                            <img src="<?php echo APP_URL . htmlspecialchars($item['primary_image']); ?>" 
+                                                 alt="<?php echo htmlspecialchars($item['name']); ?>" 
+                                                 style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                        <?php else: ?>
+                                            <div style="width: 50px; height: 50px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 24px;">
+                                                <?php echo $item['type'] === 'Product' ? '📦' : '🛠️'; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><code><?php echo htmlspecialchars($item['sku']); ?></code></td>
+                                    <td>
+                                        <strong><?php echo htmlspecialchars($item['name']); ?></strong>
+                                        <?php if ($item['is_low_stock']): ?>
+                                            <span class="badge badge-warning">Low Stock</span>
+                                        <?php endif; ?>
+                                        <?php if ($item['is_expired']): ?>
+                                            <span class="badge badge-danger">Expired</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <span class="badge <?php echo $item['type'] === 'Product' ? 'badge-info' : 'badge-success'; ?>">
+                                            <?php echo htmlspecialchars($item['type']); ?>
+                                        </span>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($item['category'] ?? '-'); ?></td>
+                                    <td>₹<?php echo number_format($item['base_price'], 2); ?></td>
+                                    <td>
+                                        <?php if ($item['type'] === 'Product'): ?>
+                                            <?php echo $item['current_stock']; ?>
+                                            <?php if ($item['low_stock_threshold']): ?>
+                                                <small class="text-muted">(min: <?php echo $item['low_stock_threshold']; ?>)</small>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">N/A</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <span class="badge <?php echo $item['status'] === 'Active' ? 'badge-success' : 'badge-secondary'; ?>">
+                                            <?php echo htmlspecialchars($item['status']); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php if ($item['expiry_date']): ?>
+                                            <?php echo date('d M Y', strtotime($item['expiry_date'])); ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="view.php?id=<?php echo $item['id']; ?>" class="btn btn-sm btn-info" title="View">👁️</a>
+                                            <?php if ($can_edit): ?>
+                                                <a href="edit.php?id=<?php echo $item['id']; ?>" class="btn btn-sm btn-warning" title="Edit">✏️</a>
+                                            <?php endif; ?>
+                                            <?php if ($can_edit && $item['type'] === 'Product'): ?>
+                                                <a href="stock_adjust.php?id=<?php echo $item['id']; ?>" class="btn btn-sm btn-primary" title="Adjust Stock">📊</a>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+
+    </div>
+</div>
+
+<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>

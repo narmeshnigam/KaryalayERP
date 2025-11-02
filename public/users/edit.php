@@ -224,23 +224,24 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </h3>
                 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                    <!-- Role -->
+                    <!-- Role Assignment Info (Read-only) -->
                     <div>
-                        <label for="role_id" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">
-                            Role <span style="color: #dc3545;">*</span>
+                        <label style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">
+                            Current Roles
                         </label>
-                        <select id="role_id" name="role_id" class="form-control" required>
-                            <option value="">Select Role</option>
-                            <?php foreach ($roles as $role): ?>
-                                <option value="<?php echo $role['id']; ?>" <?php echo ($user['role_id'] == $role['id']) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($role['name']); ?>
-                                    <?php if ($role['description']): ?>
-                                        - <?php echo htmlspecialchars($role['description']); ?>
-                                    <?php endif; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <small style="color: #6c757d;">Defines user permissions</small>
+                        <div style="padding: 10px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px;">
+                            <?php if (!empty($user['role_name'])): ?>
+                                <strong>🔑 <?php echo htmlspecialchars($user['role_name']); ?></strong>
+                            <?php else: ?>
+                                <em style="color: #6c757d;">No roles assigned</em>
+                            <?php endif; ?>
+                        </div>
+                        <small style="color: #6c757d;">
+                            To manage roles, use 
+                            <a href="../settings/assign-roles/" style="color: #003581; text-decoration: none; font-weight: 600;">
+                                Roles & Permissions
+                            </a> module
+                        </small>
                     </div>
                     
                     <!-- Status -->

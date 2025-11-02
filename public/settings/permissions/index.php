@@ -35,14 +35,23 @@ mysqli_free_result($roles_result);
 // Get permissions grouped by module
 $permissions = get_permissions_grouped($conn);
 
-// Load role permissions for matrix display
+// Get selected role from query parameter (default: first role)
+$selected_role_id = isset($_GET['role_id']) ? (int)$_GET['role_id'] : (count($roles) > 0 ? $roles[0]['id'] : 0);
+
+// Load role permissions for matrix display (only for selected role)
 $role_permissions = [];
-$rp_result = mysqli_query($conn, "SELECT * FROM role_permissions");
-while ($row = mysqli_fetch_assoc($rp_result)) {
-    $key = $row['role_id'] . '_' . $row['permission_id'];
-    $role_permissions[$key] = $row;
+if ($selected_role_id > 0) {
+    $stmt = mysqli_prepare($conn, "SELECT * FROM role_permissions WHERE role_id = ?");
+    mysqli_stmt_bind_param($stmt, 'i', $selected_role_id);
+    mysqli_stmt_execute($stmt);
+    $rp_result = mysqli_stmt_get_result($stmt);
+    while ($row = mysqli_fetch_assoc($rp_result)) {
+        $key = $row['role_id'] . '_' . $row['permission_id'];
+        $role_permissions[$key] = $row;
+    }
+    mysqli_free_result($rp_result);
+    mysqli_stmt_close($stmt);
 }
-mysqli_free_result($rp_result);
 
 // Calculate statistics
 $total_tables = count($discovered_tables);
@@ -71,6 +80,28 @@ closeConnection($conn);
                 </div>
             </div>
         </div>
+
+        <!-- Role Selector -->
+        <?php if (!empty($roles)): ?>
+        <div class="card" style="margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <label for="roleSelector" style="font-weight: 600; color: #1b2a57; font-size: 14px; white-space: nowrap;">
+                    👤 Select Role:
+                </label>
+                <select id="roleSelector" class="form-control" style="flex: 1; min-width: 250px; max-width: 400px; padding: 10px; border: 2px solid #003581; border-radius: 6px; font-size: 14px;">
+                    <?php foreach ($roles as $role): ?>
+                        <option value="<?php echo $role['id']; ?>" <?php echo ($role['id'] == $selected_role_id) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($role['name']); ?>
+                            <?php if ($role['is_system_role']): ?>🔒<?php endif; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <div style="font-size: 13px; color: #6c757d;">
+                    Showing permissions for selected role only
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <!-- Sync Status -->
         <?php if ($sync_stats['new'] > 0 || $sync_stats['reactivated'] > 0 || $sync_stats['deactivated'] > 0): ?>
@@ -152,99 +183,89 @@ closeConnection($conn);
                 📊 Interactive Table Permissions Matrix
             </h3>
 
-            <div style="overflow-x:auto;">
-                <table id="permissionsMatrix" style="width:100%;border-collapse:collapse;font-size:12px;">
-                    <thead style="position:sticky;top:0;background:white;z-index:10;">
-                        <tr style="background:#f8f9fa;border-bottom:2px solid #dee2e6;">
-                            <th rowspan="2" style="text-align:left;padding:12px;font-weight:600;color:#1b2a57;min-width:250px;position:sticky;left:0;background:#f8f9fa;z-index:11;">
+            <div style="overflow-x:auto;max-height:calc(100vh - 280px);overflow-y:auto;">
+                <table id="permissionsMatrix" style="width:100%;border-collapse:collapse;font-size:13px;">
+                    <thead style="position:sticky;top:0;background:#003581;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+                        <tr style="background:#003581;color:white;">
+                            <th style="text-align:left;padding:14px 12px;font-weight:600;min-width:280px;position:sticky;left:0;background:#003581;z-index:101;border-right:2px solid white;">
                                 Module · Table
                             </th>
-                            <?php foreach ($roles as $role): ?>
-                                <th colspan="12" style="text-align:center;padding:8px 12px;font-weight:600;color:#1b2a57;border-left:2px solid #003581;min-width:520px;">
-                                    <?php echo htmlspecialchars($role['name']); ?>
-                                    <?php if ($role['is_system_role']): ?>
-                                        <span style="font-size:10px;">🔒</span>
-                                    <?php endif; ?>
-                                </th>
-                            <?php endforeach; ?>
-                        </tr>
-                        <tr style="background:#f8f9fa;border-bottom:1px solid #dee2e6;">
-                            <?php foreach ($roles as $role): ?>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;border-left:2px solid #003581;" title="Row: Select/Clear all for this role">ALL</th>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="Create">C</th>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="View All">VA</th>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="View Assigned">VAs</th>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="View Own">VO</th>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="Edit All">EA</th>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="Edit Assigned">EAs</th>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="Edit Own">EO</th>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="Delete All">DA</th>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="Delete Assigned">DAs</th>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="Delete Own">DO</th>
-                                <th style="padding:6px 4px;font-size:10px;font-weight:600;color:#6c757d;" title="Export">Ex</th>
-                            <?php endforeach; ?>
+                            <th style="padding:10px 8px;font-weight:600;border-left:1px solid rgba(255,255,255,0.3);" title="Select/Clear all">ALL</th>
+                            <th style="padding:10px 8px;font-weight:600;" title="Create new records">Create</th>
+                            <th style="padding:10px 8px;font-weight:600;" title="View all records">View All</th>
+                            <th style="padding:10px 8px;font-weight:600;" title="View assigned records">View Assigned</th>
+                            <th style="padding:10px 8px;font-weight:600;" title="View own records">View Own</th>
+                            <th style="padding:10px 8px;font-weight:600;" title="Edit all records">Edit All</th>
+                            <th style="padding:10px 8px;font-weight:600;" title="Edit assigned records">Edit Assigned</th>
+                            <th style="padding:10px 8px;font-weight:600;" title="Edit own records">Edit Own</th>
+                            <th style="padding:10px 8px;font-weight:600;" title="Delete all records">Delete All</th>
+                            <th style="padding:10px 8px;font-weight:600;" title="Delete assigned records">Delete Assigned</th>
+                            <th style="padding:10px 8px;font-weight:600;" title="Delete own records">Delete Own</th>
+                            <th style="padding:10px 8px;font-weight:600;" title="Export data">Export</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php
                         $row_num = 0;
+                        $selected_role = null;
+                        foreach ($roles as $r) {
+                            if ($r['id'] == $selected_role_id) {
+                                $selected_role = $r;
+                                break;
+                            }
+                        }
+                        
                         foreach ($permissions as $module => $tables):
                             $module_id = strtolower(preg_replace('/[^a-z0-9]+/i','-',$module));
                         ?>
-                            <!-- Module Header with per-role bulk controls -->
+                            <!-- Module Header with bulk controls -->
                             <tr class="module-row" style="background:#e3f2fd;" data-module="<?php echo $module_id; ?>">
-                                <td style="padding:10px 12px;font-weight:700;color:#0066cc;font-size:14px;position:sticky;left:0;background:#e3f2fd;z-index:11;">
+                                <td style="padding:12px;font-weight:700;color:#0066cc;font-size:15px;position:sticky;left:0;background:#e3f2fd;z-index:9;border-right:2px solid #90caf9;">
                                     📦 <?php echo htmlspecialchars($module); ?>
                                 </td>
-                                <?php foreach ($roles as $role): ?>
-                                    <td colspan="12" style="padding:6px 8px;border-left:2px solid #003581;background:#e3f2fd;">
-                                        <button type="button" class="mini-btn module-select" data-action="select" data-module="<?php echo $module_id; ?>" data-role="<?php echo (int)$role['id']; ?>">✓ All</button>
-                                        <button type="button" class="mini-btn module-select" data-action="clear" data-module="<?php echo $module_id; ?>" data-role="<?php echo (int)$role['id']; ?>">✕ None</button>
-                                    </td>
-                                <?php endforeach; ?>
+                                <td colspan="12" style="padding:8px;background:#e3f2fd;text-align:center;">
+                                    <button type="button" class="mini-btn module-select" data-action="select" data-module="<?php echo $module_id; ?>" data-role="<?php echo $selected_role_id; ?>">✓ Select All</button>
+                                    <button type="button" class="mini-btn module-select" data-action="clear" data-module="<?php echo $module_id; ?>" data-role="<?php echo $selected_role_id; ?>">✕ Clear All</button>
+                                </td>
                             </tr>
                             
                             <!-- Module Tables -->
                             <?php foreach ($tables as $table):
                                 $row_num++;
                                 $row_color = ($row_num % 2 === 0) ? '#fafafa' : 'white';
+                                $key = $selected_role_id . '_' . $table['id'];
+                                $perms = $role_permissions[$key] ?? null;
+                                
+                                $permission_types = [
+                                    'can_create',
+                                    'can_view_all', 'can_view_assigned', 'can_view_own',
+                                    'can_edit_all', 'can_edit_assigned', 'can_edit_own',
+                                    'can_delete_all', 'can_delete_assigned', 'can_delete_own',
+                                    'can_export'
+                                ];
                             ?>
                             <tr class="table-row" data-module="<?php echo $module_id; ?>" style="background:<?php echo $row_color; ?>;border-bottom:1px solid #eee;">
-                                <td style="padding:10px 12px;position:sticky;left:0;background:<?php echo $row_color; ?>;z-index:9;">
-                                    <div style="font-weight:600;color:#1b2a57;margin-bottom:2px;"><?php echo htmlspecialchars($table['display_name']); ?></div>
-                                    <div style="font-size:10px;color:#6c757d;font-family:monospace;"><?php echo htmlspecialchars($table['table_name']); ?></div>
+                                <td style="padding:12px;position:sticky;left:0;background:<?php echo $row_color; ?>;z-index:8;border-right:1px solid #dee2e6;">
+                                    <div style="font-weight:600;color:#1b2a57;margin-bottom:3px;font-size:14px;"><?php echo htmlspecialchars($table['display_name']); ?></div>
+                                    <div style="font-size:11px;color:#6c757d;font-family:monospace;"><?php echo htmlspecialchars($table['table_name']); ?></div>
                                 </td>
-                                <?php foreach ($roles as $role):
-                                    $key = $role['id'] . '_' . $table['id'];
-                                    $perms = $role_permissions[$key] ?? null;
-                                    
-                                    $permission_types = [
-                                        'can_create',
-                                        'can_view_all', 'can_view_assigned', 'can_view_own',
-                                        'can_edit_all', 'can_edit_assigned', 'can_edit_own',
-                                        'can_delete_all', 'can_delete_assigned', 'can_delete_own',
-                                        'can_export'
-                                    ];
-                                    
-                                    foreach ($permission_types as $ptype):
-                                        $is_checked = $perms && $perms[$ptype] == 1;
-                                        $first_col = ($ptype === 'can_create');
-                                        if ($first_col): ?>
-                                            <td style="text-align:center;padding:4px;border-left:2px solid #003581;">
-                                                <button type="button" class="mini-btn row-select" data-action="select" data-role="<?php echo (int)$role['id']; ?>" title="Select all in this row for role">✓</button>
-                                                <button type="button" class="mini-btn row-select" data-action="clear" data-role="<?php echo (int)$role['id']; ?>" title="Clear all in this row for role">✕</button>
-                                            </td>
-                                        <?php endif; ?>
-                                    <td style="text-align:center;padding:6px 8px;">
-                                        <input type="checkbox" 
-                                               class="perm-checkbox"
-                                               data-role="<?php echo $role['id']; ?>"
-                                               data-permission="<?php echo $table['id']; ?>"
-                                               data-type="<?php echo $ptype; ?>"
-                                               <?php echo $is_checked ? 'checked' : ''; ?>
-                                               style="cursor:pointer;width:16px;height:16px;">
-                                    </td>
-                                <?php endforeach; endforeach; ?>
+                                <td style="text-align:center;padding:6px;border-left:1px solid #dee2e6;">
+                                    <button type="button" class="mini-btn row-select" data-action="select" data-table="<?php echo $table['id']; ?>" title="Select all">✓</button>
+                                    <button type="button" class="mini-btn row-select" data-action="clear" data-table="<?php echo $table['id']; ?>" title="Clear all">✕</button>
+                                </td>
+                                <?php foreach ($permission_types as $ptype):
+                                    $is_checked = $perms && $perms[$ptype] == 1;
+                                ?>
+                                <td style="text-align:center;padding:8px;">
+                                    <input type="checkbox" 
+                                           class="perm-checkbox"
+                                           data-role="<?php echo $selected_role_id; ?>"
+                                           data-permission="<?php echo $table['id']; ?>"
+                                           data-type="<?php echo $ptype; ?>"
+                                           <?php echo $is_checked ? 'checked' : ''; ?>
+                                           style="cursor:pointer;width:18px;height:18px;">
+                                </td>
+                                <?php endforeach; ?>
                             </tr>
                             <?php endforeach; ?>
                             
@@ -339,29 +360,61 @@ closeConnection($conn);
     z-index: 10;
 }
 
+#permissionsMatrix thead th {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 /* Small action buttons for bulk selects */
 .mini-btn {
-    padding: 2px 6px;
+    padding: 4px 10px;
     font-size: 11px;
     border: 1px solid #003581;
     background: #f8fbff;
     color: #003581;
     border-radius: 4px;
     cursor: pointer;
-    margin: 0 2px;
+    margin: 0 3px;
+    font-weight: 600;
+    transition: all 0.2s;
 }
 
 .mini-btn:hover {
-    background: #e7f1ff;
+    background: #003581;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.mini-btn:active {
+    transform: translateY(0);
 }
 
 .mini-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+.form-control {
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #003581;
+    box-shadow: 0 0 0 3px rgba(0, 53, 129, 0.1);
+}
 </style>
 
 <script>
+// Role selector - reload page with selected role
+document.getElementById('roleSelector')?.addEventListener('change', function() {
+    const roleId = this.value;
+    window.location.href = '?role_id=' + roleId;
+});
+
 // Real-time permission update handler
 document.querySelectorAll('.perm-checkbox').forEach(checkbox => {
     checkbox.addEventListener('change', function() {
@@ -443,20 +496,20 @@ function toggleCheckbox(cb, shouldCheck) {
     }
 }
 
-// Row-level bulk select/clear for a specific role within that row
+// Row-level bulk select/clear for a specific table
 document.querySelectorAll('.row-select').forEach(btn => {
     btn.addEventListener('click', function () {
-        const roleId = this.dataset.role;
+        const tableId = this.dataset.table;
         const action = this.dataset.action; // 'select' or 'clear'
+        const shouldCheck = action === 'select';
         const tr = this.closest('tr.table-row');
         if (!tr) return;
-        const shouldCheck = action === 'select';
-        const boxes = tr.querySelectorAll('input.perm-checkbox[data-role="' + roleId + '"]');
+        const boxes = tr.querySelectorAll('input.perm-checkbox');
         boxes.forEach(cb => toggleCheckbox(cb, shouldCheck));
     });
 });
 
-// Module-level bulk select/clear for a specific role across all rows in module
+// Module-level bulk select/clear across all rows in module
 document.querySelectorAll('.module-select').forEach(btn => {
     btn.addEventListener('click', function () {
         const roleId = this.dataset.role;

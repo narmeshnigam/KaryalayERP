@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $q = trim($_GET['q'] ?? '');
-$filter = $_GET['filter'] ?? 'all'; // all, employees, leads, tasks, calls, meetings, visits, documents, visitors
+$filter = $_GET['filter'] ?? 'all'; // all, employees, attendance, reimbursements, leads, contacts, clients, projects, catalog, quotations, invoices, payments, payroll, documents, visitors, notebook, assets
 $page_title = 'Search - ' . APP_NAME;
 require_once __DIR__ . '/../includes/header_sidebar.php';
 require_once __DIR__ . '/../includes/sidebar.php';
@@ -29,13 +29,21 @@ function tableExists($conn, $tableName) {
 // Initialize results array
 $results = [
     'employees' => [],
+    'attendance' => [],
+    'reimbursements' => [],
     'leads' => [],
-    'tasks' => [],
-    'calls' => [],
-    'meetings' => [],
-    'visits' => [],
+    'contacts' => [],
+    'clients' => [],
+    'projects' => [],
+    'catalog' => [],
+    'quotations' => [],
+    'invoices' => [],
+    'payments' => [],
+    'payroll' => [],
     'documents' => [],
-    'visitors' => []
+    'visitors' => [],
+    'notebook' => [],
+    'assets' => []
 ];
 
 $totalResults = 0;
@@ -77,6 +85,46 @@ if ($q !== '' && strlen($q) >= 2 && $conn) {
         if ($r) mysqli_free_result($r);
     }
     
+    // Search Attendance
+    if (($filter === 'all' || $filter === 'attendance') && tableExists($conn, 'attendance')) {
+          $sql = "SELECT a.id, a.attendance_date, a.check_in_time, a.check_out_time, a.status,
+                              CONCAT(e.first_name, ' ', e.last_name) as employee_name, e.employee_code
+                     FROM attendance a
+                     LEFT JOIN employees e ON a.employee_id = e.id
+                     WHERE (CONCAT(e.first_name, ' ', e.last_name) LIKE '$like' 
+                         OR e.employee_code LIKE '$like'
+                         OR a.status LIKE '$like'
+                         OR a.attendance_date LIKE '$like')
+                     ORDER BY a.attendance_date DESC
+                     LIMIT 30";
+        $r = mysqli_query($conn, $sql);
+        while ($r && $row = mysqli_fetch_assoc($r)) {
+            $results['attendance'][] = $row;
+            $totalResults++;
+        }
+        if ($r) mysqli_free_result($r);
+    }
+    
+    // Search Reimbursements
+    if (($filter === 'all' || $filter === 'reimbursements') && tableExists($conn, 'reimbursements')) {
+        $sql = "SELECT r.id, r.expense_date, r.amount, r.category, r.description, r.status,
+                       CONCAT(e.first_name, ' ', e.last_name) as employee_name
+                FROM reimbursements r
+                LEFT JOIN employees e ON r.employee_id = e.id
+                WHERE (r.description LIKE '$like' 
+                   OR r.category LIKE '$like'
+                   OR r.status LIKE '$like'
+                   OR CONCAT(e.first_name, ' ', e.last_name) LIKE '$like')
+                ORDER BY r.expense_date DESC
+                LIMIT 30";
+        $r = mysqli_query($conn, $sql);
+        while ($r && $row = mysqli_fetch_assoc($r)) {
+            $results['reimbursements'][] = $row;
+            $totalResults++;
+        }
+        if ($r) mysqli_free_result($r);
+    }
+    
     // Search CRM Leads
     if (($filter === 'all' || $filter === 'leads') && tableExists($conn, 'crm_leads')) {
         $sql = "SELECT id, name, company_name, phone, email, status, source 
@@ -86,6 +134,7 @@ if ($q !== '' && strlen($q) >= 2 && $conn) {
                    OR phone LIKE '$like' 
                    OR email LIKE '$like'
                    OR source LIKE '$like')
+                  AND deleted_at IS NULL
                 ORDER BY 
                     CASE 
                         WHEN name = '$searchTerm' THEN 1
@@ -102,80 +151,171 @@ if ($q !== '' && strlen($q) >= 2 && $conn) {
         if ($r) mysqli_free_result($r);
     }
     
-    // Search CRM Tasks
-    if (($filter === 'all' || $filter === 'tasks') && tableExists($conn, 'crm_tasks')) {
-        $sql = "SELECT t.id, t.title, t.status, t.due_date, t.assigned_to,
-                       CONCAT(e.first_name, ' ', e.last_name) as assigned_name
-                FROM crm_tasks t
-                LEFT JOIN employees e ON t.assigned_to = e.id
-                WHERE (t.title LIKE '$like' OR t.description LIKE '$like')
-                  AND t.deleted_at IS NULL
+    // Search Contacts
+    if (($filter === 'all' || $filter === 'contacts') && tableExists($conn, 'contacts')) {
+        $sql = "SELECT id, name, email, phone, designation
+                FROM contacts 
+                WHERE (name LIKE '$like' 
+                   OR email LIKE '$like' 
+                   OR phone LIKE '$like'
+                   OR designation LIKE '$like')
                 ORDER BY 
                     CASE 
-                        WHEN t.title LIKE '$searchTerm%' THEN 1
-                        ELSE 2
-                    END,
-                    t.due_date ASC
+                        WHEN name = '$searchTerm' THEN 1
+                        WHEN name LIKE '$searchTerm%' THEN 2
+                        ELSE 3
+                    END
                 LIMIT 30";
         $r = mysqli_query($conn, $sql);
         while ($r && $row = mysqli_fetch_assoc($r)) {
-            $results['tasks'][] = $row;
+            $results['contacts'][] = $row;
             $totalResults++;
         }
         if ($r) mysqli_free_result($r);
     }
     
-    // Search CRM Calls
-    if (($filter === 'all' || $filter === 'calls') && tableExists($conn, 'crm_calls')) {
-        $sql = "SELECT c.id, c.title, c.call_date, c.duration, c.outcome,
-                       l.name as lead_name, l.company_name
-                FROM crm_calls c
-                LEFT JOIN crm_leads l ON c.lead_id = l.id
-                WHERE (c.title LIKE '$like' OR c.summary LIKE '$like' OR l.name LIKE '$like' OR l.company_name LIKE '$like')
-                  AND c.deleted_at IS NULL
-                ORDER BY c.call_date DESC
+    // Search Clients
+    if (($filter === 'all' || $filter === 'clients') && tableExists($conn, 'clients')) {
+        $sql = "SELECT id, name, email, phone, status
+                FROM clients 
+                WHERE (name LIKE '$like' 
+                   OR email LIKE '$like'
+                   OR phone LIKE '$like')
+                ORDER BY 
+                    CASE 
+                        WHEN name = '$searchTerm' THEN 1
+                        WHEN name LIKE '$searchTerm%' THEN 2
+                        ELSE 3
+                    END
                 LIMIT 30";
         $r = mysqli_query($conn, $sql);
         while ($r && $row = mysqli_fetch_assoc($r)) {
-            $results['calls'][] = $row;
+            $results['clients'][] = $row;
             $totalResults++;
         }
         if ($r) mysqli_free_result($r);
     }
     
-    // Search CRM Meetings
-    if (($filter === 'all' || $filter === 'meetings') && tableExists($conn, 'crm_meetings')) {
-                $sql = "SELECT m.id, m.title, m.meeting_date, m.location, m.outcome,
-                                             l.name as lead_name, l.company_name
-                                FROM crm_meetings m
-                                LEFT JOIN crm_leads l ON m.lead_id = l.id
-                                WHERE (m.title LIKE '$like' OR m.description LIKE '$like' OR m.location LIKE '$like' 
-                                     OR l.name LIKE '$like' OR l.company_name LIKE '$like')
-                                    AND m.deleted_at IS NULL
-                                ORDER BY m.meeting_date DESC
-                                LIMIT 30";
+    // Search Projects
+    if (($filter === 'all' || $filter === 'projects') && tableExists($conn, 'projects')) {
+        $sql = "SELECT p.id, p.title, p.project_code, p.status, p.start_date, p.end_date,
+                       c.name as client_name
+                FROM projects p
+                LEFT JOIN clients c ON p.client_id = c.id
+                WHERE (p.title LIKE '$like' 
+                   OR p.project_code LIKE '$like'
+                   OR p.description LIKE '$like'
+                   OR c.name LIKE '$like')
+                ORDER BY 
+                    CASE 
+                        WHEN p.project_code = '$searchTerm' THEN 1
+                        WHEN p.title = '$searchTerm' THEN 2
+                        WHEN p.title LIKE '$searchTerm%' THEN 3
+                        ELSE 4
+                    END
+                LIMIT 30";
         $r = mysqli_query($conn, $sql);
         while ($r && $row = mysqli_fetch_assoc($r)) {
-            $results['meetings'][] = $row;
+            $results['projects'][] = $row;
             $totalResults++;
         }
         if ($r) mysqli_free_result($r);
     }
     
-    // Search CRM Visits
-    if (($filter === 'all' || $filter === 'visits') && tableExists($conn, 'crm_visits')) {
-        $sql = "SELECT v.id, v.title, v.visit_date, v.notes, v.location, v.outcome,
-                       l.name as lead_name, l.company_name
-                FROM crm_visits v
-                LEFT JOIN crm_leads l ON v.lead_id = l.id
-                WHERE (v.title LIKE '$like' OR v.notes LIKE '$like' OR v.location LIKE '$like' OR v.outcome LIKE '$like'
-                   OR l.name LIKE '$like' OR l.company_name LIKE '$like')
-                  AND v.deleted_at IS NULL
-                ORDER BY v.visit_date DESC
+    // Search Catalog Items
+    if (($filter === 'all' || $filter === 'catalog') && tableExists($conn, 'items_master')) {
+        $sql = "SELECT id, sku, name, category, base_price, current_stock, status
+                FROM items_master 
+                WHERE (sku LIKE '$like' 
+                   OR name LIKE '$like'
+                   OR category LIKE '$like')
+                ORDER BY 
+                    CASE 
+                        WHEN sku = '$searchTerm' THEN 1
+                        WHEN name = '$searchTerm' THEN 2
+                        WHEN sku LIKE '$searchTerm%' THEN 3
+                        WHEN name LIKE '$searchTerm%' THEN 4
+                        ELSE 5
+                    END
                 LIMIT 30";
         $r = mysqli_query($conn, $sql);
         while ($r && $row = mysqli_fetch_assoc($r)) {
-            $results['visits'][] = $row;
+            $results['catalog'][] = $row;
+            $totalResults++;
+        }
+        if ($r) mysqli_free_result($r);
+    }
+    
+    // Search Quotations
+    if (($filter === 'all' || $filter === 'quotations') && tableExists($conn, 'quotations')) {
+          $sql = "SELECT q.id, q.quotation_no, q.title, q.quotation_date, q.total_amount, q.status,
+                              c.name as client_name
+                     FROM quotations q
+                     LEFT JOIN clients c ON q.client_id = c.id
+                     WHERE (q.quotation_no LIKE '$like' 
+                         OR q.title LIKE '$like'
+                         OR c.name LIKE '$like')
+                     ORDER BY q.quotation_date DESC
+                     LIMIT 30";
+        $r = mysqli_query($conn, $sql);
+        while ($r && $row = mysqli_fetch_assoc($r)) {
+            $results['quotations'][] = $row;
+            $totalResults++;
+        }
+        if ($r) mysqli_free_result($r);
+    }
+    
+    // Search Invoices
+    if (($filter === 'all' || $filter === 'invoices') && tableExists($conn, 'invoices')) {
+          $sql = "SELECT i.id, i.invoice_no, i.issue_date, i.total_amount, i.status, i.due_date,
+                              c.name as client_name
+                     FROM invoices i
+                     LEFT JOIN clients c ON i.client_id = c.id
+                     WHERE (i.invoice_no LIKE '$like' 
+                         OR c.name LIKE '$like')
+                     ORDER BY i.issue_date DESC
+                     LIMIT 30";
+        $r = mysqli_query($conn, $sql);
+        while ($r && $row = mysqli_fetch_assoc($r)) {
+            $results['invoices'][] = $row;
+            $totalResults++;
+        }
+        if ($r) mysqli_free_result($r);
+    }
+    
+    // Search Payments
+    if (($filter === 'all' || $filter === 'payments') && tableExists($conn, 'payments')) {
+          $sql = "SELECT p.id, p.payment_date, p.amount_received, p.payment_mode, p.reference_no,
+                              c.name as client_name
+                     FROM payments p
+                     LEFT JOIN clients c ON p.client_id = c.id
+                     WHERE (p.reference_no LIKE '$like' 
+                         OR c.name LIKE '$like')
+                     ORDER BY p.payment_date DESC
+                     LIMIT 30";
+        $r = mysqli_query($conn, $sql);
+        while ($r && $row = mysqli_fetch_assoc($r)) {
+            $results['payments'][] = $row;
+            $totalResults++;
+        }
+        if ($r) mysqli_free_result($r);
+    }
+    
+    // Search Payroll
+    if (($filter === 'all' || $filter === 'payroll') && tableExists($conn, 'payroll_records') && tableExists($conn, 'payroll_master')) {
+    $sql = "SELECT pr.id, pm.month, pr.base_salary, pr.allowances, pr.reimbursements, pr.deductions, pr.bonus, pr.penalties, pr.net_pay, pm.status,
+                              CONCAT(e.first_name, ' ', e.last_name) as employee_name, e.employee_code
+                     FROM payroll_records pr
+                     INNER JOIN payroll_master pm ON pr.payroll_id = pm.id
+                     LEFT JOIN employees e ON pr.employee_id = e.id
+                     WHERE (CONCAT(e.first_name, ' ', e.last_name) LIKE '$like' 
+                         OR e.employee_code LIKE '$like'
+                         OR pm.month LIKE '$like')
+                     ORDER BY pm.month DESC
+                     LIMIT 30";
+        $r = mysqli_query($conn, $sql);
+        while ($r && $row = mysqli_fetch_assoc($r)) {
+            $results['payroll'][] = $row;
             $totalResults++;
         }
         if ($r) mysqli_free_result($r);
@@ -217,6 +357,54 @@ if ($q !== '' && strlen($q) >= 2 && $conn) {
         $r = mysqli_query($conn, $sql);
         while ($r && $row = mysqli_fetch_assoc($r)) {
             $results['visitors'][] = $row;
+            $totalResults++;
+        }
+        if ($r) mysqli_free_result($r);
+    }
+    
+    // Search Notebook
+    if (($filter === 'all' || $filter === 'notebook') && tableExists($conn, 'notebook_notes')) {
+        $sql = "SELECT n.id, n.title, n.content, n.tags, n.created_at,
+                       CONCAT(e.first_name, ' ', e.last_name) as author_name
+                FROM notebook_notes n
+                LEFT JOIN employees e ON n.created_by = e.id
+                     WHERE (n.title LIKE '$like' 
+                         OR n.content LIKE '$like'
+                         OR n.tags LIKE '$like')
+                ORDER BY 
+                    CASE 
+                        WHEN n.title LIKE '$searchTerm%' THEN 1
+                        ELSE 2
+                    END,
+                    n.created_at DESC
+                LIMIT 30";
+        $r = mysqli_query($conn, $sql);
+        while ($r && $row = mysqli_fetch_assoc($r)) {
+            $results['notebook'][] = $row;
+            $totalResults++;
+        }
+        if ($r) mysqli_free_result($r);
+    }
+    
+    // Search Assets
+    if (($filter === 'all' || $filter === 'assets') && tableExists($conn, 'assets_master')) {
+        $sql = "SELECT a.id, a.asset_code, a.name, a.category, a.status, a.purchase_date, a.purchase_cost
+                FROM assets_master a
+                WHERE (a.asset_code LIKE '$like' 
+                   OR a.name LIKE '$like'
+                   OR a.category LIKE '$like'
+                   OR a.serial_no LIKE '$like')
+                ORDER BY 
+                    CASE 
+                        WHEN a.asset_code = '$searchTerm' THEN 1
+                        WHEN a.name = '$searchTerm' THEN 2
+                        WHEN a.asset_code LIKE '$searchTerm%' THEN 3
+                        ELSE 4
+                    END
+                LIMIT 30";
+        $r = mysqli_query($conn, $sql);
+        while ($r && $row = mysqli_fetch_assoc($r)) {
+            $results['assets'][] = $row;
             $totalResults++;
         }
         if ($r) mysqli_free_result($r);
@@ -581,7 +769,7 @@ if ($conn) closeConnection($conn);
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
                 <div>
                     <h1>🔍 Universal Search</h1>
-                    <p>Search across employees, CRM data, documents, and more</p>
+                    <p>Search across all modules: employees, attendance, CRM, clients, projects, invoices, payroll, and more</p>
                 </div>
             </div>
         </div>
@@ -594,7 +782,7 @@ if ($conn) closeConnection($conn);
                         type="text" 
                         name="q" 
                         value="<?php echo htmlspecialchars($q); ?>" 
-                        placeholder="🔎 Search employees, leads, tasks, documents, visitors..." 
+                        placeholder="🔎 Search across all modules: employees, clients, invoices, projects, payroll..." 
                         class="search-input"
                         autofocus
                         autocomplete="off"
@@ -610,26 +798,50 @@ if ($conn) closeConnection($conn);
                     <a href="?q=<?php echo urlencode($q); ?>&filter=employees" class="filter-tab <?php echo $filter === 'employees' ? 'active' : ''; ?>">
                         👥 Employees
                     </a>
+                    <a href="?q=<?php echo urlencode($q); ?>&filter=attendance" class="filter-tab <?php echo $filter === 'attendance' ? 'active' : ''; ?>">
+                        📅 Attendance
+                    </a>
+                    <a href="?q=<?php echo urlencode($q); ?>&filter=reimbursements" class="filter-tab <?php echo $filter === 'reimbursements' ? 'active' : ''; ?>">
+                        💰 Reimbursements
+                    </a>
                     <a href="?q=<?php echo urlencode($q); ?>&filter=leads" class="filter-tab <?php echo $filter === 'leads' ? 'active' : ''; ?>">
                         📇 Leads
                     </a>
-                    <a href="?q=<?php echo urlencode($q); ?>&filter=tasks" class="filter-tab <?php echo $filter === 'tasks' ? 'active' : ''; ?>">
-                        ✅ Tasks
+                    <a href="?q=<?php echo urlencode($q); ?>&filter=contacts" class="filter-tab <?php echo $filter === 'contacts' ? 'active' : ''; ?>">
+                        📇 Contacts
                     </a>
-                    <a href="?q=<?php echo urlencode($q); ?>&filter=calls" class="filter-tab <?php echo $filter === 'calls' ? 'active' : ''; ?>">
-                        ☎️ Calls
+                    <a href="?q=<?php echo urlencode($q); ?>&filter=clients" class="filter-tab <?php echo $filter === 'clients' ? 'active' : ''; ?>">
+                        🏢 Clients
                     </a>
-                    <a href="?q=<?php echo urlencode($q); ?>&filter=meetings" class="filter-tab <?php echo $filter === 'meetings' ? 'active' : ''; ?>">
-                        🗓️ Meetings
+                    <a href="?q=<?php echo urlencode($q); ?>&filter=projects" class="filter-tab <?php echo $filter === 'projects' ? 'active' : ''; ?>">
+                        📊 Projects
                     </a>
-                    <a href="?q=<?php echo urlencode($q); ?>&filter=visits" class="filter-tab <?php echo $filter === 'visits' ? 'active' : ''; ?>">
-                        🚗 Visits
+                    <a href="?q=<?php echo urlencode($q); ?>&filter=catalog" class="filter-tab <?php echo $filter === 'catalog' ? 'active' : ''; ?>">
+                        📦 Catalog
+                    </a>
+                    <a href="?q=<?php echo urlencode($q); ?>&filter=quotations" class="filter-tab <?php echo $filter === 'quotations' ? 'active' : ''; ?>">
+                        � Quotations
+                    </a>
+                    <a href="?q=<?php echo urlencode($q); ?>&filter=invoices" class="filter-tab <?php echo $filter === 'invoices' ? 'active' : ''; ?>">
+                        🧾 Invoices
+                    </a>
+                    <a href="?q=<?php echo urlencode($q); ?>&filter=payments" class="filter-tab <?php echo $filter === 'payments' ? 'active' : ''; ?>">
+                        � Payments
+                    </a>
+                    <a href="?q=<?php echo urlencode($q); ?>&filter=payroll" class="filter-tab <?php echo $filter === 'payroll' ? 'active' : ''; ?>">
+                        💵 Payroll
                     </a>
                     <a href="?q=<?php echo urlencode($q); ?>&filter=documents" class="filter-tab <?php echo $filter === 'documents' ? 'active' : ''; ?>">
                         📄 Documents
                     </a>
                     <a href="?q=<?php echo urlencode($q); ?>&filter=visitors" class="filter-tab <?php echo $filter === 'visitors' ? 'active' : ''; ?>">
                         🚶 Visitors
+                    </a>
+                    <a href="?q=<?php echo urlencode($q); ?>&filter=notebook" class="filter-tab <?php echo $filter === 'notebook' ? 'active' : ''; ?>">
+                        📓 Notebook
+                    </a>
+                    <a href="?q=<?php echo urlencode($q); ?>&filter=assets" class="filter-tab <?php echo $filter === 'assets' ? 'active' : ''; ?>">
+                        🏷️ Assets
                     </a>
                 </div>
             </form>
@@ -650,7 +862,7 @@ if ($conn) closeConnection($conn);
                 <div class="empty-state-icon">🔎</div>
                 <div class="empty-state-title">Start Searching</div>
                 <div class="empty-state-text">
-                    Enter at least 2 characters to search across employees, CRM data, documents, and more
+                    Enter at least 2 characters to search across all 16+ modules including employees, clients, projects, invoices, payroll, and more
                 </div>
             </div>
         
@@ -704,6 +916,96 @@ if ($conn) closeConnection($conn);
                 </div>
             <?php endif; ?>
 
+            <!-- Attendance Results -->
+            <?php if (!empty($results['attendance'])): ?>
+                <div class="result-section">
+                    <div class="result-section-header">
+                        <h2 class="result-section-title">📅 Attendance Records</h2>
+                        <span class="result-count"><?php echo count($results['attendance']); ?></span>
+                    </div>
+                    <div class="result-items">
+                        <?php foreach ($results['attendance'] as $att): ?>
+                            <div class="result-item">
+                                <div class="result-item-content">
+                                    <div class="result-item-title">
+                                        <?php echo htmlspecialchars($att['employee_name'] ?? 'N/A'); ?> 
+                                    </div>
+                                    <div class="result-item-meta">
+                                        <?php if (!empty($att['employee_code'])): ?>
+                                            <span>📋 <?php echo htmlspecialchars($att['employee_code']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($att['attendance_date'])): ?>
+                                            <span>📅 <?php echo date('M j, Y', strtotime($att['attendance_date'])); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($att['check_in_time'])): ?>
+                                            <span>⏰ In: <?php echo date('g:i A', strtotime($att['check_in_time'])); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($att['check_out_time'])): ?>
+                                            <span>⏰ Out: <?php echo date('g:i A', strtotime($att['check_out_time'])); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($att['status'])): ?>
+                                            <span class="status-badge status-<?php echo strtolower($att['status']); ?>">
+                                                <?php echo htmlspecialchars($att['status']); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="result-item-actions">
+                                    <a href="<?php echo APP_URL; ?>/public/attendance/view.php?id=<?php echo $att['id']; ?>" class="view-btn">
+                                        👁️ View Record
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Reimbursements Results -->
+            <?php if (!empty($results['reimbursements'])): ?>
+                <div class="result-section">
+                    <div class="result-section-header">
+                        <h2 class="result-section-title">💰 Reimbursements</h2>
+                        <span class="result-count"><?php echo count($results['reimbursements']); ?></span>
+                    </div>
+                    <div class="result-items">
+                        <?php foreach ($results['reimbursements'] as $reimb): ?>
+                            <div class="result-item">
+                                <div class="result-item-content">
+                                    <div class="result-item-title">
+                                        <?php echo htmlspecialchars($reimb['description']); ?>
+                                    </div>
+                                    <div class="result-item-meta">
+                                        <?php if (!empty($reimb['employee_name'])): ?>
+                                            <span>👤 <?php echo htmlspecialchars($reimb['employee_name']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($reimb['category'])): ?>
+                                            <span>📁 <?php echo htmlspecialchars($reimb['category']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($reimb['amount'])): ?>
+                                            <span>💵 ₹<?php echo number_format($reimb['amount'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($reimb['expense_date'])): ?>
+                                            <span>📅 <?php echo date('M j, Y', strtotime($reimb['expense_date'])); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($reimb['status'])): ?>
+                                            <span class="status-badge status-<?php echo strtolower($reimb['status']); ?>">
+                                                <?php echo htmlspecialchars($reimb['status']); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="result-item-actions">
+                                    <a href="<?php echo APP_URL; ?>/public/reimbursements/view.php?id=<?php echo $reimb['id']; ?>" class="view-btn">
+                                        👁️ View Details
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <!-- CRM Leads Results -->
             <?php if (!empty($results['leads'])): ?>
                 <div class="result-section">
@@ -738,6 +1040,370 @@ if ($conn) closeConnection($conn);
                                 <div class="result-item-actions">
                                     <a href="<?php echo APP_URL; ?>/public/crm/leads/view.php?id=<?php echo $lead['id']; ?>" class="view-btn">
                                         👁️ View Lead
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Contacts Results -->
+            <?php if (!empty($results['contacts'])): ?>
+                <div class="result-section">
+                    <div class="result-section-header">
+                        <h2 class="result-section-title">📇 Contacts</h2>
+                        <span class="result-count"><?php echo count($results['contacts']); ?></span>
+                    </div>
+                    <div class="result-items">
+                        <?php foreach ($results['contacts'] as $contact): ?>
+                            <div class="result-item">
+                                <div class="result-item-content">
+                                    <div class="result-item-title">
+                                        <?php echo htmlspecialchars($contact['name']); ?>
+                                    </div>
+                                    <div class="result-item-meta">
+                                        <?php if (!empty($contact['company'])): ?>
+                                            <span>🏢 <?php echo htmlspecialchars($contact['company']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($contact['designation'])): ?>
+                                            <span>💼 <?php echo htmlspecialchars($contact['designation']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($contact['phone'])): ?>
+                                            <span>📞 <?php echo htmlspecialchars($contact['phone']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($contact['email'])): ?>
+                                            <span>✉️ <?php echo htmlspecialchars($contact['email']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($contact['category'])): ?>
+                                            <span>📁 <?php echo htmlspecialchars($contact['category']); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="result-item-actions">
+                                    <a href="<?php echo APP_URL; ?>/public/contacts/view.php?id=<?php echo $contact['id']; ?>" class="view-btn">
+                                        👁️ View Contact
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Clients Results -->
+            <?php if (!empty($results['clients'])): ?>
+                <div class="result-section">
+                    <div class="result-section-header">
+                        <h2 class="result-section-title">🏢 Clients</h2>
+                        <span class="result-count"><?php echo count($results['clients']); ?></span>
+                    </div>
+                    <div class="result-items">
+                        <?php foreach ($results['clients'] as $client): ?>
+                            <div class="result-item">
+                                <div class="result-item-content">
+                                    <div class="result-item-title">
+                                        <?php echo htmlspecialchars(($client['client_name'] ?? $client['name'] ?? '')); ?>
+                                    </div>
+                                    <div class="result-item-meta">
+                                        <?php if (!empty($client['contact_person'])): ?>
+                                            <span>👤 <?php echo htmlspecialchars($client['contact_person']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($client['phone'])): ?>
+                                            <span>📞 <?php echo htmlspecialchars($client['phone']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($client['email'])): ?>
+                                            <span>✉️ <?php echo htmlspecialchars($client['email']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($client['address'])): ?>
+                                            <span>📍 <?php echo htmlspecialchars(substr($client['address'], 0, 50)) . (strlen($client['address']) > 50 ? '...' : ''); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($client['status'])): ?>
+                                            <span class="status-badge status-<?php echo strtolower($client['status']); ?>">
+                                                <?php echo htmlspecialchars($client['status']); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="result-item-actions">
+                                    <a href="<?php echo APP_URL; ?>/public/clients/view.php?id=<?php echo $client['id']; ?>" class="view-btn">
+                                        👁️ View Client
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Projects Results -->
+            <?php if (!empty($results['projects'])): ?>
+                <div class="result-section">
+                    <div class="result-section-header">
+                        <h2 class="result-section-title">📊 Projects</h2>
+                        <span class="result-count"><?php echo count($results['projects']); ?></span>
+                    </div>
+                    <div class="result-items">
+                        <?php foreach ($results['projects'] as $project): ?>
+                            <div class="result-item">
+                                <div class="result-item-content">
+                                    <div class="result-item-title">
+                                        <?php echo htmlspecialchars($project['title'] ?? ''); ?>
+                                    </div>
+                                    <div class="result-item-meta">
+                                        <?php if (!empty($project['project_code'] ?? '')): ?>
+                                            <span>📋 <?php echo htmlspecialchars($project['project_code'] ?? ''); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($project['client_name'] ?? '')): ?>
+                                            <span>🏢 <?php echo htmlspecialchars($project['client_name'] ?? ''); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($project['status'] ?? '')): ?>
+                                            <span class="status-badge status-<?php echo strtolower($project['status'] ?? ''); ?>">
+                                                <?php echo htmlspecialchars($project['status'] ?? ''); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($project['start_date'] ?? '')): ?>
+                                            <span>📅 Start: <?php echo date('M j, Y', strtotime($project['start_date'] ?? '')); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($project['end_date'] ?? '')): ?>
+                                            <span>📅 End: <?php echo date('M j, Y', strtotime($project['end_date'] ?? '')); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="result-item-actions">
+                                    <a href="<?php echo APP_URL; ?>/public/projects/view.php?id=<?php echo $project['id']; ?>" class="view-btn">
+                                        👁️ View Project
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Catalog Items Results -->
+            <?php if (!empty($results['catalog'])): ?>
+                <div class="result-section">
+                    <div class="result-section-header">
+                        <h2 class="result-section-title">📦 Catalog Items</h2>
+                        <span class="result-count"><?php echo count($results['catalog']); ?></span>
+                    </div>
+                    <div class="result-items">
+                        <?php foreach ($results['catalog'] as $item): ?>
+                            <div class="result-item">
+                                <div class="result-item-content">
+                                    <div class="result-item-title">
+                                        <?php echo htmlspecialchars($item['name'] ?? ''); ?>
+                                    </div>
+                                    <div class="result-item-meta">
+                                        <?php if (!empty($item['sku'])): ?>
+                                            <span>📋 <?php echo htmlspecialchars($item['sku']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($item['category'])): ?>
+                                            <span>📁 <?php echo htmlspecialchars($item['category']); ?></span>
+                                        <?php endif; ?>
+                                        <?php /* No 'unit' in items_master, skip or add if present in schema */ ?>
+                                        <?php if (isset($item['base_price'])): ?>
+                                            <span>💰 Price: ₹<?php echo number_format($item['base_price'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (isset($item['current_stock'])): ?>
+                                            <span>📦 Stock: <?php echo $item['current_stock']; ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="result-item-actions">
+                                    <a href="<?php echo APP_URL; ?>/public/catalog/view.php?id=<?php echo $item['id']; ?>" class="view-btn">
+                                        👁️ View Item
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Quotations Results -->
+            <?php if (!empty($results['quotations'])): ?>
+                <div class="result-section">
+                    <div class="result-section-header">
+                        <h2 class="result-section-title">📋 Quotations</h2>
+                        <span class="result-count"><?php echo count($results['quotations']); ?></span>
+                    </div>
+                    <div class="result-items">
+                        <?php foreach ($results['quotations'] as $quotation): ?>
+                            <div class="result-item">
+                                <div class="result-item-content">
+                                    <div class="result-item-title">
+                                        <?php echo htmlspecialchars($quotation['quotation_no'] ?? ''); ?>
+                                    </div>
+                                    <div class="result-item-meta">
+                                        <?php if (!empty($quotation['client_name'] ?? '')): ?>
+                                            <span>🏢 <?php echo htmlspecialchars($quotation['client_name'] ?? ''); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($quotation['quotation_date'] ?? '')): ?>
+                                            <span>📅 <?php echo date('M j, Y', strtotime($quotation['quotation_date'] ?? '')); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (isset($quotation['total_amount'])): ?>
+                                            <span>💰 ₹<?php echo number_format($quotation['total_amount'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($quotation['status'] ?? '')): ?>
+                                            <span class="status-badge status-<?php echo strtolower($quotation['status'] ?? ''); ?>">
+                                                <?php echo htmlspecialchars($quotation['status'] ?? ''); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="result-item-actions">
+                                    <a href="<?php echo APP_URL; ?>/public/quotations/view.php?id=<?php echo $quotation['id']; ?>" class="view-btn">
+                                        👁️ View Quotation
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Invoices Results -->
+            <?php if (!empty($results['invoices'])): ?>
+                <div class="result-section">
+                    <div class="result-section-header">
+                        <h2 class="result-section-title">🧾 Invoices</h2>
+                        <span class="result-count"><?php echo count($results['invoices']); ?></span>
+                    </div>
+                    <div class="result-items">
+                        <?php foreach ($results['invoices'] as $invoice): ?>
+                            <div class="result-item">
+                                <div class="result-item-content">
+                                    <div class="result-item-title">
+                                        <?php echo htmlspecialchars($invoice['invoice_no'] ?? ''); ?>
+                                    </div>
+                                    <div class="result-item-meta">
+                                        <?php if (!empty($invoice['client_name'] ?? '')): ?>
+                                            <span>🏢 <?php echo htmlspecialchars($invoice['client_name'] ?? ''); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($invoice['issue_date'] ?? '')): ?>
+                                            <span>📅 <?php echo date('M j, Y', strtotime($invoice['issue_date'] ?? '')); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (isset($invoice['total_amount'])): ?>
+                                            <span>💰 ₹<?php echo number_format($invoice['total_amount'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($invoice['due_date'] ?? '')): ?>
+                                            <span>⏰ Due: <?php echo date('M j, Y', strtotime($invoice['due_date'] ?? '')); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($invoice['status'] ?? '')): ?>
+                                            <span class="status-badge status-<?php echo strtolower($invoice['status'] ?? ''); ?>">
+                                                <?php echo htmlspecialchars($invoice['status'] ?? ''); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="result-item-actions">
+                                    <a href="<?php echo APP_URL; ?>/public/invoices/view.php?id=<?php echo $invoice['id']; ?>" class="view-btn">
+                                        👁️ View Invoice
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Payments Results -->
+            <?php if (!empty($results['payments'])): ?>
+                <div class="result-section">
+                    <div class="result-section-header">
+                        <h2 class="result-section-title">💳 Payments</h2>
+                        <span class="result-count"><?php echo count($results['payments']); ?></span>
+                    </div>
+                    <div class="result-items">
+                        <?php foreach ($results['payments'] as $payment): ?>
+                            <div class="result-item">
+                                <div class="result-item-content">
+                                    <div class="result-item-title">
+                                        Payment <?php echo !empty($payment['reference_no'] ?? '') ? htmlspecialchars($payment['reference_no']) : '#' . ($payment['id'] ?? ''); ?>
+                                    </div>
+                                    <div class="result-item-meta">
+                                        <?php if (!empty($payment['client_name'] ?? '')): ?>
+                                            <span>🏢 <?php echo htmlspecialchars($payment['client_name'] ?? ''); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($payment['invoice_no'] ?? '')): ?>
+                                            <span>🧾 <?php echo htmlspecialchars($payment['invoice_no'] ?? ''); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (isset($payment['amount_received'])): ?>
+                                            <span>💰 ₹<?php echo number_format($payment['amount_received'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($payment['payment_mode'] ?? '')): ?>
+                                            <span>💳 <?php echo htmlspecialchars($payment['payment_mode'] ?? ''); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($payment['payment_date'] ?? '')): ?>
+                                            <span>📅 <?php echo date('M j, Y', strtotime($payment['payment_date'] ?? '')); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="result-item-actions">
+                                    <a href="<?php echo APP_URL; ?>/public/payments/view.php?id=<?php echo $payment['id']; ?>" class="view-btn">
+                                        👁️ View Payment
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Payroll Results -->
+            <?php if (!empty($results['payroll'])): ?>
+                <div class="result-section">
+                    <div class="result-section-header">
+                        <h2 class="result-section-title">💵 Payroll Records</h2>
+                        <span class="result-count"><?php echo count($results['payroll']); ?></span>
+                    </div>
+                    <div class="result-items">
+                        <?php foreach ($results['payroll'] as $payroll): ?>
+                            <div class="result-item">
+                                <div class="result-item-content">
+                                    <div class="result-item-title">
+                                        <?php echo htmlspecialchars($payroll['employee_name'] ?? 'N/A'); ?>
+                                    </div>
+                                    <div class="result-item-meta">
+                                        <?php if (!empty($payroll['employee_code'])): ?>
+                                            <span>📋 <?php echo htmlspecialchars($payroll['employee_code']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($payroll['month'])): ?>
+                                            <span>📅 <?php echo date('M Y', strtotime($payroll['month'] . '-01')); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (isset($payroll['base_salary'])): ?>
+                                            <span>💼 Base: ₹<?php echo number_format($payroll['base_salary'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (isset($payroll['allowances']) && $payroll['allowances'] > 0): ?>
+                                            <span>➕ Allow: ₹<?php echo number_format($payroll['allowances'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (isset($payroll['reimbursements']) && $payroll['reimbursements'] > 0): ?>
+                                            <span>💸 Reimb: ₹<?php echo number_format($payroll['reimbursements'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (isset($payroll['deductions']) && $payroll['deductions'] > 0): ?>
+                                            <span>➖ Deduct: ₹<?php echo number_format($payroll['deductions'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (isset($payroll['bonus']) && $payroll['bonus'] > 0): ?>
+                                            <span>🎁 Bonus: ₹<?php echo number_format($payroll['bonus'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (isset($payroll['penalties']) && $payroll['penalties'] > 0): ?>
+                                            <span>⚠️ Penalty: ₹<?php echo number_format($payroll['penalties'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (isset($payroll['net_pay'])): ?>
+                                            <span>💵 Net: ₹<?php echo number_format($payroll['net_pay'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($payroll['status'])): ?>
+                                            <span class="status-badge status-<?php echo strtolower($payroll['status']); ?>">
+                                                <?php echo htmlspecialchars($payroll['status']); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="result-item-actions">
+                                    <a href="<?php echo APP_URL; ?>/public/payroll/view.php?id=<?php echo $payroll['id']; ?>" class="view-btn">
+                                        👁️ View Record
                                     </a>
                                 </div>
                             </div>
@@ -906,6 +1572,97 @@ if ($conn) closeConnection($conn);
                                 <div class="result-item-actions">
                                     <a href="<?php echo APP_URL; ?>/public/crm/visits/view.php?id=<?php echo $visit['id']; ?>" class="view-btn">
                                         👁️ View Visit
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Notebook Results -->
+            <?php if (!empty($results['notebook'])): ?>
+                <div class="result-section">
+                    <div class="result-section-header">
+                        <h2 class="result-section-title">📓 Notebook</h2>
+                        <span class="result-count"><?php echo count($results['notebook']); ?></span>
+                    </div>
+                    <div class="result-items">
+                        <?php foreach ($results['notebook'] as $note): ?>
+                            <div class="result-item">
+                                <div class="result-item-content">
+                                    <div class="result-item-title">
+                                        <?php echo htmlspecialchars($note['title']); ?>
+                                    </div>
+                                    <div class="result-item-meta">
+                                        <?php if (!empty($note['category'])): ?>
+                                            <span>📁 <?php echo htmlspecialchars($note['category']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($note['author_name'])): ?>
+                                            <span>👤 <?php echo htmlspecialchars($note['author_name']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($note['created_at'])): ?>
+                                            <span>📅 <?php echo date('M j, Y', strtotime($note['created_at'])); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($note['tags'])): ?>
+                                            <span>🏷️ <?php echo htmlspecialchars($note['tags']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($note['content'])): ?>
+                                            <span>📝 <?php echo htmlspecialchars(substr(strip_tags($note['content']), 0, 80)) . (strlen($note['content']) > 80 ? '...' : ''); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="result-item-actions">
+                                    <a href="<?php echo APP_URL; ?>/public/notebook/view.php?id=<?php echo $note['id']; ?>" class="view-btn">
+                                        👁️ View Note
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Assets Results -->
+            <?php if (!empty($results['assets'])): ?>
+                <div class="result-section">
+                    <div class="result-section-header">
+                        <h2 class="result-section-title">🏷️ Assets</h2>
+                        <span class="result-count"><?php echo count($results['assets']); ?></span>
+                    </div>
+                    <div class="result-items">
+                        <?php foreach ($results['assets'] as $asset): ?>
+                            <div class="result-item">
+                                <div class="result-item-content">
+                                    <div class="result-item-title">
+                                        <?php echo htmlspecialchars($asset['asset_name']); ?>
+                                    </div>
+                                    <div class="result-item-meta">
+                                        <?php if (!empty($asset['asset_code'])): ?>
+                                            <span>📋 <?php echo htmlspecialchars($asset['asset_code']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($asset['category'])): ?>
+                                            <span>📁 <?php echo htmlspecialchars($asset['category']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($asset['status'])): ?>
+                                            <span class="status-badge status-<?php echo strtolower($asset['status']); ?>">
+                                                <?php echo htmlspecialchars($asset['status']); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($asset['assigned_to_name'])): ?>
+                                            <span>👤 <?php echo htmlspecialchars($asset['assigned_to_name']); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (isset($asset['purchase_cost'])): ?>
+                                            <span>💰 ₹<?php echo number_format($asset['purchase_cost'], 2); ?></span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($asset['purchase_date'])): ?>
+                                            <span>📅 <?php echo date('M j, Y', strtotime($asset['purchase_date'])); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="result-item-actions">
+                                    <a href="<?php echo APP_URL; ?>/public/assets/view.php?id=<?php echo $asset['id']; ?>" class="view-btn">
+                                        👁️ View Asset
                                     </a>
                                 </div>
                             </div>

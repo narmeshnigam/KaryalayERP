@@ -86,6 +86,7 @@ if (!function_exists('sidebar_item_has_access')) {
 
 // Define navigation menu items with ABSOLUTE URLs
 // Main navigation (ordered as requested)
+// Main navigation (ordered as requested)
 $nav_items = [
     [
         'icon' => 'dashboard.png',
@@ -182,6 +183,55 @@ $nav_items = [
         'link' => APP_URL . '/public/projects/index.php',
         'active' => (strpos($current_path, '/projects/') !== false),
         'requires' => ['table' => 'projects', 'permission' => 'view']
+    ],
+    [
+        'icon' => 'documents.png',
+        'label' => 'Catalog',
+        'link' => APP_URL . '/public/catalog/index.php',
+        'active' => (strpos($current_path, '/catalog/') !== false),
+        'requires' => ['table' => 'items_master', 'permission' => 'view']
+    ],
+    [
+        'icon' => 'documents.png',
+        'label' => 'Quotations',
+        'link' => APP_URL . '/public/quotations/index.php',
+        'active' => (strpos($current_path, '/quotations/') !== false),
+        'requires' => ['table' => 'quotations', 'permission' => 'view_all']
+    ],
+    [
+        'icon' => 'documents.png',
+        'label' => 'Invoices',
+        'link' => APP_URL . '/public/invoices/index.php',
+        'active' => (strpos($current_path, '/invoices/') !== false),
+        'requires' => ['table' => 'invoices', 'permission' => 'view_all']
+    ],
+    [
+        'icon' => 'payments.png',
+        'label' => 'Payments',
+        'link' => APP_URL . '/public/payments/index.php',
+        'active' => (strpos($current_path, '/payments/') !== false),
+        'requires' => ['table' => 'payments', 'permission' => 'view_all']
+    ],
+    [
+        'icon' => 'salary.png',
+        'label' => 'Payroll',
+        'link' => APP_URL . '/public/payroll/index.php',
+        'active' => (strpos($current_path, '/payroll/') !== false),
+        'requires' => ['table' => 'payroll_master', 'permission' => 'view_all']
+    ],
+    [
+        'icon' => 'documents.png',
+        'label' => 'Data Transfer',
+        'link' => APP_URL . '/public/data-transfer/index.php',
+        'active' => (strpos($current_path, '/data-transfer/') !== false),
+        'requires' => ['table' => 'data_transfer_logs', 'permission' => 'view_all']
+    ],
+    [
+        'icon' => 'documents.png',
+        'label' => 'Assets',
+        'link' => APP_URL . '/public/assets/index.php',
+        'active' => (strpos($current_path, '/assets/') !== false),
+        'requires' => ['table' => 'assets_master', 'permission' => 'view_all']
     ],
     [
         'icon' => 'branding.png',
@@ -316,7 +366,7 @@ if ($conn_branding) {
         height: 100vh;
         background-color: #003581;
         color: white;
-        transition: width 0.3s ease;
+        transition: all 0.3s ease;
         z-index: 1000;
         display: flex;
         flex-direction: column;
@@ -325,6 +375,59 @@ if ($conn_branding) {
 
     .sidebar.collapsed {
         width: 70px;
+    }
+
+    /* Mobile Header (hidden by default, shown when sidebar is collapsed on mobile) */
+    .mobile-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background-color: #003581;
+        color: white;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 999;
+        transition: all 0.3s ease;
+    }
+
+    .mobile-header.active {
+        display: flex;
+    }
+
+    .mobile-header .hamburger-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .mobile-header .hamburger-btn:hover {
+        color: #faa718;
+    }
+
+    .mobile-header .header-logo {
+        display: flex;
+        align-items: center;
+    }
+
+    .mobile-header .header-logo img {
+        height: 40px;
+        object-fit: contain;
+    }
+
+    /* Main content padding when mobile header is active */
+    .main-wrapper.mobile-header-active {
+        padding-top: 60px;
     }
 
     /* Sidebar Header */
@@ -588,6 +691,55 @@ if ($conn_branding) {
         margin-left: 70px;
     }
 
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+        /* On mobile, sidebar is full-screen when expanded and slides out when collapsed */
+        .sidebar {
+            transform: translateX(0);
+            transition: transform 0.3s ease, left 0.3s ease, width 0.3s ease;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1500;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+            /* keep width defined but hidden when collapsed */
+            width: 100vw;
+        }
+
+        .main-wrapper {
+            margin-left: 0 !important;
+        }
+
+        body.sidebar-collapsed .main-wrapper {
+            margin-left: 0 !important;
+        }
+
+        .sidebar.collapsed ~ .main-wrapper {
+            margin-left: 0 !important;
+        }
+
+        /* Show mobile header when sidebar is collapsed */
+        body.sidebar-collapsed .mobile-header {
+            display: flex !important;
+        }
+
+        /* Add padding to main content when mobile header is visible */
+        body.sidebar-collapsed .main-wrapper {
+            padding-top: 60px;
+        }
+
+        /* When sidebar is expanded on mobile, prevent background scroll */
+        .sidebar:not(.collapsed) ~ .main-wrapper,
+        body .sidebar:not(.collapsed) ~ .main-wrapper {
+            pointer-events: none;
+        }
+    }
+
     /* User Info in Sidebar */
     .sidebar-user {
         padding: 15px;
@@ -668,6 +820,24 @@ if ($conn_branding) {
         opacity: 1;
     }
 </style>
+
+?>
+
+<!-- Mobile Header (shown when sidebar is collapsed on mobile) -->
+<div class="mobile-header" id="mobileHeader">
+    <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle Menu">
+        ☰
+    </button>
+    <div class="header-logo">
+        <?php if ($branding_full_logo): ?>
+            <img src="<?php echo $branding_full_logo; ?>" alt="<?php echo APP_NAME; ?>">
+        <?php elseif ($has_logo_icon): ?>
+            <img src="<?php echo APP_URL; ?>/assets/logo/logo_white_text_transparent.png" alt="<?php echo APP_NAME; ?>">
+        <?php else: ?>
+            <div style="width: 32px; height: 32px; background: #faa718; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #003581;">K</div>
+        <?php endif; ?>
+    </div>
+</div>
 
 <!-- Sidebar -->
 <div class="sidebar" id="sidebar">
@@ -801,37 +971,124 @@ if ($conn_branding) {
     // Toggle Sidebar Function
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
-        sidebar.classList.toggle('collapsed');
+        const mobileHeader = document.getElementById('mobileHeader');
+        const isMobile = window.innerWidth <= 768;
         
+        sidebar.classList.toggle('collapsed');
+
         // Toggle body class for main content adjustment
         document.body.classList.toggle('sidebar-collapsed');
-        
-        // Save state to localStorage
-        const isCollapsed = sidebar.classList.contains('collapsed');
-        localStorage.setItem('sidebarCollapsed', isCollapsed);
+
+        // Handle mobile header visibility and background scrolling
+        if (isMobile) {
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            if (isCollapsed) {
+                mobileHeader.classList.add('active');
+                // allow scrolling when collapsed
+                document.body.style.overflow = '';
+            } else {
+                mobileHeader.classList.remove('active');
+                // prevent background scroll when sidebar is overlaying
+                document.body.style.overflow = 'hidden';
+            }
+            // Save state to localStorage as string
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed') ? 'true' : 'false');
+        } else {
+            // Desktop save state as before (boolean-like string)
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed ? 'true' : 'false');
+        }
     }
 
     // Handle Logo Click - expand sidebar when collapsed
     function handleLogoClick() {
         const sidebar = document.getElementById('sidebar');
+        const mobileHeader = document.getElementById('mobileHeader');
         const isCollapsed = sidebar.classList.contains('collapsed');
+        const isMobile = window.innerWidth <= 768;
         
         // Only expand if collapsed
         if (isCollapsed) {
             sidebar.classList.remove('collapsed');
             document.body.classList.remove('sidebar-collapsed');
-            localStorage.setItem('sidebarCollapsed', false);
+            
+            // Hide mobile header when expanding on mobile
+            if (isMobile) {
+                mobileHeader.classList.remove('active');
+                // prevent background scroll while sidebar overlays
+                document.body.style.overflow = 'hidden';
+            }
+
+            localStorage.setItem('sidebarCollapsed', 'false');
         }
     }
 
     // Restore sidebar state on page load
     document.addEventListener('DOMContentLoaded', function() {
         const sidebar = document.getElementById('sidebar');
-        const savedState = localStorage.getItem('sidebarCollapsed');
-        
+        const mobileHeader = document.getElementById('mobileHeader');
+        const isMobile = window.innerWidth <= 768;
+        let savedState = localStorage.getItem('sidebarCollapsed');
+
+        // On mobile, always start collapsed (keep sidebar hidden on each page load)
+        if (isMobile) {
+            savedState = 'true';
+            localStorage.setItem('sidebarCollapsed', 'true');
+        }
+
         if (savedState === 'true') {
             sidebar.classList.add('collapsed');
             document.body.classList.add('sidebar-collapsed');
+
+            // Show mobile header on mobile if collapsed
+            if (isMobile) {
+                mobileHeader.classList.add('active');
+                // allow scrolling of body when sidebar is collapsed
+                document.body.style.overflow = '';
+            }
+        } else {
+            // if expanded on load, prevent background scroll on mobile
+            if (isMobile) {
+                document.body.style.overflow = 'hidden';
+                mobileHeader.classList.remove('active');
+            }
+        }
+    });
+
+    // Handle window resize - adjust mobile header visibility
+    window.addEventListener('resize', function() {
+        const sidebar = document.getElementById('sidebar');
+        const mobileHeader = document.getElementById('mobileHeader');
+        const isMobile = window.innerWidth <= 768;
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        
+        if (isMobile && isCollapsed) {
+            mobileHeader.classList.add('active');
+        } else if (!isMobile) {
+            mobileHeader.classList.remove('active');
+            // restore overflow for desktop
+            document.body.style.overflow = '';
+        }
+    });
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+        const sidebar = document.getElementById('sidebar');
+        const mobileHeader = document.getElementById('mobileHeader');
+        const isMobile = window.innerWidth <= 768;
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        
+        // Only on mobile and when sidebar is expanded
+        if (isMobile && !isCollapsed) {
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnHamburger = event.target.closest('.hamburger-btn');
+            
+            if (!isClickInsideSidebar && !isClickOnHamburger) {
+                sidebar.classList.add('collapsed');
+                document.body.classList.add('sidebar-collapsed');
+                mobileHeader.classList.add('active');
+                localStorage.setItem('sidebarCollapsed', true);
+            }
         }
     });
 </script>

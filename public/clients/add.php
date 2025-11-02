@@ -83,130 +83,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$page_title = "Add New Client";
-include __DIR__ . '/../../includes/header_sidebar.php';
+$page_title = "Add New Client - " . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
-<style>
-.form-container {
-    max-width: 900px;
-    margin: 2rem auto;
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-.form-section {
-    margin-bottom: 2rem;
-}
-.form-section-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e0e0e0;
-}
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-.form-group-full {
-    grid-column: 1 / -1;
-}
-.form-label {
-    display: block;
-    font-weight: 500;
-    margin-bottom: 0.25rem;
-    color: #333;
-}
-.required::after {
-    content: " *";
-    color: #dc3545;
-}
-.alert {
-    padding: 1rem;
-    border-radius: 4px;
-    margin-bottom: 1rem;
-}
-.alert-danger {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
-}
-.alert-warning {
-    background: #fff3cd;
-    border: 1px solid #ffeeba;
-    color: #856404;
-}
-.duplicate-list {
-    margin-top: 0.5rem;
-}
-.duplicate-item {
-    background: white;
-    padding: 0.75rem;
-    margin-bottom: 0.5rem;
-    border-radius: 4px;
-    border: 1px solid #e0e0e0;
-}
-.help-text {
-    font-size: 0.875rem;
-    color: #666;
-    margin-top: 0.25rem;
-}
-.lead-badge {
-    background: #007bff;
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.875rem;
-    display: inline-block;
-    margin-bottom: 1rem;
-}
-</style>
-
-<div class="container mt-4">
-    <div class="form-container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Add New Client</h2>
-            <a href="index.php" class="btn btn-secondary">← Back to List</a>
+<div class="main-wrapper">
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>➕ Add New Client</h1>
+                    <p>Enter client information and business details</p>
+                </div>
+                <div>
+                    <a href="index.php" class="btn btn-accent">
+                        ← Back to Client List
+                    </a>
+                </div>
+            </div>
         </div>
 
         <?php if ($from_lead_id && $lead_data): ?>
-            <div class="lead-badge">
-                🎯 Converting from Lead: <?= htmlspecialchars($lead_data['name'] ?? $lead_data['company']) ?>
+            <div class="alert alert-info" style="margin-bottom: 20px;">
+                <strong>🎯 Converting from Lead:</strong> <?= htmlspecialchars($lead_data['name'] ?? $lead_data['company']) ?>
             </div>
         <?php endif; ?>
 
         <?php if (!empty($errors)): ?>
-            <div class="alert alert-danger">
-                <strong>Please fix the following errors:</strong>
-                <ul style="margin: 0.5rem 0 0 1.5rem;">
-                    <?php foreach ($errors as $error): ?>
-                        <li><?= htmlspecialchars($error) ?></li>
-                    <?php endforeach; ?>
-                </ul>
+            <div class="alert alert-error">
+                <strong>❌ Error:</strong><br>
+                <?php foreach ($errors as $error): ?>
+                    • <?= htmlspecialchars($error) ?><br>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
 
         <?php if (!empty($duplicate_warning)): ?>
             <div class="alert alert-warning">
                 <strong>⚠️ Potential Duplicate Clients Found:</strong>
-                <div class="duplicate-list">
+                <div style="margin-top: 10px;">
                     <?php foreach ($duplicate_warning as $dup): ?>
-                        <div class="duplicate-item">
+                        <div style="background: white; padding: 12px; margin-bottom: 8px; border-radius: 4px; border: 1px solid #e0e0e0;">
                             <strong><?= htmlspecialchars($dup['name']) ?></strong> (<?= htmlspecialchars($dup['code']) ?>)<br>
-                            <small>
+                            <small style="color: #6c757d;">
                                 <?php if ($dup['email']): ?>Email: <?= htmlspecialchars($dup['email']) ?> &nbsp;&nbsp;<?php endif; ?>
                                 <?php if ($dup['phone']): ?>Phone: <?= htmlspecialchars($dup['phone']) ?><?php endif; ?>
                             </small>
                             <br>
-                            <a href="view.php?id=<?= $dup['id'] ?>" target="_blank">View Client →</a>
+                            <a href="view.php?id=<?= $dup['id'] ?>" target="_blank" style="color: #0066cc;">View Client →</a>
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <button type="submit" form="addClientForm" name="ignore_duplicates" value="1" class="btn btn-warning mt-2">
+                <button type="submit" form="addClientForm" name="ignore_duplicates" value="1" class="btn" style="margin-top: 12px; background: #ffc107; color: #000;">
                     Proceed Anyway (Create Duplicate)
                 </button>
             </div>
@@ -214,27 +144,25 @@ include __DIR__ . '/../../includes/header_sidebar.php';
 
         <form method="POST" id="addClientForm">
             <!-- Basic Information -->
-            <div class="form-section">
-                <div class="form-section-title">Basic Information</div>
-                
-                <div class="form-row">
+            <div class="card" style="margin-bottom: 25px;">
+                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+                    📋 Basic Information
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
                     <div class="form-group">
-                        <label class="form-label required">Client Name</label>
+                        <label>Client Name <span style="color: #dc3545;">*</span></label>
                         <input type="text" name="name" class="form-control" required
                                value="<?= htmlspecialchars($_POST['name'] ?? $lead_data['name'] ?? $lead_data['company'] ?? '') ?>">
-                        <div class="help-text">This will be the primary display name</div>
+                        <small style="color: #6c757d; font-size: 12px;">This will be the primary display name</small>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Legal Name</label>
+                        <label>Legal Name</label>
                         <input type="text" name="legal_name" class="form-control"
                                value="<?= htmlspecialchars($_POST['legal_name'] ?? $lead_data['company'] ?? '') ?>">
-                        <div class="help-text">Full legal entity name</div>
+                        <small style="color: #6c757d; font-size: 12px;">Full legal entity name</small>
                     </div>
-                </div>
-                
-                <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Industry</label>
+                        <label>Industry</label>
                         <input type="text" name="industry" class="form-control" list="industry-list"
                                value="<?= htmlspecialchars($_POST['industry'] ?? $lead_data['industry'] ?? '') ?>">
                         <datalist id="industry-list">
@@ -249,44 +177,12 @@ include __DIR__ . '/../../includes/header_sidebar.php';
                         </datalist>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Website</label>
+                        <label>Website</label>
                         <input type="url" name="website" class="form-control" placeholder="https://"
                                value="<?= htmlspecialchars($_POST['website'] ?? '') ?>">
                     </div>
-                </div>
-            </div>
-
-            <!-- Contact Information -->
-            <div class="form-section">
-                <div class="form-section-title">Contact Information</div>
-                
-                <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control"
-                               value="<?= htmlspecialchars($_POST['email'] ?? $lead_data['email'] ?? '') ?>">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Phone</label>
-                        <input type="tel" name="phone" class="form-control"
-                               value="<?= htmlspecialchars($_POST['phone'] ?? $lead_data['phone'] ?? '') ?>">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Business Details -->
-            <div class="form-section">
-                <div class="form-section-title">Business Details</div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">GSTIN</label>
-                        <input type="text" name="gstin" class="form-control" placeholder="22AAAAA0000A1Z5"
-                               value="<?= htmlspecialchars($_POST['gstin'] ?? '') ?>">
-                        <div class="help-text">GST Identification Number (if applicable)</div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label required">Client Owner</label>
+                        <label>Client Owner <span style="color: #dc3545;">*</span></label>
                         <select name="owner_id" class="form-control" required>
                             <?php foreach ($users as $user): ?>
                                 <option value="<?= $user['id'] ?>" 
@@ -295,44 +191,72 @@ include __DIR__ . '/../../includes/header_sidebar.php';
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <div class="help-text">Primary account manager</div>
+                        <small style="color: #6c757d; font-size: 12px;">Primary account manager</small>
                     </div>
-                </div>
-                
-                <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Status</label>
+                        <label>Status</label>
                         <select name="status" class="form-control">
-                            <option value="Active" <?= ($_POST['status'] ?? 'Active') === 'Active' ? 'selected' : '' ?>>Active</option>
-                            <option value="Inactive" <?= ($_POST['status'] ?? '') === 'Inactive' ? 'selected' : '' ?>>Inactive</option>
+                            <option value="Active" <?= ($_POST['status'] ?? 'Active') == 'Active' ? 'selected' : '' ?>>Active</option>
+                            <option value="Inactive" <?= ($_POST['status'] ?? '') == 'Inactive' ? 'selected' : '' ?>>Inactive</option>
                         </select>
                     </div>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="card" style="margin-bottom: 25px;">
+                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+                    📞 Contact Information
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
                     <div class="form-group">
-                        <label class="form-label">Tags</label>
-                        <input type="text" name="tags" class="form-control" placeholder="VIP, Enterprise, Partner"
-                               value="<?= htmlspecialchars($_POST['tags'] ?? $lead_data['interests'] ?? '') ?>">
-                        <div class="help-text">Comma-separated tags</div>
+                        <label>Email</label>
+                        <input type="email" name="email" class="form-control"
+                               value="<?= htmlspecialchars($_POST['email'] ?? $lead_data['email'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" name="phone" class="form-control"
+                               value="<?= htmlspecialchars($_POST['phone'] ?? $lead_data['phone'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>GSTIN</label>
+                        <input type="text" name="gstin" class="form-control" placeholder="22AAAAA0000A1Z5"
+                               value="<?= htmlspecialchars($_POST['gstin'] ?? '') ?>">
+                        <small style="color: #6c757d; font-size: 12px;">GST Identification Number</small>
                     </div>
                 </div>
             </div>
 
-            <!-- Additional Notes -->
-            <div class="form-section">
-                <div class="form-section-title">Additional Notes</div>
-                
-                <div class="form-group form-group-full">
-                    <label class="form-label">Internal Notes</label>
-                    <textarea name="notes" class="form-control" rows="4"
-                              placeholder="Any additional information about this client..."><?= htmlspecialchars($_POST['notes'] ?? '') ?></textarea>
+            <!-- Additional Information -->
+            <div class="card" style="margin-bottom: 25px;">
+                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+                    📝 Additional Information
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Tags</label>
+                        <input type="text" name="tags" class="form-control" placeholder="VIP, Enterprise, Partner"
+                               value="<?= htmlspecialchars($_POST['tags'] ?? $lead_data['interests'] ?? '') ?>">
+                        <small style="color: #6c757d; font-size: 12px;">Comma-separated tags for categorization</small>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Internal Notes</label>
+                        <textarea name="notes" class="form-control" rows="4"
+                                  placeholder="Any additional information about this client..."><?= htmlspecialchars($_POST['notes'] ?? '') ?></textarea>
+                    </div>
                 </div>
             </div>
 
-            <div class="d-flex justify-content-between">
-                <a href="index.php" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary">Create Client</button>
+            <!-- Submit Buttons -->
+            <div style="display: flex; justify-content: space-between; padding-top: 20px;">
+                <a href="index.php" class="btn btn-accent" style="padding: 12px 30px; text-decoration: none;">Cancel</a>
+                <button type="submit" class="btn" style="padding: 12px 30px;">
+                    ✓ Create Client
+                </button>
             </div>
         </form>
     </div>
 </div>
 
-<?php include __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>

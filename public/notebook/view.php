@@ -64,14 +64,14 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div style="flex: 1;">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                        <h1 style="margin: 0;">📄 <?php echo htmlspecialchars($note['title']); ?></h1>
+                        <h1>📄 <?php echo htmlspecialchars($note['title']); ?></h1>
                         <?php if ($note['is_pinned']): ?>
                             <span style="background: #ffc107; color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;">
                                 📌 PINNED
                             </span>
                         <?php endif; ?>
                     </div>
-                    <p style="color: #6c757d; margin: 0;">
+                    <p>
                         Created by <strong><?php echo htmlspecialchars($note['creator_full_name'] ?? $note['creator_username']); ?></strong> 
                         on <?php echo date('M d, Y h:i A', strtotime($note['created_at'])); ?>
                         <?php if ($note['updated_at']): ?>
@@ -80,17 +80,17 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </p>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="index.php" class="btn btn-accent">← Back to Notes</a>
                     <?php if ($can_edit): ?>
-                        <a href="edit.php?id=<?php echo $note_id; ?>" class="btn btn-primary">✏️ Edit</a>
+                        <a href="edit.php?id=<?php echo $note_id; ?>" class="btn">✏️ Edit</a>
                     <?php endif; ?>
+                    <a href="versions.php?id=<?php echo $note_id; ?>" class="btn btn-accent">📚 Version History (v<?php echo $note['version']; ?>)</a>
                     <?php if ($can_delete): ?>
                         <form method="POST" action="delete.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this note? This action cannot be undone.');">
                             <input type="hidden" name="note_id" value="<?php echo $note_id; ?>">
                             <button type="submit" class="btn btn-danger">🗑️ Delete</button>
                         </form>
                     <?php endif; ?>
-                    <a href="versions.php?id=<?php echo $note_id; ?>" class="btn btn-secondary">📚 Version History (v<?php echo $note['version']; ?>)</a>
-                    <a href="index.php" class="btn btn-secondary">← Back to Notes</a>
                 </div>
             </div>
         </div>
@@ -100,7 +100,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <div>
                 <!-- Note Content -->
                 <div class="card">
-                    <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                    <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                         📝 Content
                     </h3>
                     
@@ -112,7 +112,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <!-- Attachments -->
                 <?php if (!empty($attachments)): ?>
                 <div class="card">
-                    <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                    <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                         📎 Attachments (<?php echo count($attachments); ?>)
                     </h3>
                     
@@ -162,7 +162,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <!-- Sharing Info -->
                 <?php if (!empty($shares) || $note['share_scope'] !== 'Private'): ?>
                 <div class="card">
-                    <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                    <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                         🔗 Sharing & Access
                     </h3>
                     
@@ -212,7 +212,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <div>
                 <!-- Metadata Card -->
                 <div class="card">
-                    <h3 style="margin: 0 0 16px 0; color: #1b2a57; font-size: 16px;">
+                    <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px;">
                         ℹ️ Information
                     </h3>
                     
@@ -268,7 +268,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <!-- Recent Versions -->
                 <?php if (!empty($versions)): ?>
                 <div class="card">
-                    <h3 style="margin: 0 0 16px 0; color: #1b2a57; font-size: 16px;">
+                    <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px;">
                         📚 Recent Versions
                     </h3>
                     

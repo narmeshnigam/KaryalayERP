@@ -93,9 +93,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         </span>
                     <?php endif; ?>
                     <?php if ($can_update): ?>
-                        <a href="edit.php?id=<?= $client_id ?>" class="btn btn-primary">✏️ Edit</a>
+                        <a href="edit.php?id=<?= $client_id ?>" class="btn">✏️ Edit</a>
                     <?php endif; ?>
-                    <a href="index.php" class="btn btn-secondary">← Back</a>
+                    <a href="index.php" class="btn btn-accent">← Back</a>
                 </div>
             </div>
         </div>
@@ -143,7 +143,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <!-- Tab Content -->
         <div class="card">
         <?php if ($active_tab === 'overview'): ?>
-            <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+            <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                 📋 Client Information
             </h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px;">
@@ -233,7 +233,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
             
             <?php if ($client['tags']): ?>
-                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin: 24px 0 16px 0; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin: 24px 0 16px 0; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                     🏷️ Tags
                 </h3>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -246,7 +246,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <?php endif; ?>
             
             <?php if ($client['notes']): ?>
-                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin: 24px 0 16px 0; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin: 24px 0 16px 0; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                     📝 Internal Notes
                 </h3>
                 <div style="white-space: pre-wrap; background: #f8f9fa; padding: 16px; border-radius: 6px; border: 1px solid #e9ecef; line-height: 1.6; color: #1b2a57;">
@@ -255,7 +255,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <?php endif; ?>
             
             <?php if (!empty($custom_fields)): ?>
-                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin: 24px 0 16px 0; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin: 24px 0 16px 0; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                     ⚙️ Custom Fields
                 </h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
@@ -273,7 +273,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <?php endif; ?>
 
         <?php elseif ($active_tab === 'contacts'): ?>
-            <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+            <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                 👥 Contact Persons
             </h3>
             <?php if (!empty($contacts)): ?>
@@ -317,12 +317,12 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <div style="font-size: 48px; margin-bottom: 16px;">👥</div>
                     <h3 style="color: #1b2a57; margin-bottom: 8px;">No contact persons linked yet</h3>
                     <p style="color: #6c757d; margin-bottom: 24px;">Link contacts from your contacts module to this client</p>
-                    <a href="../contacts/index.php" class="btn btn-primary">Add from Contacts</a>
+                    <a href="../contacts/index.php" class="btn">Add from Contacts</a>
                 </div>
             <?php endif; ?>
 
         <?php elseif ($active_tab === 'addresses'): ?>
-            <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+            <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                 📍 Addresses
             </h3>
             <?php if (!empty($addresses)): ?>
@@ -352,13 +352,13 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <h3 style="color: #1b2a57; margin-bottom: 8px;">No addresses added yet</h3>
                     <p style="color: #6c757d; margin-bottom: 24px;">Add billing, shipping, or office addresses for this client</p>
                     <?php if ($can_update): ?>
-                        <button class="btn btn-primary">+ Add Address</button>
+                        <button class="btn">+ Add Address</button>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
 
         <?php elseif ($active_tab === 'documents'): ?>
-            <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+            <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                 📄 Documents
             </h3>
             <?php if (!empty($documents)): ?>
@@ -376,7 +376,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                 </div>
                             </div>
                             <div>
-                                <a href="<?= htmlspecialchars($doc['file_path']) ?>" target="_blank" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">
+                                <a href="<?= htmlspecialchars($doc['file_path']) ?>" target="_blank" class="btn" style="padding: 8px 16px; font-size: 14px;">
                                     👁️ View
                                 </a>
                             </div>
@@ -389,13 +389,13 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <h3 style="color: #1b2a57; margin-bottom: 8px;">No documents uploaded yet</h3>
                     <p style="color: #6c757d; margin-bottom: 24px;">Upload NDAs, contracts, certificates, or other client documents</p>
                     <?php if ($can_update): ?>
-                        <button class="btn btn-primary">+ Upload Document</button>
+                        <button class="btn">+ Upload Document</button>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
 
         <?php elseif ($active_tab === 'projects' && $has_projects_table): ?>
-            <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+            <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                 🚀 Projects
             </h3>
             <?php if (!empty($projects)): ?>
@@ -415,7 +415,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                 <td><span class="badge badge-info"><?= htmlspecialchars($project['status']) ?></span></td>
                                 <td><?= date('M d, Y', strtotime($project['start_date'])) ?></td>
                                 <td style="text-align: center;">
-                                    <a href="../projects/view.php?id=<?= $project['id'] ?>" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                                    <a href="../projects/view.php?id=<?= $project['id'] ?>" class="btn btn-accent" style="padding: 6px 12px; font-size: 12px;">
                                         View →
                                     </a>
                                 </td>
@@ -432,7 +432,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <?php endif; ?>
 
         <?php elseif ($active_tab === 'timeline'): ?>
-            <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+            <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                 🕒 Activity Timeline
             </h3>
             <div style="position: relative; padding-left: 40px;">

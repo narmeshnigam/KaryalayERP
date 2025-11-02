@@ -66,18 +66,18 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="page-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div style="flex: 1;">
-                    <h1 style="margin: 0 0 8px 0;">📚 Version History</h1>
-                    <p style="color: #6c757d; margin: 0;">
+                    <h1>📚 Version History</h1>
+                    <p>
                         <strong><?php echo htmlspecialchars($note['title']); ?></strong> 
                         (Current: v<?php echo $note['version']; ?>)
                     </p>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="view.php?id=<?php echo $note_id; ?>" class="btn btn-secondary">👁️ View Note</a>
+                    <a href="index.php" class="btn btn-accent">← Back to Notes</a>
+                    <a href="view.php?id=<?php echo $note_id; ?>" class="btn btn-accent">👁️ View Note</a>
                     <?php if (can_edit_note($conn, $note_id, $CURRENT_USER_ID)): ?>
-                        <a href="edit.php?id=<?php echo $note_id; ?>" class="btn btn-primary">✏️ Edit</a>
+                        <a href="edit.php?id=<?php echo $note_id; ?>" class="btn">✏️ Edit</a>
                     <?php endif; ?>
-                    <a href="index.php" class="btn btn-secondary">← Back to Notes</a>
                 </div>
             </div>
         </div>
@@ -86,7 +86,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <!-- Version Timeline -->
             <div>
                 <div class="card">
-                    <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                    <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                         📜 Timeline (<?php echo count($versions); ?> versions)
                     </h3>
                     
@@ -103,7 +103,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                     <div style="background: <?php echo ($version['version_number'] == $compare_version) ? '#fff3cd' : '#f8f9fa'; ?>; padding: 12px; border-radius: 8px; border: 1px solid <?php echo ($version['version_number'] == $compare_version) ? '#ffc107' : '#e5e7eb'; ?>;">
                                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
                                             <div>
-                                                <div style="font-weight: 700; color: #1b2a57; font-size: 15px;">
+                                                <div style="font-weight: 700; color: #003581; font-size: 15px;">
                                                     Version <?php echo $version['version_number']; ?>
                                                     <?php if ($version['version_number'] == $note['version']): ?>
                                                         <span style="background: #28a745; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">CURRENT</span>
@@ -121,7 +121,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                         
                                         <div style="display: flex; gap: 4px;">
                                             <a href="?id=<?php echo $note_id; ?>&compare=<?php echo $version['version_number']; ?>" 
-                                               class="btn btn-sm <?php echo ($version['version_number'] == $compare_version) ? 'btn-warning' : 'btn-primary'; ?>" 
+                                               class="btn btn-sm <?php echo ($version['version_number'] == $compare_version) ? 'btn-warning' : ''; ?>" 
                                                style="font-size: 11px; padding: 4px 8px;">
                                                 <?php echo ($version['version_number'] == $compare_version) ? '👁️ Viewing' : '👁️ View'; ?>
                                             </a>
@@ -138,7 +138,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <div>
                 <?php if ($selected_version_content !== null): ?>
                     <div class="card">
-                        <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                        <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                             📄 Version <?php echo $compare_version; ?> Content
                         </h3>
                         
@@ -162,7 +162,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <!-- Current Version -->
                 <div class="card" style="margin-top: 24px;">
-                    <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                    <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                         ✨ Current Version (v<?php echo $note['version']; ?>)
                     </h3>
                     
@@ -173,7 +173,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <!-- Version Statistics -->
                 <div class="card" style="margin-top: 24px;">
-                    <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                    <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                         📊 Version Statistics
                     </h3>
                     

@@ -61,34 +61,111 @@ function scan_database_tables($conn) {
 
 /**
  * Guess module name from table name
+ * Based on 22 modules from sidebar navigation
  */
 function guess_module_from_table($table_name) {
-    $module_patterns = [
-        'crm_' => 'CRM',
-        'salary' => 'Finance',
-        'reimbursement' => 'Finance',
-        'office_expense' => 'Finance',
-        'employee' => 'HR',
-        'attendance' => 'HR',
-        'department' => 'HR',
-        'designation' => 'HR',
-        'leave' => 'HR',
-        'holiday' => 'HR',
-        'document' => 'Documents',
-        'visitor' => 'Reception',
-        'user' => 'System',
-        'role' => 'Settings',
-        'permission' => 'Settings',
-        'branding' => 'Settings',
+    // Exact table name matches (most specific)
+    $exact_matches = [
+        'employees' => 'Employees',
+        'departments' => 'Others',
+        'designations' => 'Others',
+        'attendance' => 'Attendance',
+        'leave_types' => 'Others',
+        'leave_requests' => 'Attendance',
+        'holidays' => 'Others',
+        'shift_types' => 'Attendance',
+        'reimbursements' => 'Reimbursements',
+        'crm_leads' => 'CRM',
+        'crm_deals' => 'CRM',
+        'crm_activities' => 'CRM',
+        'crm_contacts' => 'CRM',
+        'crm_companies' => 'CRM',
+        'office_expenses' => 'Expenses',
+        'expense_categories' => 'Expenses',
+        'salary_records' => 'Salary',
+        'salary_slips' => 'Salary',
+        'salary_components' => 'Salary',
+        'documents' => 'Documents',
+        'document_categories' => 'Documents',
+        'visitor_logs' => 'Visitor Log',
+        'notebook_notes' => 'Notebook',
+        'notebook_categories' => 'Notebook',
+        'contacts' => 'Contacts',
+        'contact_groups' => 'Contacts',
+        'clients' => 'Clients',
+        'client_contacts' => 'Clients',
+        'client_contacts_map' => 'Clients',
+        'client_documents' => 'Clients',
+        'projects' => 'Projects',
+        'project_tasks' => 'Projects',
+        'project_milestones' => 'Projects',
+        'project_documents' => 'Projects',
+        'items_master' => 'Catalog',
+        'item_categories' => 'Catalog',
+        'item_units' => 'Catalog',
+        'quotations' => 'Quotations',
+        'quotation_items' => 'Quotations',
+        'invoices' => 'Invoices',
+        'invoice_items' => 'Invoices',
+        'payments' => 'Payments',
+        'payment_methods' => 'Payments',
+        'payment_invoice_map' => 'Payments',
+        'payroll_master' => 'Payroll',
+        'payroll_records' => 'Payroll',
+        'payroll_allowances' => 'Payroll',
+        'payroll_deductions' => 'Payroll',
+        'payroll_activity_log' => 'Payroll',
+        'data_transfer_logs' => 'Data Transfer',
+        'assets_master' => 'Assets',
+        'asset_categories' => 'Assets',
+        'asset_assignments' => 'Assets',
+        'branding_settings' => 'Branding',
+        'branding' => 'Branding',
+        'roles' => 'Roles & Permissions',
+        'permissions' => 'Roles & Permissions',
+        'role_permissions' => 'Roles & Permissions',
+        'users' => 'Users Management',
+        'user_roles' => 'Users Management',
     ];
     
-    foreach ($module_patterns as $pattern => $module) {
-        if (stripos($table_name, $pattern) === 0 || stripos($table_name, $pattern) !== false) {
+    // Check exact match first
+    if (isset($exact_matches[$table_name])) {
+        return $exact_matches[$table_name];
+    }
+    
+    // Pattern matching (prefix-based)
+    $pattern_matches = [
+        'employee' => 'Employees',
+        'reimbursement' => 'Reimbursements',
+        'crm_' => 'CRM',
+        'expense' => 'Expenses',
+        'salary' => 'Salary',
+        'document' => 'Documents',
+        'visitor' => 'Visitor Log',
+        'notebook' => 'Notebook',
+        'contact' => 'Contacts',
+        'client' => 'Clients',
+        'project' => 'Projects',
+        'item' => 'Catalog',
+        'quotation' => 'Quotations',
+        'invoice' => 'Invoices',
+        'payment' => 'Payments',
+        'payroll' => 'Payroll',
+        'data_transfer' => 'Data Transfer',
+        'asset' => 'Assets',
+        'branding' => 'Branding',
+        'role' => 'Roles & Permissions',
+        'permission' => 'Roles & Permissions',
+        'user' => 'Users Management',
+    ];
+    
+    foreach ($pattern_matches as $pattern => $module) {
+        if (stripos($table_name, $pattern) !== false) {
             return $module;
         }
     }
     
-    return 'Other';
+    return 'Others';
 }
 
 /**

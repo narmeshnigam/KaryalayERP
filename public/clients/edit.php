@@ -86,12 +86,12 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="page-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div style="flex: 1;">
-                    <h1 style="margin: 0 0 8px 0;">✏️ Edit Client</h1>
-                    <p style="color: #6c757d; margin: 0;">Update client information and details</p>
+                    <h1>✏️ Edit Client</h1>
+                    <p>Update client information and details</p>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="view.php?id=<?= $client_id ?>" class="btn btn-secondary">👁️ View Profile</a>
-                    <a href="index.php" class="btn btn-secondary">← Back to Clients</a>
+                    <a href="view.php?id=<?= $client_id ?>" class="btn btn-accent">👁️ View Profile</a>
+                    <a href="index.php" class="btn btn-accent">← Back to Clients</a>
                 </div>
             </div>
         </div>
@@ -99,7 +99,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <?php require_once __DIR__ . '/../../includes/flash.php'; ?>
 
         <?php if (!empty($errors)): ?>
-            <div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 16px; border-radius: 6px; margin-bottom: 24px;">
+            <div class="alert alert-error">
                 <strong>⚠️ Please fix the following errors:</strong>
                 <ul style="margin: 8px 0 0 24px;">
                     <?php foreach ($errors as $error): ?>
@@ -112,7 +112,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <form method="POST">
             <!-- Client Code (Read-only) -->
             <div class="card" style="margin-bottom: 24px;">
-                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                     🔖 Client Code
                 </h3>
                 <div style="background: #f8f9fa; padding: 16px; border-radius: 6px; border: 1px solid #e9ecef; font-family: monospace; font-size: 18px; font-weight: bold; color: #1b2a57;">
@@ -125,7 +125,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
             <!-- Basic Information -->
             <div class="card" style="margin-bottom: 24px;">
-                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                     📋 Basic Information
                 </h3>
                 
@@ -176,7 +176,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
             <!-- Contact Information -->
             <div class="card" style="margin-bottom: 24px;">
-                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                     📞 Contact Information
                 </h3>
                 
@@ -200,7 +200,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
             <!-- Business Details -->
             <div class="card" style="margin-bottom: 24px;">
-                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                     🏢 Business Details
                 </h3>
                 
@@ -251,7 +251,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
             <!-- Additional Notes -->
             <div class="card" style="margin-bottom: 24px;">
-                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                     📝 Additional Notes
                 </h3>
                 
@@ -266,8 +266,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
             <!-- Action Buttons -->
             <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 2px solid #e9ecef;">
-                <a href="view.php?id=<?= $client_id ?>" class="btn btn-secondary">← Cancel</a>
-                <button type="submit" class="btn btn-primary" style="padding: 12px 32px;">💾 Save Changes</button>
+                <a href="view.php?id=<?= $client_id ?>" class="btn btn-accent">← Cancel</a>
+                <button type="submit" class="btn" style="padding: 12px 32px;">💾 Save Changes</button>
             </div>
         </form>
 

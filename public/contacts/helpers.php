@@ -25,8 +25,8 @@ function contacts_tables_exist($conn) {
  * Get all contacts with filters and pagination
  */
 function get_all_contacts($conn, $user_id, $filters = []) {
-    // Get user's role for permission checking (join roles table)
-    $user_role_query = "SELECT r.name as role_name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = ?";
+    // Get user's role for permission checking (join user_roles table)
+    $user_role_query = "SELECT r.name as role_name FROM user_roles ur JOIN roles r ON ur.role_id = r.id WHERE ur.user_id = ? LIMIT 1";
     $stmt = $conn->prepare($user_role_query);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -48,7 +48,7 @@ function get_all_contacts($conn, $user_id, $filters = []) {
     // Share scope filtering based on role
     if ($user_role !== 'Admin') {
         // Use a simple single-line subquery and concatenate SQL
-        $teamSubquery = "SELECT u2.id FROM users u2 WHERE u2.role_id = (SELECT id FROM roles WHERE name = ? LIMIT 1)";
+        $teamSubquery = "SELECT DISTINCT u2.id FROM users u2 JOIN user_roles ur2 ON u2.id = ur2.user_id JOIN roles r2 ON ur2.role_id = r2.id WHERE r2.name = ?";
         $sql .= " AND (c.share_scope = 'Organization' OR (c.share_scope = 'Team' AND c.created_by IN ($teamSubquery)) OR c.created_by = ?)";
         $params[] = $user_role;
         $params[] = $user_id;
@@ -114,11 +114,13 @@ function get_all_contacts($conn, $user_id, $filters = []) {
  * Get contact by ID with permission check
  */
 function get_contact_by_id($conn, $contact_id, $user_id) {
-    $sql = "SELECT c.*, u.username as created_by_username, r.name as creator_role
+    $sql = "SELECT c.*, u.username as created_by_username, GROUP_CONCAT(r.name ORDER BY r.name SEPARATOR ', ') as creator_role
         FROM contacts c
         LEFT JOIN users u ON c.created_by = u.id
-        LEFT JOIN roles r ON u.role_id = r.id
-        WHERE c.id = ?";
+        LEFT JOIN user_roles ur ON u.id = ur.user_id
+        LEFT JOIN roles r ON ur.role_id = r.id
+        WHERE c.id = ?
+        GROUP BY c.id";
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $contact_id);
@@ -143,13 +145,16 @@ function get_contact_by_id($conn, $contact_id, $user_id) {
  * Check if user can access a contact
  */
 function can_access_contact($conn, $contact_id, $user_id) {
-    $sql = "SELECT c.created_by, c.share_scope, ur.name as user_role, cr.name as creator_role
+    $sql = "SELECT c.created_by, c.share_scope, GROUP_CONCAT(DISTINCT ur.name ORDER BY ur.name SEPARATOR ', ') as user_role, GROUP_CONCAT(DISTINCT cr.name ORDER BY cr.name SEPARATOR ', ') as creator_role
         FROM contacts c
         LEFT JOIN users u ON u.id = ?
-        LEFT JOIN roles ur ON u.role_id = ur.id
+        LEFT JOIN user_roles uur ON u.id = uur.user_id
+        LEFT JOIN roles ur ON uur.role_id = ur.id
         LEFT JOIN users creator ON creator.id = c.created_by
-        LEFT JOIN roles cr ON creator.role_id = cr.id
-        WHERE c.id = ?";
+        LEFT JOIN user_roles cuur ON creator.id = cuur.user_id
+        LEFT JOIN roles cr ON cuur.role_id = cr.id
+        WHERE c.id = ?
+        GROUP BY c.id";
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $user_id, $contact_id);
@@ -163,7 +168,7 @@ function can_access_contact($conn, $contact_id, $user_id) {
     }
     
     // Admin can access everything
-    if ($data['user_role'] === 'Admin') {
+    if (strpos($data['user_role'], 'Admin') !== false) {
         return true;
     }
     
@@ -178,8 +183,13 @@ function can_access_contact($conn, $contact_id, $user_id) {
     }
     
     // Team scope - same role can access
-    if ($data['share_scope'] === 'Team' && $data['user_role'] === $data['creator_role']) {
-        return true;
+    if ($data['share_scope'] === 'Team') {
+        // Check if user and creator share any common role
+        $user_roles = explode(', ', $data['user_role']);
+        $creator_roles = explode(', ', $data['creator_role']);
+        if (array_intersect($user_roles, $creator_roles)) {
+            return true;
+        }
     }
     
     return false;
@@ -189,11 +199,13 @@ function can_access_contact($conn, $contact_id, $user_id) {
  * Check if user can edit a contact
  */
 function can_edit_contact($conn, $contact_id, $user_id) {
-    $sql = "SELECT c.created_by, r.name as role
+    $sql = "SELECT c.created_by, GROUP_CONCAT(r.name ORDER BY r.name SEPARATOR ', ') as role
         FROM contacts c
         LEFT JOIN users u ON u.id = ?
-        LEFT JOIN roles r ON u.role_id = r.id
-        WHERE c.id = ?";
+        LEFT JOIN user_roles ur ON u.id = ur.user_id
+        LEFT JOIN roles r ON ur.role_id = r.id
+        WHERE c.id = ?
+        GROUP BY c.id";
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $user_id, $contact_id);
@@ -207,7 +219,7 @@ function can_edit_contact($conn, $contact_id, $user_id) {
     }
     
     // Admin can edit everything
-    if ($data['role'] === 'Admin') {
+    if (strpos($data['role'], 'Admin') !== false) {
         return true;
     }
     

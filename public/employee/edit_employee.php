@@ -13,11 +13,13 @@ if ($id <= 0) {
 
 // Get available users for linking
 $available_users = [];
-$users_result = mysqli_query($conn, "SELECT u.id, u.username, u.full_name, u.email, r.name as role, 
+$users_result = mysqli_query($conn, "SELECT u.id, u.username, u.full_name, u.email, GROUP_CONCAT(r.name ORDER BY r.name SEPARATOR ', ') as role, 
                                       (SELECT COUNT(*) FROM employees WHERE user_id = u.id) as is_linked 
                                       FROM users u 
-                                      LEFT JOIN roles r ON u.role_id = r.id
-                                      WHERE u.is_active = 1 
+                                      LEFT JOIN user_roles ur ON u.id = ur.user_id
+                                      LEFT JOIN roles r ON ur.role_id = r.id
+                                      WHERE u.status = 'Active'
+                                      GROUP BY u.id
                                       ORDER BY u.username");
 while ($row = mysqli_fetch_assoc($users_result)) {
     $available_users[] = $row;
@@ -288,7 +290,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Get current linked user info (fetch before closing connection)
 $linked_user = null;
 if ($emp['user_id']) {
-  $user_stmt = mysqli_prepare($conn, "SELECT u.username, u.full_name, u.email, r.name as role FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE u.id = ?");
+  $user_stmt = mysqli_prepare($conn, "SELECT u.username, u.full_name, u.email, GROUP_CONCAT(r.name ORDER BY r.name SEPARATOR ', ') as role FROM users u LEFT JOIN user_roles ur ON u.id = ur.user_id LEFT JOIN roles r ON ur.role_id = r.id WHERE u.id = ? GROUP BY u.id");
   mysqli_stmt_bind_param($user_stmt, 'i', $emp['user_id']);
   mysqli_stmt_execute($user_stmt);
   $user_result = mysqli_stmt_get_result($user_stmt);

@@ -15,6 +15,7 @@ require_once __DIR__ . '/../config/db_connect.php';
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/setup_helper.php';
 require_once __DIR__ . '/../includes/authz.php';
+require_once __DIR__ . '/users/helpers.php';
 
 // Check if setup is complete, redirect to setup wizard if not
 if (!isSetupComplete()) {
@@ -111,6 +112,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $_SESSION['full_name'] = $user['full_name'];
                         $_SESSION['login_time'] = time();
 
+                        // Record login activity and update last_login
+                        update_last_login($conn, (int)$user['id']);
+                        log_user_activity($conn, [
+                            'user_id' => (int)$user['id'],
+                            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? '',
+                            'device' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+                            'login_time' => date('Y-m-d H:i:s'),
+                            'status' => 'Success',
+                            'failure_reason' => null
+                        ]);
+
                         if (authz_roles_tables_exist($conn)) {
                             // Ensure at least one role assignment exists, falling back to Employee if needed.
                             authz_ensure_user_role_assignment($conn, (int) $user['id']);
@@ -137,6 +149,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         header('Location: index.php');
                         exit;
                     } else {
+                        // If user exists, log failed attempt
+                        log_user_activity($conn, [
+                            'user_id' => (int)$user['id'],
+                            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? '',
+                            'device' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+                            'login_time' => date('Y-m-d H:i:s'),
+                            'status' => 'Failed',
+                            'failure_reason' => 'Invalid password'
+                        ]);
+
                         $error_message = 'Invalid username or password.';
                     }
                 } else {

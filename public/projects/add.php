@@ -71,11 +71,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="page-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div style="flex: 1;">
-                    <h1 style="margin: 0 0 8px 0;">➕ Create New Project</h1>
-                    <p style="color: #6c757d; margin: 0;">Set up a new internal or client project</p>
+                    <h1 style="margin: 0 0 8px 0;">➕ New Project</h1>
+                    <p style="color: #6c757d; margin: 0;">Create a new internal or client project</p>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="index.php" class="btn btn-secondary">← Back to Projects</a>
+                    <a href="index.php" class="btn btn-accent" style="text-decoration: none;">← Back</a>
                 </div>
             </div>
         </div>
@@ -83,7 +83,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <?php require_once __DIR__ . '/../../includes/flash.php'; ?>
 
         <?php if (!empty($errors)): ?>
-            <div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 16px; border-radius: 6px; margin-bottom: 24px;">
+            <div class="alert alert-error" style="margin-bottom: 24px;">
                 <strong>⚠️ Please fix the following errors:</strong>
                 <ul style="margin: 8px 0 0 24px;">
                     <?php foreach ($errors as $error): ?>
@@ -100,9 +100,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     📋 Basic Information
                 </h3>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                     <div style="grid-column: 1 / -1;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #003581;">
                             Project Title <span style="color: #dc3545;">*</span>
                         </label>
                         <input type="text" name="title" class="form-control" required
@@ -116,22 +116,22 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                     <div>
-                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #003581;">
                             🏷️ Project Type <span style="color: #dc3545;">*</span>
                         </label>
                         <select name="type" id="projectType" class="form-control" required 
                                 onchange="toggleClientField()">
                             <option value="Internal" <?= ($_POST['type'] ?? '') === 'Internal' ? 'selected' : '' ?>>
-                                🏠 Internal Project
+                                Internal Project
                             </option>
                             <option value="Client" <?= ($_POST['type'] ?? '') === 'Client' ? 'selected' : '' ?>>
-                                🏢 Client Project
+                                Client Project
                             </option>
                         </select>
                     </div>
                     
                     <div id="clientField" style="display: <?= ($_POST['type'] ?? '') === 'Client' ? 'block' : 'none' ?>;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #003581;">
                             🏢 Client <span style="color: #dc3545;" id="clientRequired">*</span>
                         </label>
                         <select name="client_id" class="form-control">
@@ -159,7 +159,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </h3>
                 
                 <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #003581;">
                         Description
                     </label>
                     <textarea name="description" class="form-control" rows="4" 
@@ -168,7 +168,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
                     <div>
-                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #003581;">
                             👤 Project Owner <span style="color: #dc3545;">*</span>
                         </label>
                         <select name="owner_id" class="form-control" required>
@@ -182,36 +182,24 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </div>
                     
                     <div>
-                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #003581;">
                             ⚡ Priority
                         </label>
                         <select name="priority" class="form-control">
-                            <option value="Low" <?= ($_POST['priority'] ?? '') === 'Low' ? 'selected' : '' ?>>
-                                🔵 Low
-                            </option>
-                            <option value="Medium" <?= ($_POST['priority'] ?? 'Medium') === 'Medium' ? 'selected' : '' ?>>
-                                🟡 Medium
-                            </option>
-                            <option value="High" <?= ($_POST['priority'] ?? '') === 'High' ? 'selected' : '' ?>>
-                                🟠 High
-                            </option>
-                            <option value="Critical" <?= ($_POST['priority'] ?? '') === 'Critical' ? 'selected' : '' ?>>
-                                🔴 Critical
-                            </option>
+                            <option value="Low" <?= ($_POST['priority'] ?? '') === 'Low' ? 'selected' : '' ?>>Low</option>
+                            <option value="Medium" <?= ($_POST['priority'] ?? 'Medium') === 'Medium' ? 'selected' : '' ?>>Medium</option>
+                            <option value="High" <?= ($_POST['priority'] ?? '') === 'High' ? 'selected' : '' ?>>High</option>
+                            <option value="Critical" <?= ($_POST['priority'] ?? '') === 'Critical' ? 'selected' : '' ?>>Critical</option>
                         </select>
                     </div>
                     
                     <div>
-                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #003581;">
                             📊 Status
                         </label>
                         <select name="status" class="form-control">
-                            <option value="Draft" <?= ($_POST['status'] ?? 'Draft') === 'Draft' ? 'selected' : '' ?>>
-                                📝 Draft
-                            </option>
-                            <option value="Active" <?= ($_POST['status'] ?? '') === 'Active' ? 'selected' : '' ?>>
-                                🚀 Active
-                            </option>
+                            <option value="Draft" <?= ($_POST['status'] ?? 'Draft') === 'Draft' ? 'selected' : '' ?>>Draft</option>
+                            <option value="Active" <?= ($_POST['status'] ?? '') === 'Active' ? 'selected' : '' ?>>Active</option>
                         </select>
                     </div>
                 </div>
@@ -225,7 +213,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                     <div>
-                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #003581;">
                             Start Date
                         </label>
                         <input type="date" name="start_date" class="form-control"
@@ -233,7 +221,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </div>
                     
                     <div>
-                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #003581;">
                             End Date
                         </label>
                         <input type="date" name="end_date" class="form-control"
@@ -253,7 +241,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </h3>
                 
                 <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #003581;">
                         Tags
                     </label>
                     <input type="text" name="tags" class="form-control" 
@@ -267,8 +255,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
             <!-- Action Buttons -->
             <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 2px solid #e9ecef;">
-                <a href="index.php" class="btn btn-secondary">← Cancel</a>
-                <button type="submit" class="btn btn-primary" style="padding: 12px 32px;">
+                <a href="index.php" class="btn btn-accent" style="text-decoration: none;">← Cancel</a>
+                <button type="submit" class="btn" style="padding: 12px 32px;">
                     🚀 Create Project
                 </button>
             </div>

@@ -134,13 +134,13 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
           <h1>📤 Upload Document</h1>
-          <p>Add a file to the central vault with proper tagging.</p>
+          <p>Add a file to the central vault with proper tagging</p>
         </div>
         <div>
-          <a href="index.php" class="btn btn-accent">← Back to vault</a>
+          <a href="index.php" class="btn btn-accent" style="text-decoration: none;">← Back to Vault</a>
         </div>
       </div>
     </div>
@@ -153,69 +153,93 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
     <?php if (!empty($errors)): ?>
       <div class="alert alert-error">
-        <ul style="margin:0;padding-left:20px;">
-          <?php foreach ($errors as $error): ?>
-            <li><?php echo htmlspecialchars($error, ENT_QUOTES); ?></li>
-          <?php endforeach; ?>
-        </ul>
+        <strong>❌ Error:</strong><br>
+        <?php foreach ($errors as $error): ?>
+          • <?php echo htmlspecialchars($error, ENT_QUOTES); ?><br>
+        <?php endforeach; ?>
       </div>
     <?php endif; ?>
 
-    <div class="card" style="max-width:720px;">
-      <form method="POST" enctype="multipart/form-data" style="display:grid;gap:18px;">
-        <div class="form-group">
-          <label for="title">Title <span style="color:#dc3545;">*</span></label>
-          <input type="text" id="title" name="title" class="form-control" value="<?php echo htmlspecialchars($form_data['title'], ENT_QUOTES); ?>" maxlength="100" required>
-        </div>
+    <form method="POST" enctype="multipart/form-data">
+      <!-- Document Information -->
+      <div class="card" style="margin-bottom: 25px;">
+        <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+          📄 Document Information
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label for="title">Title <span style="color: #dc3545;">*</span></label>
+            <input type="text" id="title" name="title" class="form-control" value="<?php echo htmlspecialchars($form_data['title'], ENT_QUOTES); ?>" maxlength="100" required>
+          </div>
 
-        <div class="form-group">
-          <label for="doc_type">Document type</label>
-          <input type="text" id="doc_type" name="doc_type" class="form-control" placeholder="e.g. Policy, Invoice" value="<?php echo htmlspecialchars($form_data['doc_type'], ENT_QUOTES); ?>" maxlength="50">
-        </div>
+          <div class="form-group">
+            <label for="doc_type">Document Type</label>
+            <input type="text" id="doc_type" name="doc_type" class="form-control" placeholder="e.g. Policy, Invoice, Contract" value="<?php echo htmlspecialchars($form_data['doc_type'], ENT_QUOTES); ?>" maxlength="50">
+          </div>
 
-        <div class="form-group">
-          <label for="employee_id">Link to employee</label>
-          <select id="employee_id" name="employee_id" class="form-control">
-            <option value="0">Not linked</option>
-            <?php foreach ($employees as $employee): ?>
-              <?php $selected = $form_data['employee_id'] === (string) (int) $employee['id'] ? 'selected' : ''; ?>
-              <option value="<?php echo (int) $employee['id']; ?>" <?php echo $selected; ?>><?php echo htmlspecialchars(($employee['employee_code'] ?? '') . ' - ' . trim(($employee['first_name'] ?? '') . ' ' . ($employee['last_name'] ?? ''))); ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
+          <div class="form-group">
+            <label for="visibility">Visibility <span style="color: #dc3545;">*</span></label>
+            <select id="visibility" name="visibility" class="form-control" required>
+              <?php foreach ($visibility_choices as $visibility_choice): ?>
+                <option value="<?php echo htmlspecialchars($visibility_choice, ENT_QUOTES); ?>" <?php echo $form_data['visibility'] === $visibility_choice ? 'selected' : ''; ?>><?php echo htmlspecialchars(documents_visibility_label($visibility_choice)); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
 
-        <div class="form-group">
-          <label for="project_id">Project ID</label>
-          <input type="number" id="project_id" name="project_id" class="form-control" min="0" value="<?php echo htmlspecialchars($form_data['project_id'], ENT_QUOTES); ?>">
-          <small style="color:#6c757d;">Optional numeric project id (if applicable)</small>
+          <div class="form-group">
+            <label for="tags">Tags</label>
+            <input type="text" id="tags" name="tags" class="form-control" placeholder="Comma separated tags" value="<?php echo htmlspecialchars($form_data['tags'], ENT_QUOTES); ?>" maxlength="255">
+            <small style="color: #6c757d;">Example: policy, onboarding, finance</small>
+          </div>
         </div>
+      </div>
 
-        <div class="form-group">
-          <label for="tags">Tags</label>
-          <input type="text" id="tags" name="tags" class="form-control" placeholder="Comma separated tags" value="<?php echo htmlspecialchars($form_data['tags'], ENT_QUOTES); ?>" maxlength="255">
-          <small style="color:#6c757d;">Example: policy, onboarding, finance</small>
-        </div>
+      <!-- Linking Information -->
+      <div class="card" style="margin-bottom: 25px;">
+        <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+          🔗 Linking Information
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+          <div class="form-group">
+            <label for="employee_id">Link to Employee</label>
+            <select id="employee_id" name="employee_id" class="form-control">
+              <option value="0">Not linked</option>
+              <?php foreach ($employees as $employee): ?>
+                <?php $selected = $form_data['employee_id'] === (string) (int) $employee['id'] ? 'selected' : ''; ?>
+                <option value="<?php echo (int) $employee['id']; ?>" <?php echo $selected; ?>><?php echo htmlspecialchars(($employee['employee_code'] ?? '') . ' - ' . trim(($employee['first_name'] ?? '') . ' ' . ($employee['last_name'] ?? ''))); ?></option>
+              <?php endforeach; ?>
+            </select>
+            <small style="color: #6c757d;">Optional: Link this document to an employee record</small>
+          </div>
 
-        <div class="form-group">
-          <label for="visibility">Visibility <span style="color:#dc3545;">*</span></label>
-          <select id="visibility" name="visibility" class="form-control" required>
-            <?php foreach ($visibility_choices as $visibility_choice): ?>
-              <option value="<?php echo htmlspecialchars($visibility_choice, ENT_QUOTES); ?>" <?php echo $form_data['visibility'] === $visibility_choice ? 'selected' : ''; ?>><?php echo htmlspecialchars(documents_visibility_label($visibility_choice)); ?></option>
-            <?php endforeach; ?>
-          </select>
+          <div class="form-group">
+            <label for="project_id">Project ID</label>
+            <input type="number" id="project_id" name="project_id" class="form-control" min="0" value="<?php echo htmlspecialchars($form_data['project_id'], ENT_QUOTES); ?>">
+            <small style="color: #6c757d;">Optional: Numeric project ID (if applicable)</small>
+          </div>
         </div>
+      </div>
 
-        <div class="form-group">
-          <label for="document_file">File <span style="color:#dc3545;">*</span></label>
-          <input type="file" id="document_file" name="document_file" class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.txt" required>
-          <small style="color:#6c757d;">Maximum size 10 MB. Supported formats: PDF, Office documents, images, text.</small>
+      <!-- File Upload -->
+      <div class="card" style="margin-bottom: 25px;">
+        <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+          📎 File Upload
+        </h3>
+        <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+          <div class="form-group">
+            <label for="document_file">File <span style="color: #dc3545;">*</span></label>
+            <input type="file" id="document_file" name="document_file" class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.txt" required>
+            <small style="color: #6c757d;">Maximum size 10 MB. Supported formats: PDF, Office documents, images, text.</small>
+          </div>
         </div>
+      </div>
 
-        <div>
-          <button type="submit" class="btn" <?php echo !$current_employee_id ? 'disabled' : ''; ?>>Upload document</button>
-        </div>
-      </form>
-    </div>
+      <!-- Action Buttons -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 2px solid #e9ecef;">
+        <a href="index.php" class="btn btn-accent" style="text-decoration: none;">← Cancel</a>
+        <button type="submit" class="btn" <?php echo !$current_employee_id ? 'disabled' : ''; ?>>📤 Upload Document</button>
+      </div>
+    </form>
   </div>
 </div>
 <?php

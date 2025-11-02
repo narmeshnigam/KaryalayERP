@@ -9,6 +9,19 @@
 // Start session
 session_start();
 
+// Include DB and helper to record logout
+require_once __DIR__ . '/../config/db_connect.php';
+require_once __DIR__ . '/users/helpers.php';
+
+// Record logout time for the user if logged in
+if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
+    $conn = createConnection(true);
+    if ($conn) {
+        update_user_logout($conn, (int)$_SESSION['user_id']);
+        closeConnection($conn);
+    }
+}
+
 // Unset all session variables
 $_SESSION = array();
 

@@ -223,9 +223,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         </div>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                             <?php if ($can_edit): ?>
-                                <a href="edit.php?id=<?= $project_id ?>" class="btn btn-primary">✏️ Edit</a>
+                                <a href="edit.php?id=<?= $project_id ?>" class="btn" style="text-decoration: none;">✏️ Edit</a>
                             <?php endif; ?>
-                            <a href="index.php" class="btn btn-secondary">← Back</a>
+                            <a href="index.php" class="btn btn-accent" style="text-decoration: none;">← Back</a>
                         </div>
                     </div>
                     
@@ -290,7 +290,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <!-- Progress Bar -->
             <div class="progress-section">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span style="font-weight: 600; color: #1b2a57;">Overall Progress</span>
+                    <span style="font-weight: 600; color: #003581;">Overall Progress</span>
                     <span style="font-weight: 600; color: #003581;"><?= number_format($project['progress'], 1) ?>%</span>
                 </div>
                 <div class="progress-bar-container">
@@ -500,7 +500,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         ✅ Project Tasks
                     </h3>
                     <div style="display:flex;gap:8px;">
-                        <a href="tasks.php?project_id=<?= $project_id ?>" class="btn btn-primary">Manage Tasks</a>
+                        <a href="tasks.php?project_id=<?= $project_id ?>" class="btn" style="text-decoration: none;">Manage Tasks</a>
                     </div>
                 </div>
                 
@@ -550,7 +550,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <p style="font-size: 18px; margin-bottom: 8px;">No tasks yet</p>
                         <p>Use the Manage Tasks button to add your first task.</p>
                         <div style="margin-top:12px;">
-                            <a href="tasks.php?project_id=<?= $project_id ?>" class="btn btn-primary">Manage Tasks</a>
+                            <a href="tasks.php?project_id=<?= $project_id ?>" class="btn" style="text-decoration: none;">Manage Tasks</a>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -564,7 +564,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         📋 Project Phases
                     </h3>
                     <div style="display:flex;gap:8px;">
-                        <a href="phases.php?project_id=<?= $project_id ?>" class="btn btn-primary">Manage Phases</a>
+                        <a href="phases.php?project_id=<?= $project_id ?>" class="btn" style="text-decoration: none;">Manage Phases</a>
                     </div>
                 </div>
                 
@@ -629,7 +629,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         👥 Project Team
                     </h3>
                     <div style="display:flex;gap:8px;">
-                        <a href="members.php?project_id=<?= $project_id ?>" class="btn btn-primary">Manage Members</a>
+                        <a href="members.php?project_id=<?= $project_id ?>" class="btn" style="text-decoration: none;">Manage Members</a>
                     </div>
                 </div>
                 
@@ -660,7 +660,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <p style="font-size: 18px; margin-bottom: 8px;">No team members</p>
                         <p>Invite members to collaborate on this project</p>
                         <div style="margin-top:12px;">
-                            <a href="members.php?project_id=<?= $project_id ?>" class="btn btn-primary">Manage Members</a>
+                            <a href="members.php?project_id=<?= $project_id ?>" class="btn" style="text-decoration: none;">Manage Members</a>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -674,7 +674,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         📎 Project Documents
                     </h3>
                     <div style="display:flex;gap:8px;">
-                        <a href="documents.php?project_id=<?= $project_id ?>" class="btn btn-primary">Manage Documents</a>
+                        <a href="documents.php?project_id=<?= $project_id ?>" class="btn" style="text-decoration: none;">Manage Documents</a>
                     </div>
                 </div>
                 
@@ -718,7 +718,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <p style="font-size: 18px; margin-bottom: 8px;">No documents</p>
                         <p>Use the Manage Documents button to upload the first document.</p>
                         <div style="margin-top:12px;">
-                            <a href="documents.php?project_id=<?= $project_id ?>" class="btn btn-primary">Manage Documents</a>
+                            <a href="documents.php?project_id=<?= $project_id ?>" class="btn" style="text-decoration: none;">Manage Documents</a>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -732,7 +732,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         📝 Activity Log
                     </h3>
                     <div style="display:flex;gap:8px;">
-                        <a href="activity.php?project_id=<?= $project_id ?>" class="btn btn-primary">Open Activity</a>
+                        <a href="activity.php?project_id=<?= $project_id ?>" class="btn" style="text-decoration: none;">Open Activity</a>
                     </div>
                 </div>
                 

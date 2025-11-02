@@ -49,119 +49,66 @@ if (isset($_GET['action']) && $_GET['action'] === 'export') {
     exit;
 }
 
-$page_title = "Import/Export Clients";
-include __DIR__ . '/../../includes/header_sidebar.php';
+$page_title = "Import/Export Clients - " . APP_NAME;
+require_once __DIR__ . '/../../includes/header_sidebar.php';
+require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
-<style>
-.import-export-container {
-    max-width: 900px;
-    margin: 2rem auto;
-}
-.section-card {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-.section-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: #333;
-}
-.section-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-}
-.feature-list {
-    list-style: none;
-    padding: 0;
-    margin: 1rem 0;
-}
-.feature-list li {
-    padding: 0.5rem 0;
-    color: #666;
-}
-.feature-list li::before {
-    content: "✓ ";
-    color: #28a745;
-    font-weight: bold;
-    margin-right: 0.5rem;
-}
-.csv-format {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 0.875rem;
-    overflow-x: auto;
-}
-.alert {
-    padding: 1rem;
-    border-radius: 4px;
-    margin-bottom: 1rem;
-}
-.alert-info {
-    background: #d1ecf1;
-    border: 1px solid #bee5eb;
-    color: #0c5460;
-}
-.alert-warning {
-    background: #fff3cd;
-    border: 1px solid #ffeeba;
-    color: #856404;
-}
-</style>
-
-<div class="container mt-4">
-    <div class="import-export-container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Import/Export Clients</h2>
-            <a href="index.php" class="btn btn-secondary">← Back to List</a>
+<div class="main-wrapper">
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>📤 Import/Export Clients</h1>
+                    <p>Manage client data in bulk</p>
+                </div>
+                <a href="index.php" class="btn btn-accent" style="text-decoration: none;">← Back to List</a>
+            </div>
         </div>
 
         <!-- Export Section -->
-        <div class="section-card">
-            <div class="text-center section-icon">📤</div>
-            <h3 class="section-title text-center">Export Clients</h3>
-            <p class="text-center text-muted">Download your client data as CSV file</p>
+        <div class="card" style="margin-bottom: 25px;">
+            <h3 style="color: #003581; font-size: 18px; font-weight: 700; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
+                📤 Export Clients
+            </h3>
+            <p style="color: #6c757d; margin-bottom: 16px;">Download your client data as CSV file</p>
             
-            <ul class="feature-list">
-                <li>Export all clients or filtered subset</li>
-                <li>CSV format compatible with Excel and Google Sheets</li>
-                <li>Includes all client details</li>
-                <li>Can be re-imported after editing</li>
+            <ul style="list-style: none; padding: 0; margin: 16px 0;">
+                <li style="padding: 8px 0; color: #495057;">✓ Export all clients or filtered subset</li>
+                <li style="padding: 8px 0; color: #495057;">✓ CSV format compatible with Excel and Google Sheets</li>
+                <li style="padding: 8px 0; color: #495057;">✓ Includes all client details</li>
+                <li style="padding: 8px 0; color: #495057;">✓ Can be re-imported after editing</li>
             </ul>
             
-            <div class="text-center mt-4">
-                <a href="?action=export" class="btn btn-success btn-lg">
+            <div style="margin-top: 24px;">
+                <a href="?action=export" class="btn" style="padding: 12px 32px; font-size: 16px; text-decoration: none; display: inline-block;">
                     📥 Export All Clients to CSV
                 </a>
             </div>
             
-            <div class="alert alert-info mt-3">
+            <div class="alert alert-info" style="margin-top: 16px; padding: 16px; border-radius: 6px; background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460;">
                 <strong>💡 Tip:</strong> Use filters on the main clients page, then click export to download only filtered results.
             </div>
         </div>
 
         <!-- Import Section -->
-        <div class="section-card">
-            <div class="text-center section-icon">📥</div>
-            <h3 class="section-title text-center">Import Clients</h3>
-            <p class="text-center text-muted">Bulk upload clients from CSV file</p>
+        <div class="card" style="margin-bottom: 25px;">
+            <h3 style="color: #003581; font-size: 18px; font-weight: 700; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
+                📥 Import Clients
+            </h3>
+            <p style="color: #6c757d; margin-bottom: 16px;">Bulk upload clients from CSV file</p>
             
-            <ul class="feature-list">
-                <li>Bulk import multiple clients at once</li>
-                <li>Automatic duplicate detection by email/phone</li>
-                <li>Preview before importing</li>
-                <li>Skip or update duplicates</li>
+            <ul style="list-style: none; padding: 0; margin: 16px 0;">
+                <li style="padding: 8px 0; color: #495057;">✓ Bulk import multiple clients at once</li>
+                <li style="padding: 8px 0; color: #495057;">✓ Automatic duplicate detection by email/phone</li>
+                <li style="padding: 8px 0; color: #495057;">✓ Preview before importing</li>
+                <li style="padding: 8px 0; color: #495057;">✓ Skip or update duplicates</li>
             </ul>
             
-            <div class="alert alert-warning">
+            <div class="alert alert-warning" style="margin-top: 24px; padding: 16px; border-radius: 6px; background: #fff3cd; border: 1px solid #ffeeba; color: #856404;">
                 <strong>⚠️ Import Requirements:</strong>
-                <ul style="margin: 0.5rem 0 0 1.5rem;">
+                <ul style="margin: 8px 0 0 20px;">
                     <li>CSV file must have headers in first row</li>
                     <li>At minimum, "Name" column is required</li>
                     <li>Owner must exist (use username)</li>
@@ -169,19 +116,19 @@ include __DIR__ . '/../../includes/header_sidebar.php';
                 </ul>
             </div>
             
-            <h4 style="margin-top: 2rem;">CSV Format</h4>
-            <p>Your CSV file should have the following columns:</p>
-            <div class="csv-format">
+            <h4 style="margin-top: 24px; color: #003581; font-weight: 600;">CSV Format</h4>
+            <p style="color: #6c757d; margin-bottom: 12px;">Your CSV file should have the following columns:</p>
+            <div style="background: #f8f9fa; padding: 16px; border-radius: 6px; font-family: monospace; font-size: 13px; overflow-x: auto; border: 1px solid #dee2e6;">
 Name,Legal Name,Industry,Email,Phone,Website,GSTIN,Status,Owner,Tags,Notes<br>
 "Acme Corporation","Acme Corp Ltd","IT Services","info@acme.com","9876543210","https://acme.com","22AAAAA0000A1Z5","Active","admin","VIP,Enterprise","Important client"<br>
 "TechStart Inc","TechStart Private Limited","Software","hello@techstart.com","9876543211","","","Active","admin","Startup",""
             </div>
             
-            <div class="text-center mt-4">
-                <a href="import_wizard.php" class="btn btn-primary btn-lg">
+            <div style="margin-top: 24px; display: flex; gap: 12px;">
+                <a href="import_wizard.php" class="btn" style="padding: 12px 32px; font-size: 16px; text-decoration: none; display: inline-block;">
                     📤 Start Import Wizard
                 </a>
-                <a href="sample_clients.csv" class="btn btn-outline-secondary btn-lg" download>
+                <a href="sample_clients.csv" class="btn btn-accent" style="padding: 12px 32px; font-size: 16px; text-decoration: none; display: inline-block;" download>
                     📄 Download Sample CSV
                 </a>
             </div>
@@ -191,30 +138,37 @@ Name,Legal Name,Industry,Email,Phone,Website,GSTIN,Status,Owner,Tags,Notes<br>
         <?php
         $stats = get_clients_statistics($conn, $_SESSION['user_id']);
         ?>
-        <div class="section-card">
-            <h3 class="section-title">Current Database</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
-                <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
-                    <div style="font-size: 2rem; font-weight: bold; color: #007bff;">
+        <div class="card">
+            <h3 style="color: #003581; font-size: 18px; font-weight: 700; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
+                📊 Current Database
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px;">
+                <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #003581 0%, #004aad 100%); color: white; border-radius: 8px;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">
                         <?= $stats['total'] ?>
                     </div>
-                    <div style="color: #666;">Total Clients</div>
+                    <div style="font-size: 14px; opacity: 0.9;">Total Clients</div>
                 </div>
-                <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
-                    <div style="font-size: 2rem; font-weight: bold; color: #28a745;">
+                <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); color: white; border-radius: 8px;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">
                         <?= $stats['active'] ?>
                     </div>
-                    <div style="color: #666;">Active</div>
+                    <div style="font-size: 14px; opacity: 0.9;">Active Clients</div>
                 </div>
-                <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
-                    <div style="font-size: 2rem; font-weight: bold; color: #6c757d;">
+                <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%); color: white; border-radius: 8px;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">
                         <?= $stats['inactive'] ?>
                     </div>
-                    <div style="color: #666;">Inactive</div>
+                    <div style="font-size: 14px; opacity: 0.9;">Inactive Clients</div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<?php include __DIR__ . '/../../includes/footer_sidebar.php'; ?>
+<?php
+if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
+    closeConnection($conn);
+}
+require_once __DIR__ . '/../../includes/footer_sidebar.php'; 
+?>

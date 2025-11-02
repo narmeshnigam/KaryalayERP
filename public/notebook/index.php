@@ -72,64 +72,49 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <p style="color: #6c757d; margin: 0;">Organize your notes, documents, and knowledge base</p>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <a href="my.php" class="btn btn-secondary">📝 My Notes</a>
-                    <a href="shared.php" class="btn btn-secondary">🔗 Shared With Me</a>
+                    <a href="my.php" class="btn btn-accent" style="text-decoration: none;">📝 My Notes</a>
+                    <a href="shared.php" class="btn btn-accent" style="text-decoration: none;">🔗 Shared With Me</a>
                     <?php if ($can_create): ?>
-                        <a href="add.php" class="btn btn-primary">➕ Create Note</a>
+                        <a href="add.php" class="btn" style="text-decoration: none;">➕ Create Note</a>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
 
         <!-- Statistics Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #e3f2fd;">📊</div>
-                <div class="stat-details">
-                    <div class="stat-value"><?php echo $stats['total_notes']; ?></div>
-                    <div class="stat-label">Total Notes</div>
-                </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #003581 0%, #004aad 100%); color: white;">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['total_notes']; ?></div>
+                <div style="font-size: 14px; opacity: 0.9;">Total Notes</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #f3e5f5;">📝</div>
-                <div class="stat-details">
-                    <div class="stat-value"><?php echo $stats['my_notes']; ?></div>
-                    <div class="stat-label">My Notes</div>
-                </div>
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%); color: white;">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['my_notes']; ?></div>
+                <div style="font-size: 14px; opacity: 0.9;">My Notes</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #e8f5e9;">🔗</div>
-                <div class="stat-details">
-                    <div class="stat-value"><?php echo $stats['shared_with_me']; ?></div>
-                    <div class="stat-label">Shared</div>
-                </div>
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); color: white;">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['shared_with_me']; ?></div>
+                <div style="font-size: 14px; opacity: 0.9;">Shared With Me</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #fff3e0;">📌</div>
-                <div class="stat-details">
-                    <div class="stat-value"><?php echo $stats['pinned_notes']; ?></div>
-                    <div class="stat-label">Pinned</div>
-                </div>
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #faa718 0%, #ffc04d 100%); color: white;">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['pinned_notes']; ?></div>
+                <div style="font-size: 14px; opacity: 0.9;">Pinned Notes</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #fce4ec;">📎</div>
-                <div class="stat-details">
-                    <div class="stat-value"><?php echo $stats['total_attachments']; ?></div>
-                    <div class="stat-label">Attachments</div>
-                </div>
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #17a2b8 0%, #20c9e0 100%); color: white;">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['total_attachments']; ?></div>
+                <div style="font-size: 14px; opacity: 0.9;">Total Attachments</div>
             </div>
         </div>
 
         <!-- Filters -->
-        <div class="card" style="margin-bottom: 24px;">
-            <form method="GET" action="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end;">
+        <div class="card" style="margin-bottom: 25px;">
+            <form method="GET" action="" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: end;">
                 <!-- Search -->
-                <div>
-                    <label for="search" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">Search</label>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="search">🔍 Search Notes</label>
                     <input 
                         type="text" 
                         id="search" 
@@ -141,8 +126,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
                 
                 <!-- Tag Filter -->
-                <div>
-                    <label for="tag" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">Tag</label>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="tag">🏷️ Tag</label>
                     <select id="tag" name="tag" class="form-control">
                         <option value="">All Tags</option>
                         <?php foreach ($all_tags as $tag): ?>
@@ -154,8 +139,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
                 
                 <!-- Share Scope -->
-                <div>
-                    <label for="share_scope" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">Scope</label>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="share_scope">📊 Scope</label>
                     <select id="share_scope" name="share_scope" class="form-control">
                         <option value="">All Scopes</option>
                         <option value="Private" <?php echo ($filters['share_scope'] === 'Private') ? 'selected' : ''; ?>>Private</option>
@@ -165,41 +150,48 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
                 
                 <!-- Actions -->
-                <div style="display: flex; gap: 8px;">
-                    <button type="submit" class="btn btn-primary">🔍 Filter</button>
-                    <a href="index.php" class="btn btn-secondary">Clear</a>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn" style="white-space: nowrap;">Search</button>
+                    <a href="index.php" class="btn btn-accent" style="white-space: nowrap; text-decoration: none; display: inline-block; text-align: center;">Clear</a>
                 </div>
             </form>
         </div>
 
         <!-- Notes Grid -->
         <div class="card">
-            <h3 style="margin: 0 0 16px 0; color: #1b2a57;">
-                📄 All Notes (<?php echo count($notes); ?>)
-            </h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: #003581;">
+                    📄 All Notes 
+                    <span style="font-size: 14px; color: #6c757d; font-weight: normal;">(<?php echo count($notes); ?> records)</span>
+                </h3>
+            </div>
             
             <?php if (empty($notes)): ?>
-                <div style="text-align: center; padding: 48px; color: #6c757d;">
-                    <div style="font-size: 64px; margin-bottom: 16px;">📒</div>
-                    <h3 style="color: #495057; margin-bottom: 8px;">No Notes Found</h3>
-                    <p>Start creating notes to organize your knowledge base.</p>
+                <div style="text-align: center; padding: 60px 20px; color: #6c757d;">
+                    <div style="font-size: 80px; margin-bottom: 20px;">📒</div>
+                    <h3 style="color: #003581; margin-bottom: 15px;">No Notes Found</h3>
+                    <p style="color: #6c757d; margin-bottom: 30px; font-size: 16px;">
+                        Start creating notes to organize your knowledge base.
+                    </p>
                     <?php if ($can_create): ?>
-                        <a href="add.php" class="btn btn-primary" style="margin-top: 16px;">➕ Create First Note</a>
+                        <a href="add.php" class="btn" style="padding: 15px 40px; font-size: 16px; text-decoration: none;">
+                            ➕ Create First Note
+                        </a>
                     <?php endif; ?>
                 </div>
             <?php else: ?>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
                     <?php foreach ($notes as $note): ?>
-                        <div class="note-card" style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; background: #fff; transition: all 0.3s; position: relative;">
+                        <div class="note-card" style="border: 1px solid #dee2e6; border-radius: 8px; padding: 16px; background: #fff; transition: all 0.3s; position: relative;">
                             <?php if ($note['is_pinned']): ?>
-                                <div style="position: absolute; top: 8px; right: 8px; background: #ffc107; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                                <div style="position: absolute; top: 8px; right: 8px; background: #faa718; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">
                                     📌 PINNED
                                 </div>
                             <?php endif; ?>
                             
                             <div style="margin-bottom: 12px;">
                                 <a href="view.php?id=<?php echo $note['id']; ?>" style="text-decoration: none;">
-                                    <h4 style="margin: 0 0 8px 0; color: #1b2a57; font-size: 16px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #003581; font-size: 16px; font-weight: 600;">
                                         <?php echo htmlspecialchars($note['title']); ?>
                                     </h4>
                                 </a>
@@ -220,7 +212,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                     $tags = explode(',', $note['tags']);
                                     foreach (array_slice($tags, 0, 3) as $tag): 
                                     ?>
-                                        <span style="background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 12px; font-size: 11px;">
+                                        <span style="background: #e3f2fd; color: #003581; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">
                                             #<?php echo htmlspecialchars(trim($tag)); ?>
                                         </span>
                                     <?php endforeach; ?>

@@ -61,14 +61,14 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="page-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div style="flex: 1;">
-                    <h1 style="margin: 0 0 8px 0;">👤 My Clients</h1>
-                    <p style="color: #6c757d; margin: 0;">Clients you own and manage</p>
+                    <h1>👤 My Clients</h1>
+                    <p>Clients you own and manage</p>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="index.php" class="btn btn-secondary">🏢 All Clients</a>
-                    <a href="import_export.php" class="btn btn-secondary">📤 Import/Export</a>
+                    <a href="index.php" class="btn btn-accent">🏢 All Clients</a>
+                    <a href="import_export.php" class="btn btn-accent">📤 Import/Export</a>
                     <?php if ($can_create): ?>
-                        <a href="add.php" class="btn btn-primary">➕ Add Client</a>
+                        <a href="add.php" class="btn">➕ Add Client</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -79,42 +79,42 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Statistics Cards -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #e3f2fd;">📊</div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
                 <div class="stat-content">
                     <div class="stat-value"><?= count($clients) ?></div>
                     <div class="stat-label">My Total Clients</div>
                 </div>
+                <div class="stat-icon">📊</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #e8f5e9;">✅</div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none;">
                 <div class="stat-content">
-                    <div class="stat-value" style="color: #28a745;">
+                    <div class="stat-value">
                         <?= count(array_filter($clients, fn($c) => $c['status'] === 'Active')) ?>
                     </div>
                     <div class="stat-label">Active</div>
                 </div>
+                <div class="stat-icon">✅</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #f3e5f5;">👥</div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none;">
                 <div class="stat-content">
-                    <div class="stat-value" style="color: #6f42c1;">
+                    <div class="stat-value">
                         <?= count(array_filter($clients, fn($c) => $c['contact_count'] > 0)) ?>
                     </div>
                     <div class="stat-label">With Contacts</div>
                 </div>
+                <div class="stat-icon">👥</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #fff3e0;">📄</div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; border: none;">
                 <div class="stat-content">
-                    <div class="stat-value" style="color: #ff9800;">
+                    <div class="stat-value">
                         <?= count(array_filter($clients, fn($c) => $c['document_count'] > 0)) ?>
                     </div>
                     <div class="stat-label">With Documents</div>
                 </div>
+                <div class="stat-icon">📄</div>
             </div>
         </div>
 
@@ -122,15 +122,15 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <!-- Filters and Search -->
         <div class="card" style="margin-bottom: 24px;">
             <form method="GET" action="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">🔍 Search</label>
+                <div class="form-group">
+                    <label>🔍 Search</label>
                     <input type="text" name="search" class="form-control" 
                            placeholder="Name, email, phone, code..." 
                            value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
                 </div>
                 
-                <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">📊 Status</label>
+                <div class="form-group">
+                    <label>📊 Status</label>
                     <select name="status" class="form-control">
                         <option value="">All Status</option>
                         <option value="Active" <?= ($_GET['status'] ?? '') === 'Active' ? 'selected' : '' ?>>Active</option>
@@ -138,8 +138,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </select>
                 </div>
                 
-                <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">🏭 Industry</label>
+                <div class="form-group">
+                    <label>🏭 Industry</label>
                     <select name="industry" class="form-control">
                         <option value="">All Industries</option>
                         <?php foreach ($industries as $industry): ?>
@@ -152,8 +152,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
                 
                 <div style="display: flex; gap: 8px; align-items: flex-end;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Apply Filters</button>
-                    <a href="my.php" class="btn btn-secondary" style="flex: 1;">Clear</a>
+                    <button type="submit" class="btn" style="flex: 1;">Apply Filters</button>
+                    <a href="my.php" class="btn btn-accent" style="flex: 1;">Clear</a>
                 </div>
             </form>
         </div>
@@ -228,10 +228,10 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                 </td>
                                 <td style="text-align: center;">
                                     <div style="display: flex; gap: 8px; justify-content: center;">
-                                        <a href="view.php?id=<?= $client['id'] ?>" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" title="View">
+                                        <a href="view.php?id=<?= $client['id'] ?>" class="btn btn-accent" style="padding: 6px 12px; font-size: 12px;" title="View">
                                             👁️ View
                                         </a>
-                                        <a href="edit.php?id=<?= $client['id'] ?>" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" title="Edit">
+                                        <a href="edit.php?id=<?= $client['id'] ?>" class="btn btn-accent" style="padding: 6px 12px; font-size: 12px;" title="Edit">
                                             ✏️ Edit
                                         </a>
                                     </div>
@@ -247,7 +247,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <h3 style="color: #1b2a57; margin-bottom: 8px;">No clients assigned to you yet</h3>
                 <p style="color: #6c757d; margin-bottom: 24px;">You don't own any clients at the moment.</p>
                 <?php if ($can_create): ?>
-                    <a href="add.php" class="btn btn-primary">➕ Add Your First Client</a>
+                    <a href="add.php" class="btn">➕ Add Your First Client</a>
                 <?php endif; ?>
             </div>
         <?php endif; ?>
@@ -292,15 +292,14 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 .stat-value {
     font-size: 28px;
     font-weight: 700;
-    color: #1b2a57;
     line-height: 1;
     margin-bottom: 4px;
 }
 
 .stat-label {
     font-size: 13px;
-    color: #6c757d;
     font-weight: 500;
+    opacity: 0.95;
 }
 </style>
 

@@ -370,25 +370,27 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <div class="main-content">
         
         <!-- Page Header -->
-        <div class="dashboard-header">
-            <div style="flex: 1;">
-                <h2>🚀 Projects</h2>
-                <p>Comprehensive project management and analytics</p>
-            </div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                <?php if ($is_admin_or_manager): ?>
-                <div class="view-toggle">
-                    <button class="view-toggle-btn active" onclick="switchView('list')" id="listViewBtn">
-                        📋 Projects List
-                    </button>
-                    <button class="view-toggle-btn" onclick="switchView('analytics')" id="analyticsViewBtn">
-                        📊 Analytics
-                    </button>
+        <div class="page-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>🚀 Projects</h1>
+                    <p>Manage and track all projects</p>
                 </div>
-                <?php endif; ?>
-                <?php if ($can_create): ?>
-                    <a href="add.php" class="btn btn-primary">➕ New Project</a>
-                <?php endif; ?>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                    <?php if ($is_admin_or_manager): ?>
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" onclick="switchView('list')" id="listViewBtn">
+                            📋 Projects
+                        </button>
+                        <button class="view-toggle-btn" onclick="switchView('analytics')" id="analyticsViewBtn">
+                            📊 Analytics
+                        </button>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($can_create): ?>
+                        <a href="add.php" class="btn" style="text-decoration: none;">➕ New Project</a>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 
@@ -398,154 +400,107 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="projects-list active" id="projectsList">
             
             <!-- Statistics Cards -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #e3f2fd;">📊</div>
-                    <div class="stat-content">
-                        <div class="stat-value"><?= $stats['total'] ?></div>
-                        <div class="stat-label">Total Projects</div>
-                    </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
+                <div class="card" style="text-align: center; background: linear-gradient(135deg, #003581 0%, #004aad 100%); color: white;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?= $stats['total'] ?></div>
+                    <div style="font-size: 14px; opacity: 0.9;">Total Projects</div>
                 </div>
                 
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #e8f5e9;">🚀</div>
-                    <div class="stat-content">
-                        <div class="stat-value" style="color: #28a745;">
-                            <?= $stats['active'] ?>
-                        </div>
-                        <div class="stat-label">Active Projects</div>
-                    </div>
+                <div class="card" style="text-align: center; background: linear-gradient(135deg, #faa718 0%, #ffc04d 100%); color: white;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?= $stats['active'] ?></div>
+                    <div style="font-size: 14px; opacity: 0.9;">Active Projects</div>
                 </div>
                 
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #fff3e0;">⏱️</div>
-                    <div class="stat-content">
-                        <div class="stat-value" style="color: #ff9800;"><?= $stats['overdue'] ?></div>
-                        <div class="stat-label">Overdue</div>
-                    </div>
+                <div class="card" style="text-align: center; background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%); color: white;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?= $stats['overdue'] ?></div>
+                    <div style="font-size: 14px; opacity: 0.9;">Overdue</div>
                 </div>
                 
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #f3e5f5;">👤</div>
-                    <div class="stat-content">
-                        <div class="stat-value" style="color: #6f42c1;"><?= $stats['my_projects'] ?></div>
-                        <div class="stat-label">My Projects</div>
-                    </div>
+                <div class="card" style="text-align: center; background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); color: white;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?= $stats['completed'] ?></div>
+                    <div style="font-size: 14px; opacity: 0.9;">Completed</div>
                 </div>
                 
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #e0f2f1;">✅</div>
-                    <div class="stat-content">
-                        <div class="stat-value" style="color: #00796b;"><?= $stats['completed'] ?></div>
-                        <div class="stat-label">Completed</div>
-                    </div>
+                <div class="card" style="text-align: center; background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%); color: white;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?= $stats['my_projects'] ?></div>
+                    <div style="font-size: 14px; opacity: 0.9;">My Projects</div>
                 </div>
             </div>
 
             <!-- Filters and Search -->
-            <div class="card" style="margin-bottom: 24px;">
-                <form method="GET" action="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">🔍 Search</label>
+            <div class="card" style="margin-bottom: 25px;">
+                <form method="GET" action="" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>🔍 Search Projects</label>
                         <input type="text" name="search" class="form-control" 
                                placeholder="Title, code, description..." 
                                value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
                     </div>
                     
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">📊 Status</label>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>📊 Status</label>
                         <select name="status" class="form-control">
                             <option value="">All Status</option>
-                            <option value="Pending" <?= ($_GET['status'] ?? '') === 'Pending' ? 'selected' : '' ?>>⏳ Pending</option>
-                            <option value="In Progress" <?= ($_GET['status'] ?? '') === 'In Progress' ? 'selected' : '' ?>>🚀 In Progress</option>
-                            <option value="On Hold" <?= ($_GET['status'] ?? '') === 'On Hold' ? 'selected' : '' ?>>⏸️ On Hold</option>
-                            <option value="Completed" <?= ($_GET['status'] ?? '') === 'Completed' ? 'selected' : '' ?>>✅ Completed</option>
+                            <option value="Pending" <?= ($_GET['status'] ?? '') === 'Pending' ? 'selected' : '' ?>>Pending</option>
+                            <option value="In Progress" <?= ($_GET['status'] ?? '') === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
+                            <option value="On Hold" <?= ($_GET['status'] ?? '') === 'On Hold' ? 'selected' : '' ?>>On Hold</option>
+                            <option value="Completed" <?= ($_GET['status'] ?? '') === 'Completed' ? 'selected' : '' ?>>Completed</option>
                         </select>
                     </div>
                     
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">🏷️ Type</label>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>🏷️ Type</label>
                         <select name="type" class="form-control">
                             <option value="">All Types</option>
-                            <option value="Internal" <?= ($_GET['type'] ?? '') === 'Internal' ? 'selected' : '' ?>>🏠 Internal</option>
-                            <option value="Client" <?= ($_GET['type'] ?? '') === 'Client' ? 'selected' : '' ?>>🏢 Client</option>
+                            <option value="Internal" <?= ($_GET['type'] ?? '') === 'Internal' ? 'selected' : '' ?>>Internal</option>
+                            <option value="Client" <?= ($_GET['type'] ?? '') === 'Client' ? 'selected' : '' ?>>Client</option>
                         </select>
                     </div>
                     
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">⚡ Priority</label>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>⚡ Priority</label>
                         <select name="priority" class="form-control">
-                            <option value="">All Priorities</option>
-                            <option value="Low" <?= ($_GET['priority'] ?? '') === 'Low' ? 'selected' : '' ?>>🔵 Low</option>
-                            <option value="Medium" <?= ($_GET['priority'] ?? '') === 'Medium' ? 'selected' : '' ?>>🟡 Medium</option>
-                            <option value="High" <?= ($_GET['priority'] ?? '') === 'High' ? 'selected' : '' ?>>🟠 High</option>
-                            <option value="Critical" <?= ($_GET['priority'] ?? '') === 'Critical' ? 'selected' : '' ?>>🔴 Critical</option>
+                            <option value="">All</option>
+                            <option value="Low" <?= ($_GET['priority'] ?? '') === 'Low' ? 'selected' : '' ?>>Low</option>
+                            <option value="Medium" <?= ($_GET['priority'] ?? '') === 'Medium' ? 'selected' : '' ?>>Medium</option>
+                            <option value="High" <?= ($_GET['priority'] ?? '') === 'High' ? 'selected' : '' ?>>High</option>
+                            <option value="Critical" <?= ($_GET['priority'] ?? '') === 'Critical' ? 'selected' : '' ?>>Critical</option>
                         </select>
                     </div>
                     
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">👤 Owner</label>
-                        <select name="owner_id" class="form-control">
-                            <option value="">All Owners</option>
-                            <?php foreach ($owners as $owner): ?>
-                                <option value="<?= $owner['id'] ?>" 
-                                    <?= ($_GET['owner_id'] ?? '') == $owner['id'] ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($owner['username']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <?php if (!empty($clients)): ?>
-                        <div>
-                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">🏢 Client</label>
-                            <select name="client_id" class="form-control">
-                                <option value="">All Clients</option>
-                                <?php foreach ($clients as $client): ?>
-                                    <option value="<?= $client['id'] ?>" 
-                                        <?= ($_GET['client_id'] ?? '') == $client['id'] ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($client['name']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <div style="display: flex; gap: 8px; align-items: flex-end;">
-                        <button type="submit" class="btn btn-primary" style="flex: 1;">Apply Filters</button>
-                        <a href="index.php" class="btn btn-secondary" style="flex: 1;">Clear</a>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="btn" style="white-space: nowrap;">Search</button>
+                        <a href="index.php" class="btn btn-accent" style="white-space: nowrap; text-decoration: none; display: inline-block; text-align: center;">Clear</a>
                     </div>
                 </form>
-                
-                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e9ecef;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" onclick="window.location.href='?my_projects=1'" 
-                               <?= isset($_GET['my_projects']) ? 'checked' : '' ?>>
-                        <span style="font-weight: 600; color: #1b2a57;">Show only projects I'm a member of</span>
-                    </label>
-                </div>
-            </div>
 
             <!-- Projects Table -->
             <?php if (count($projects) > 0): ?>
                 <div class="card">
-                    <table class="table">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0; color: #003581;">
+                            📋 Project List 
+                            <span style="font-size: 14px; color: #6c757d; font-weight: normal;">(<?= count($projects) ?> records)</span>
+                        </h3>
+                    </div>
+                    <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
                         <thead>
-                            <tr>
-                                <th>Project</th>
-                                <th>Type</th>
-                                <th>Client</th>
-                                <th>Owner</th>
-                                <th>Priority</th>
-                                <th>Progress</th>
-                                <th>Status</th>
-                                <th>Dates</th>
-                                <th style="text-align: center;">Actions</th>
+                            <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #003581;">Project</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #003581;">Type</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #003581;">Client</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #003581;">Owner</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #003581;">Priority</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #003581;">Progress</th>
+                                <th style="padding: 12px; text-align: center; font-weight: 600; color: #003581;">Status</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #003581;">Dates</th>
+                                <th style="padding: 12px; text-align: center; font-weight: 600; color: #003581;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($projects as $project): ?>
-                                <tr>
+                                <tr style="border-bottom: 1px solid #dee2e6;">
                                     <td>
                                         <div style="display: flex; gap: 12px; align-items: center;">
                                             <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #003581 0%, #0059b3 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;">
@@ -563,12 +518,12 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
-                                        <span class="badge badge-secondary">
+                                    <td style="padding: 12px;">
+                                        <span style="background: #e3f2fd; color: #003581; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; display: inline-block;">
                                             <?= get_project_type_icon($project['type']) ?> <?= htmlspecialchars($project['type']) ?>
                                         </span>
                                     </td>
-                                    <td>
+                                    <td style="padding: 12px;">
                                         <?php if ($project['client_name']): ?>
                                             <a href="../clients/view.php?id=<?= $project['client_id'] ?>" 
                                                style="color: #003581; text-decoration: none;">
@@ -578,13 +533,13 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                             <span style="color: #6c757d;">-</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?= htmlspecialchars($project['owner_username']) ?></td>
-                                    <td>
-                                        <span class="badge badge-secondary">
+                                    <td style="padding: 12px; font-size: 13px;"><?= htmlspecialchars($project['owner_username']) ?></td>
+                                    <td style="padding: 12px;">
+                                        <span style="background: #e3f2fd; color: #003581; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; display: inline-block;">
                                             <?= get_priority_icon($project['priority']) ?> <?= htmlspecialchars($project['priority']) ?>
                                         </span>
                                     </td>
-                                    <td>
+                                    <td style="padding: 12px;">
                                         <div style="display: flex; align-items: center; gap: 8px;">
                                             <div style="flex: 1; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
                                                 <div style="height: 100%; background: #003581; width: <?= $project['progress'] ?>%;"></div>
@@ -597,22 +552,22 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                             <?= $project['completed_tasks'] ?>/<?= $project['task_count'] ?> tasks
                                         </div>
                                     </td>
-                                    <td>
+                                    <td style="padding: 12px; text-align: center;">
                                         <?php if ($project['status'] === 'In Progress'): ?>
-                                            <span class="badge badge-success">
+                                            <span style="background: #d4edda; color: #155724; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-block;">
                                                 <?= get_project_status_icon($project['status']) ?> <?= htmlspecialchars($project['status']) ?>
                                             </span>
                                         <?php elseif ($project['status'] === 'Completed'): ?>
-                                            <span class="badge badge-info">
+                                            <span style="background: #cce5ff; color: #004085; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-block;">
                                                 <?= get_project_status_icon($project['status']) ?> <?= htmlspecialchars($project['status']) ?>
                                             </span>
                                         <?php else: ?>
-                                            <span class="badge badge-secondary">
+                                            <span style="background: #e2e3e5; color: #383d41; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-block;">
                                                 <?= get_project_status_icon($project['status']) ?> <?= htmlspecialchars($project['status']) ?>
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
+                                    <td style="padding: 12px; font-size: 13px;">
                                         <?php if ($project['start_date']): ?>
                                             <div style="font-size: 13px;">
                                                 📅 <?= date('M d, Y', strtotime($project['start_date'])) ?>
@@ -624,17 +579,17 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                             </div>
                                         <?php endif; ?>
                                     </td>
-                                    <td style="text-align: center;">
+                                    <td style="padding: 12px; text-align: center;">
                                         <div style="display: flex; gap: 8px; justify-content: center;">
                                             <a href="view.php?id=<?= $project['id'] ?>" 
-                                               class="btn btn-secondary" 
-                                               style="padding: 6px 12px; font-size: 12px;">
+                                               class="btn" 
+                                               style="padding: 6px 12px; font-size: 12px; text-decoration: none;">
                                                 👁️ View
                                             </a>
                                             <?php if ($can_update): ?>
                                                 <a href="edit.php?id=<?= $project['id'] ?>" 
-                                                   class="btn btn-secondary" 
-                                                   style="padding: 6px 12px; font-size: 12px;">
+                                                   class="btn btn-accent" 
+                                                   style="padding: 6px 12px; font-size: 12px; text-decoration: none;">
                                                     ✏️ Edit
                                                 </a>
                                             <?php endif; ?>
@@ -644,14 +599,17 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             <?php else: ?>
-                <div class="card" style="text-align: center; padding: 60px 20px;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
-                    <h3 style="color: #1b2a57; margin-bottom: 8px;">No projects found</h3>
-                    <p style="color: #6c757d; margin-bottom: 24px;">Start by creating your first project or adjust your filters.</p>
+                <div class="card" style="text-align: center; padding: 60px 20px; color: #6c757d;">
+                    <div style="font-size: 60px; margin-bottom: 15px;">🚀</div>
+                    <h3 style="color: #003581; margin-bottom: 10px;">No Projects Found</h3>
+                    <p>No projects match your search criteria. Try adjusting your filters.</p>
                     <?php if ($can_create): ?>
-                        <a href="add.php" class="btn btn-primary">➕ Create First Project</a>
+                        <a href="add.php" class="btn" style="margin-top: 20px; text-decoration: none;">➕ Create First Project</a>
+                    <?php else: ?>
+                        <a href="index.php" class="btn btn-accent" style="margin-top: 20px; text-decoration: none;">Clear Filters</a>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
@@ -660,68 +618,80 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- ANALYTICS VIEW (Admin/Manager Only) -->
         <?php if ($is_admin_or_manager): ?>
-        <div class="analytics-view" id="analyticsView">
+        <div class="analytics-view" id="analyticsView" style="display: none;">
             
             <!-- Analytics KPIs -->
-            <div class="kpi-strip" id="kpiStrip">
-                <div class="loading-state">
-                    <div class="spinner"></div>
-                    Loading analytics...
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;" id="kpiStrip">
+                <div class="card" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; text-align: center; padding: 25px;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;">-</div>
+                    <div style="font-size: 14px; opacity: 0.9;">On Track</div>
+                </div>
+                <div class="card" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); color: white; text-align: center; padding: 25px;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;">-</div>
+                    <div style="font-size: 14px; opacity: 0.9;">At Risk</div>
+                </div>
+                <div class="card" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; text-align: center; padding: 25px;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;">-</div>
+                    <div style="font-size: 14px; opacity: 0.9;">Delayed</div>
+                </div>
+                <div class="card" style="background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); color: white; text-align: center; padding: 25px;">
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;">-</div>
+                    <div style="font-size: 14px; opacity: 0.9;">Avg Progress</div>
                 </div>
             </div>
             
             <!-- Charts Row -->
-            <div class="dashboard-grid">
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h3 class="card-title">Projects by Status</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                <div class="card">
+                    <div style="border-bottom: 2px solid #f8f9fa; padding-bottom: 15px; margin-bottom: 15px;">
+                        <h3 style="color: #003581; margin: 0; font-size: 16px;">📊 Projects by Status</h3>
                     </div>
-                    <div class="chart-container">
+                    <div style="position: relative; height: 250px;">
                         <canvas id="statusChart"></canvas>
                     </div>
                 </div>
                 
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h3 class="card-title">Internal vs Client</h3>
+                <div class="card">
+                    <div style="border-bottom: 2px solid #f8f9fa; padding-bottom: 15px; margin-bottom: 15px;">
+                        <h3 style="color: #003581; margin: 0; font-size: 16px;">🏷️ Internal vs Client</h3>
                     </div>
-                    <div class="chart-container">
+                    <div style="position: relative; height: 250px;">
                         <canvas id="typeChart"></canvas>
                     </div>
                 </div>
             </div>
             
             <!-- Trend Chart (Full Width) -->
-            <div class="dashboard-card" style="margin-bottom: 2rem;">
-                <div class="card-header">
-                    <h3 class="card-title">Project Creation Trends (Last 12 Months)</h3>
+            <div class="card" style="margin-bottom: 25px;">
+                <div style="border-bottom: 2px solid #f8f9fa; padding-bottom: 15px; margin-bottom: 15px;">
+                    <h3 style="color: #003581; margin: 0; font-size: 16px;">📈 Project Creation Trends (Last 12 Months)</h3>
                 </div>
-                <div class="chart-container" style="height: 250px;">
+                <div style="position: relative; height: 300px;">
                     <canvas id="trendChart"></canvas>
                 </div>
             </div>
             
             <!-- Workload & Alerts -->
-            <div class="dashboard-grid">
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h3 class="card-title">Team Workload</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                <div class="card">
+                    <div style="border-bottom: 2px solid #f8f9fa; padding-bottom: 15px; margin-bottom: 15px;">
+                        <h3 style="color: #003581; margin: 0; font-size: 16px;">👥 Team Workload</h3>
                     </div>
                     <div id="workloadTable">
-                        <div class="loading-state">
-                            <div class="spinner"></div>
+                        <div style="text-align: center; padding: 40px 20px; color: #6c757d;">
+                            <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
                             Loading workload...
                         </div>
                     </div>
                 </div>
                 
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h3 class="card-title">⚠️ Alerts</h3>
+                <div class="card">
+                    <div style="border-bottom: 2px solid #f8f9fa; padding-bottom: 15px; margin-bottom: 15px;">
+                        <h3 style="color: #003581; margin: 0; font-size: 16px;">⚠️ Alerts</h3>
                     </div>
                     <div id="alertsPanel">
-                        <div class="loading-state">
-                            <div class="spinner"></div>
+                        <div style="text-align: center; padding: 40px 20px; color: #6c757d;">
+                            <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
                             Loading alerts...
                         </div>
                     </div>
@@ -729,28 +699,14 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
             
             <!-- Project Insights -->
-            <div class="dashboard-grid">
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h3 class="card-title">Recently Updated Projects</h3>
-                    </div>
-                    <div id="recentProjects">
-                        <div class="loading-state">
-                            <div class="spinner"></div>
-                            Loading projects...
-                        </div>
-                    </div>
+            <div class="card">
+                <div style="border-bottom: 2px solid #f8f9fa; padding-bottom: 15px; margin-bottom: 15px;">
+                    <h3 style="color: #003581; margin: 0; font-size: 16px;">💡 Recently Updated Projects</h3>
                 </div>
-                
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h3 class="card-title">Top Performing Projects</h3>
-                    </div>
-                    <div id="topProjects">
-                        <div class="loading-state">
-                            <div class="spinner"></div>
-                            Loading projects...
-                        </div>
+                <div id="recentProjects">
+                    <div style="text-align: center; padding: 40px 20px; color: #6c757d;">
+                        <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                        Loading projects...
                     </div>
                 </div>
             </div>

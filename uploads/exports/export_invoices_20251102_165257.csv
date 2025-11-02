@@ -1,0 +1,2 @@
+id,invoice_no,quotation_id,client_id,project_id,issue_date,due_date,payment_terms,currency,subtotal,tax_amount,discount_amount,round_off,total_amount,amount_paid,status,notes,terms,attachment,created_by,created_at,updated_at
+1,INV-2025-0001,,1,,2025-11-02,2025-12-02,"NET 30",INR,100.00,0.00,0.00,0.00,100.00,100.00,Paid,,,,2,"2025-11-02 04:56:59","2025-11-02 05:44:03"

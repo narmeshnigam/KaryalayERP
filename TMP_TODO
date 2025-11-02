@@ -1,1 +1,4 @@
-placeholder
+- [x] Fix Add Invoice form submission path and ensure item inputs stay enabled
+- [x] Audit invoice helpers/controllers for mismatched items_master columns
+- [x] Verify UI pages (add/edit/view/index) align with Employee module and function without errors
+- [x] Validate API endpoints (add/update/issue/cancel/delete) behave correctly and return JSON

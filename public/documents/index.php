@@ -293,29 +293,29 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <?php if ($can_create_document): ?>
-            <a href="upload.php" class="btn" style="background:#003581;color:#fff;">＋ Upload Document</a>
+            <a href="upload.php" class="btn" style="text-decoration: none;">＋ Upload Document</a>
           <?php endif; ?>
           <?php if ($scope === 'mine'): ?>
-            <a href="index.php?scope=mine" class="btn" style="background:#fff;color:#003581;border:1px solid #003581;">📄 My Workspace</a>
+            <a href="index.php?scope=mine" class="btn btn-accent" style="text-decoration: none;">📄 My Workspace</a>
           <?php else: ?>
-            <a href="index.php?scope=mine" class="btn btn-secondary">📄 My Workspace</a>
+            <a href="index.php?scope=mine" class="btn btn-accent" style="text-decoration: none;">📄 My Workspace</a>
           <?php endif; ?>
         </div>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
-      <div class="card" style="background:linear-gradient(135deg,#003581 0%,#0056b3 100%);color:#fff;text-align:center;padding:20px;">
-        <div style="font-size:32px;font-weight:700;margin-bottom:6px;"><?php echo $total_docs; ?></div>
-        <div>Total accessible documents</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:25px;">
+      <div class="card" style="background:linear-gradient(135deg,#003581 0%,#004aad 100%);color:#fff;text-align:center;">
+        <div style="font-size:32px;font-weight:700;margin-bottom:5px;"><?php echo $total_docs; ?></div>
+        <div style="font-size:14px;opacity:0.9;">Total Documents</div>
       </div>
-      <div class="card" style="background:linear-gradient(135deg,#17a2b8 0%,#138496 100%);color:#fff;text-align:center;padding:20px;">
-        <div style="font-size:32px;font-weight:700;margin-bottom:6px;"><?php echo $recent_docs; ?></div>
-        <div>Added in last 30 days</div>
+      <div class="card" style="background:linear-gradient(135deg,#faa718 0%,#ffc04d 100%);color:#fff;text-align:center;">
+        <div style="font-size:32px;font-weight:700;margin-bottom:5px;"><?php echo $recent_docs; ?></div>
+        <div style="font-size:14px;opacity:0.9;">Recent (30 days)</div>
       </div>
-      <div class="card" style="background:linear-gradient(135deg,#28a745 0%,#20c997 100%);color:#fff;text-align:center;padding:20px;">
-        <div style="font-size:32px;font-weight:700;margin-bottom:6px;"><?php echo $my_docs; ?></div>
-        <div>My linked documents</div>
+      <div class="card" style="background:linear-gradient(135deg,#28a745 0%,#34ce57 100%);color:#fff;text-align:center;">
+        <div style="font-size:32px;font-weight:700;margin-bottom:5px;"><?php echo $my_docs; ?></div>
+        <div style="font-size:14px;opacity:0.9;">My Documents</div>
       </div>
     </div>
 
@@ -369,16 +369,16 @@ require_once __DIR__ . '/../../includes/sidebar.php';
           <input type="date" id="to_date" name="to_date" class="form-control" value="<?php echo htmlspecialchars($to_date, ENT_QUOTES); ?>">
         </div>
         <div>
-          <button type="submit" class="btn" style="width:100%;">Apply filters</button>
+          <button type="submit" class="btn" style="width:100%;">Apply Filters</button>
         </div>
       </form>
     </div>
 
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
-        <h3 style="margin:0;color:#003581;">Documents (<?php echo count($documents); ?> of <?php echo $total_docs; ?>)</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+        <h3 style="margin:0;color:#003581;">📋 Documents <span style="font-size:14px;color:#6c757d;font-weight:normal;">(<?php echo count($documents); ?> of <?php echo $total_docs; ?>)</span></h3>
         <div>
-          <a href="index.php" class="btn btn-secondary" style="padding:6px 14px;font-size:13px;">Clear filters</a>
+          <a href="index.php" class="btn btn-accent" style="padding:6px 14px;font-size:13px;text-decoration:none;">Clear Filters</a>
         </div>
       </div>
 
@@ -441,10 +441,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                   </td>
                   <td style="padding:12px;text-align:center;white-space:nowrap;">
                     <?php if ($can_edit_this_doc): ?>
-                      <a href="edit.php?id=<?php echo (int) $document['id']; ?>" class="btn" style="padding:6px 14px;font-size:13px;background:#003581;color:#fff;margin-right:6px;">Edit</a>
+                      <a href="edit.php?id=<?php echo (int) $document['id']; ?>" class="btn btn-accent" style="padding:6px 12px;font-size:12px;text-decoration:none;">✏️ Edit</a>
                     <?php endif; ?>
-                    <a href="view.php?id=<?php echo (int) $document['id']; ?>" class="btn btn-accent" style="padding:6px 14px;font-size:13px;">View</a>
-                    <a href="<?php echo $download_url; ?>" class="btn" style="padding:6px 14px;font-size:13px;background:#17a2b8;color:#fff;" target="_blank" rel="noopener">Download</a>
+                    <a href="view.php?id=<?php echo (int) $document['id']; ?>" class="btn" style="padding:6px 12px;font-size:12px;text-decoration:none;">👁️ View</a>
                   </td>
                 </tr>
               <?php endforeach; ?>

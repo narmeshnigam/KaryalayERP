@@ -50,14 +50,14 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="page-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div>
-                    <h1 style="margin: 0 0 8px 0;">📝 My Notes</h1>
-                    <p style="color: #6c757d; margin: 0;">Notes created by you</p>
+                    <h1>📝 My Notes</h1>
+                    <p>Notes created by you</p>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <a href="index.php" class="btn btn-secondary">📒 All Notes</a>
-                    <a href="shared.php" class="btn btn-secondary">🔗 Shared With Me</a>
+                    <a href="index.php" class="btn btn-accent">📒 All Notes</a>
+                    <a href="shared.php" class="btn btn-accent">🔗 Shared With Me</a>
                     <?php if ($can_create): ?>
-                        <a href="add.php" class="btn btn-primary">➕ Create Note</a>
+                        <a href="add.php" class="btn">➕ Create Note</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -65,10 +65,10 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Filters -->
         <div class="card" style="margin-bottom: 24px;">
-            <form method="GET" action="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; align-items: end;">
+            <form method="GET" action="" style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 16px; align-items: end;">
                 <!-- Search -->
-                <div>
-                    <label for="search" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">Search</label>
+                <div class="form-group">
+                    <label>🔍 Search</label>
                     <input 
                         type="text" 
                         id="search" 
@@ -80,8 +80,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
                 
                 <!-- Tag Filter -->
-                <div>
-                    <label for="tag" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">Tag</label>
+                <div class="form-group">
+                    <label>🏷️ Tag</label>
                     <select id="tag" name="tag" class="form-control">
                         <option value="">All Tags</option>
                         <?php foreach ($all_tags as $tag): ?>
@@ -94,15 +94,15 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <!-- Actions -->
                 <div style="display: flex; gap: 8px;">
-                    <button type="submit" class="btn btn-primary">🔍 Filter</button>
-                    <a href="my.php" class="btn btn-secondary">Clear</a>
+                    <button type="submit" class="btn">Filter</button>
+                    <a href="my.php" class="btn btn-accent">Clear</a>
                 </div>
             </form>
         </div>
 
         <!-- Notes Grid -->
         <div class="card">
-            <h3 style="margin: 0 0 16px 0; color: #1b2a57;">
+            <h3 style="margin: 0 0 16px 0; color: #003581;">
                 📄 My Notes (<?php echo count($notes); ?>)
             </h3>
             
@@ -112,7 +112,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <h3 style="color: #495057; margin-bottom: 8px;">No Notes Yet</h3>
                     <p>Start creating notes to organize your knowledge.</p>
                     <?php if ($can_create): ?>
-                        <a href="add.php" class="btn btn-primary" style="margin-top: 16px;">➕ Create First Note</a>
+                        <a href="add.php" class="btn" style="margin-top: 16px;">➕ Create First Note</a>
                     <?php endif; ?>
                 </div>
             <?php else: ?>
@@ -127,7 +127,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                             
                             <div style="margin-bottom: 12px;">
                                 <a href="view.php?id=<?php echo $note['id']; ?>" style="text-decoration: none;">
-                                    <h4 style="margin: 0 0 8px 0; color: #1b2a57; font-size: 16px;">
+                                    <h4 style="margin: 0 0 8px 0; color: #003581; font-size: 16px;">
                                         <?php echo htmlspecialchars($note['title']); ?>
                                     </h4>
                                 </a>

@@ -71,17 +71,17 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="page-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div style="flex: 1;">
-                    <h1 style="margin: 0 0 8px 0;">📇 Contacts Management</h1>
-                    <p style="color: #6c757d; margin: 0;">Manage and organize your business contacts</p>
+                    <h1>📇 Contacts Management</h1>
+                    <p>Manage and organize your business contacts</p>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <?php if ($can_export): ?>
-                        <a href="export.php?<?php echo http_build_query($filters); ?>" class="btn btn-secondary">📤 Export</a>
-                    <?php endif; ?>
-                    <a href="import.php" class="btn btn-secondary">📥 Import</a>
-                    <a href="groups.php" class="btn btn-secondary">👥 Groups</a>
                     <?php if ($can_create): ?>
-                        <a href="add.php" class="btn btn-primary">➕ Add Contact</a>
+                        <a href="add.php" class="btn">➕ Add Contact</a>
+                    <?php endif; ?>
+                    <a href="groups.php" class="btn btn-accent">� Groups</a>
+                    <a href="import.php" class="btn btn-accent">� Import</a>
+                    <?php if ($can_export): ?>
+                        <a href="export.php?<?php echo http_build_query($filters); ?>" class="btn btn-accent">📤 Export</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -91,58 +91,43 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Statistics Cards -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #e3f2fd;">📊</div>
-                <div class="stat-content">
-                    <div class="stat-value"><?php echo $stats['total']; ?></div>
-                    <div class="stat-label">Total Contacts</div>
-                </div>
+            <div class="card" style="background: linear-gradient(135deg, #003581 0%, #004aad 100%); padding: 20px; color: #fff; border: none;">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px;"><?php echo $stats['total']; ?></div>
+                <div style="font-size: 14px; opacity: 0.95;">📊 Total Contacts</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #f3e5f5;">👤</div>
-                <div class="stat-content">
-                    <div class="stat-value"><?php echo $stats['my_contacts']; ?></div>
-                    <div class="stat-label">My Contacts</div>
-                </div>
+            <div class="card" style="background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%); padding: 20px; color: #fff; border: none;">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px;"><?php echo $stats['my_contacts']; ?></div>
+                <div style="font-size: 14px; opacity: 0.95;">👤 My Contacts</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #e8f5e9;">🤝</div>
-                <div class="stat-content">
-                    <div class="stat-value"><?php echo $stats['shared']; ?></div>
-                    <div class="stat-label">Shared With Me</div>
-                </div>
+            <div class="card" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); padding: 20px; color: #fff; border: none;">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px;"><?php echo $stats['shared']; ?></div>
+                <div style="font-size: 14px; opacity: 0.95;">🤝 Shared With Me</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #fff3e0;">💼</div>
-                <div class="stat-content">
-                    <div class="stat-value"><?php echo $stats['clients']; ?></div>
-                    <div class="stat-label">Clients</div>
-                </div>
+            <div class="card" style="background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); padding: 20px; color: #fff; border: none;">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px;"><?php echo $stats['clients']; ?></div>
+                <div style="font-size: 14px; opacity: 0.95;">💼 Clients</div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-icon" style="background: #fce4ec;">🏢</div>
-                <div class="stat-content">
-                    <div class="stat-value"><?php echo $stats['vendors']; ?></div>
-                    <div class="stat-label">Vendors</div>
-                </div>
+            <div class="card" style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); padding: 20px; color: #fff; border: none;">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px;"><?php echo $stats['vendors']; ?></div>
+                <div style="font-size: 14px; opacity: 0.95;">🏢 Vendors</div>
             </div>
         </div>
 
         <!-- Filters and Search -->
         <div class="card" style="margin-bottom: 24px;">
-            <form method="GET" action="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">🔍 Search</label>
+            <form method="GET" action="" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 16px;">
+                <div class="form-group">
+                    <label>🔍 Search</label>
                     <input type="text" name="search" value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" 
                            placeholder="Name, email, phone, org..." class="form-control">
                 </div>
                 
-                <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">📂 Contact Type</label>
+                <div class="form-group">
+                    <label>📂 Contact Type</label>
                     <select name="contact_type" class="form-control">
                         <option value="">All Types</option>
                         <option value="Client" <?php echo (isset($_GET['contact_type']) && $_GET['contact_type'] === 'Client') ? 'selected' : ''; ?>>Client</option>
@@ -153,8 +138,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </select>
                 </div>
                 
-                <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">🏷️ Tag</label>
+                <div class="form-group">
+                    <label>🏷️ Tag</label>
                     <select name="tag" class="form-control">
                         <option value="">All Tags</option>
                         <?php foreach ($all_tags as $tag): ?>
@@ -166,8 +151,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </select>
                 </div>
                 
-                <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">👁️ Share Scope</label>
+                <div class="form-group">
+                    <label>👁️ Share Scope</label>
                     <select name="share_scope" class="form-control">
                         <option value="">All Scopes</option>
                         <option value="Private" <?php echo (isset($_GET['share_scope']) && $_GET['share_scope'] === 'Private') ? 'selected' : ''; ?>>🔒 Private</option>
@@ -177,24 +162,24 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
                 
                 <div style="display: flex; gap: 8px; align-items: flex-end;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Apply Filters</button>
-                    <a href="index.php" class="btn btn-secondary">Clear</a>
+                    <button type="submit" class="btn">Filter</button>
+                    <a href="index.php" class="btn btn-accent">Clear</a>
                 </div>
             </form>
         </div>
 
         <!-- Quick Links -->
         <div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
-            <a href="index.php" class="btn <?php echo empty($filters) ? 'btn-primary' : 'btn-secondary'; ?>" style="font-size: 14px;">
+            <a href="index.php" class="btn <?php echo empty($filters) ? '' : 'btn-accent'; ?>" style="font-size: 14px;">
                 📊 All Contacts (<?php echo $stats['total']; ?>)
             </a>
-            <a href="my.php" class="btn btn-secondary" style="font-size: 14px;">
+            <a href="my.php" class="btn btn-accent" style="font-size: 14px;">
                 👤 My Contacts (<?php echo $stats['my_contacts']; ?>)
             </a>
-            <a href="?contact_type=Client" class="btn btn-secondary" style="font-size: 14px;">
+            <a href="?contact_type=Client" class="btn btn-accent" style="font-size: 14px;">
                 💼 Clients (<?php echo $stats['clients']; ?>)
             </a>
-            <a href="?contact_type=Vendor" class="btn btn-secondary" style="font-size: 14px;">
+            <a href="?contact_type=Vendor" class="btn btn-accent" style="font-size: 14px;">
                 🏢 Vendors (<?php echo $stats['vendors']; ?>)
             </a>
         </div>
@@ -207,7 +192,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <h3 style="color: #495057; margin-bottom: 8px;">No Contacts Found</h3>
                     <p>Start by adding your first contact or adjust your filters.</p>
                     <?php if ($can_create): ?>
-                        <a href="add.php" class="btn btn-primary" style="margin-top: 16px;">➕ Add First Contact</a>
+                        <a href="add.php" class="btn" style="margin-top: 16px;">➕ Add First Contact</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -230,7 +215,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                 <?php echo get_contact_initials($contact['name']); ?>
                             </div>
                             <div style="flex: 1; min-width: 0;">
-                                <h3 style="margin: 0 0 4px 0; color: #1b2a57; font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <h3 style="margin: 0 0 4px 0; color: #003581; font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                     <?php echo htmlspecialchars($contact['name']); ?>
                                 </h3>
                                 <?php if (!empty($contact['designation'])): ?>

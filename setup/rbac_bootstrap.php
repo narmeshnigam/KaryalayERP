@@ -169,6 +169,9 @@ if (!function_exists('setup_rbac_seed_defaults')) {
             ['documents', 'Documents', 'Documents', 'Document management system'],
             // Reception Module
             ['visitor_logs', 'Reception', 'Visitor Logs', 'Visitor check-in records'],
+            // Catalog Module
+            ['items_master', 'Catalog', 'Catalog Items', 'Products and services inventory'],
+            ['item_inventory_log', 'Catalog', 'Inventory Log', 'Stock movement history'],
             // Settings Module
             ['roles', 'Settings', 'Roles', 'User role definitions'],
             ['permissions', 'Settings', 'Permissions', 'Permission structure'],

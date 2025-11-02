@@ -84,42 +84,41 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h1 style="margin: 0 0 8px 0;">➕ Create New Note</h1>
-                    <p style="color: #6c757d; margin: 0;">Add a new note with rich-text content and attachments</p>
+                    <h1>➕ Create New Note</h1>
+                    <p>Add a new note with rich-text content and attachments</p>
                 </div>
                 <div>
-                    <a href="index.php" class="btn btn-secondary">← Back to Notes</a>
+                    <a href="index.php" class="btn btn-accent">
+                        ← Back to Notes
+                    </a>
                 </div>
             </div>
         </div>
 
         <!-- Error Messages -->
         <?php if (!empty($errors)): ?>
-        <div style="background: #f8d7da; border: 1px solid #f5c2c7; color: #842029; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-            <strong>⚠️ Please fix the following errors:</strong>
-            <ul style="margin: 8px 0 0 0; padding-left: 20px;">
-                <?php foreach ($errors as $error): ?>
-                    <li><?php echo htmlspecialchars($error); ?></li>
-                <?php endforeach; ?>
-            </ul>
+        <div class="alert alert-error">
+            <strong>❌ Error:</strong><br>
+            <?php foreach ($errors as $error): ?>
+                • <?php echo htmlspecialchars($error); ?><br>
+            <?php endforeach; ?>
         </div>
         <?php endif; ?>
 
         <!-- Create Note Form -->
         <form method="POST" action="" enctype="multipart/form-data">
-            <div class="card">
-                <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+            <!-- Note Details -->
+            <div class="card" style="margin-bottom: 25px;">
+                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                     📝 Note Details
                 </h3>
                 
                 <div style="display: grid; gap: 20px;">
                     <!-- Title -->
-                    <div>
-                        <label for="title" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">
-                            Title <span style="color: #dc3545;">*</span>
-                        </label>
+                    <div class="form-group">
+                        <label>Title <span style="color: #dc3545;">*</span></label>
                         <input 
                             type="text" 
                             id="title" 
@@ -133,10 +132,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </div>
                     
                     <!-- Content -->
-                    <div>
-                        <label for="content" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">
-                            Content <span style="color: #dc3545;">*</span>
-                        </label>
+                    <div class="form-group">
+                        <label>Content <span style="color: #dc3545;">*</span></label>
                         <textarea 
                             id="content" 
                             name="content" 
@@ -146,10 +143,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </div>
                     
                     <!-- Tags -->
-                    <div>
-                        <label for="tags" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">
-                            Tags
-                        </label>
+                    <div class="form-group">
+                        <label>Tags</label>
                         <input 
                             type="text" 
                             id="tags" 
@@ -163,15 +158,14 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
             </div>
 
-            <div class="card">
-                <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+            <!-- Attachments -->
+            <div class="card" style="margin-bottom: 25px;">
+                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                     📎 Attachments
                 </h3>
                 
-                <div>
-                    <label for="attachments" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">
-                        Upload Files (Optional)
-                    </label>
+                <div class="form-group">
+                    <label>Upload Files (Optional)</label>
                     <input 
                         type="file" 
                         id="attachments" 
@@ -184,17 +178,16 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
             </div>
 
-            <div class="card">
-                <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+            <!-- Linking & Sharing -->
+            <div class="card" style="margin-bottom: 25px;">
+                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                     🔗 Linking & Sharing
                 </h3>
                 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
                     <!-- Share Scope -->
-                    <div>
-                        <label for="share_scope" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">
-                            Share Scope <span style="color: #dc3545;">*</span>
-                        </label>
+                    <div class="form-group">
+                        <label>Share Scope <span style="color: #dc3545;">*</span></label>
                         <select id="share_scope" name="share_scope" class="form-control" required>
                             <option value="Private" <?php echo (($_POST['share_scope'] ?? 'Private') === 'Private') ? 'selected' : ''; ?>>🔒 Private (Only Me)</option>
                             <option value="Team" <?php echo (($_POST['share_scope'] ?? '') === 'Team') ? 'selected' : ''; ?>>👥 Team (My Role)</option>
@@ -204,10 +197,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </div>
                     
                     <!-- Entity Type -->
-                    <div>
-                        <label for="linked_entity_type" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">
-                            Link to Entity (Optional)
-                        </label>
+                    <div class="form-group">
+                        <label>Link to Entity (Optional)</label>
                         <select id="linked_entity_type" name="linked_entity_type" class="form-control">
                             <option value="">None</option>
                             <option value="Client" <?php echo (($_POST['linked_entity_type'] ?? '') === 'Client') ? 'selected' : ''; ?>>Client</option>
@@ -219,10 +210,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </div>
                     
                     <!-- Entity ID -->
-                    <div>
-                        <label for="linked_entity_id" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">
-                            Entity ID (Optional)
-                        </label>
+                    <div class="form-group">
+                        <label>Entity ID (Optional)</label>
                         <input 
                             type="number" 
                             id="linked_entity_id" 
@@ -235,8 +224,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </div>
                     
                     <!-- Pin Note -->
-                    <div style="display: flex; align-items: center; padding-top: 28px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; cursor: pointer; margin-top: 28px;">
                             <input 
                                 type="checkbox" 
                                 name="is_pinned" 
@@ -244,16 +233,20 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                 <?php echo (isset($_POST['is_pinned'])) ? 'checked' : ''; ?>
                                 style="margin-right: 8px;"
                             >
-                            <span style="font-weight: 600; color: #495057;">📌 Pin this note</span>
+                            <span style="font-weight: 600;">📌 Pin this note</span>
                         </label>
                     </div>
                 </div>
             </div>
 
             <!-- Form Actions -->
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <a href="index.php" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary">✓ Create Note</button>
+            <div style="text-align: center; padding: 20px 0;">
+                <button type="submit" class="btn" style="padding: 15px 60px; font-size: 16px;">
+                    ✅ Create Note
+                </button>
+                <a href="index.php" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; margin-left: 15px; text-decoration: none;">
+                    ❌ Cancel
+                </a>
             </div>
         </form>
 

@@ -53,19 +53,19 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="page-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div style="flex: 1;">
-                    <h1 style="margin: 0 0 8px 0;">📇 Contact Details</h1>
-                    <p style="color: #6c757d; margin: 0;">View complete contact information</p>
+                    <h1>📇 Contact Details</h1>
+                    <p>View complete contact information</p>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="index.php" class="btn btn-accent">← Back</a>
                     <?php if ($can_edit): ?>
-                        <a href="edit.php?id=<?php echo $contact_id; ?>" class="btn btn-primary">✏️ Edit</a>
+                        <a href="edit.php?id=<?php echo $contact_id; ?>" class="btn">✏️ Edit</a>
                         <form method="POST" action="delete.php" style="display: inline;" 
                               onsubmit="return confirm('Are you sure you want to delete this contact?');">
                             <input type="hidden" name="contact_id" value="<?php echo $contact_id; ?>">
                             <button type="submit" class="btn btn-danger">🗑️ Delete</button>
                         </form>
                     <?php endif; ?>
-                    <a href="index.php" class="btn btn-secondary">← Back</a>
                 </div>
             </div>
         </div>
@@ -87,7 +87,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <!-- Header Info -->
                         <div style="flex: 1;">
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                                <h2 style="margin: 0; color: #1b2a57; font-size: 28px;">
+                                <h2 style="margin: 0; color: #003581; font-size: 28px;">
                                     <?php echo htmlspecialchars($contact['name']); ?>
                                 </h2>
                                 <span style="background: rgba(0,53,129,0.1); color: #003581; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600;">
@@ -111,14 +111,14 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;">
                                 <?php if (!empty($contact['phone'])): ?>
                                     <a href="tel:<?php echo htmlspecialchars($contact['phone']); ?>" 
-                                       class="btn btn-primary" style="font-size: 14px;">
+                                       class="btn" style="font-size: 14px;">
                                         📞 Call
                                     </a>
                                 <?php endif; ?>
                                 
                                 <?php if (!empty($contact['email'])): ?>
                                     <a href="mailto:<?php echo htmlspecialchars($contact['email']); ?>" 
-                                       class="btn btn-primary" style="font-size: 14px;">
+                                       class="btn" style="font-size: 14px;">
                                         ✉️ Email
                                     </a>
                                 <?php endif; ?>
@@ -143,7 +143,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <!-- Contact Information -->
                 <div class="card" style="margin-bottom: 24px;">
-                    <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                    <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                         📞 Contact Information
                     </h3>
                     
@@ -231,7 +231,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <!-- Notes -->
                 <?php if (!empty($contact['notes'])): ?>
                     <div class="card">
-                        <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                        <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                             📝 Notes
                         </h3>
                         <div style="color: #495057; line-height: 1.6; white-space: pre-wrap;">
@@ -246,7 +246,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <!-- Tags -->
                 <?php if (!empty($contact['tags'])): ?>
                     <div class="card" style="margin-bottom: 24px;">
-                        <h3 style="margin: 0 0 16px 0; color: #1b2a57; font-size: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+                        <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                             🏷️ Tags
                         </h3>
                         <div style="display: flex; gap: 6px; flex-wrap: wrap;">
@@ -265,7 +265,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <!-- Visibility & Sharing -->
                 <div class="card" style="margin-bottom: 24px;">
-                    <h3 style="margin: 0 0 16px 0; color: #1b2a57; font-size: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+                    <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                         👁️ Visibility
                     </h3>
                     
@@ -292,7 +292,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <!-- Entity Linking -->
                 <?php if (!empty($contact['linked_entity_type'])): ?>
                     <div class="card" style="margin-bottom: 24px;">
-                        <h3 style="margin: 0 0 16px 0; color: #1b2a57; font-size: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+                        <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                             🔗 Linked To
                         </h3>
                         
@@ -322,7 +322,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <!-- Metadata -->
                 <div class="card">
-                    <h3 style="margin: 0 0 16px 0; color: #1b2a57; font-size: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+                    <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                         ℹ️ Metadata
                     </h3>
                     

@@ -58,14 +58,14 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="page-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div style="flex: 1;">
-                    <h1 style="margin: 0 0 8px 0;">👤 My Contacts</h1>
-                    <p style="color: #6c757d; margin: 0;">Contacts created by you</p>
+                    <h1>👤 My Contacts</h1>
+                    <p>Contacts created by you</p>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="index.php" class="btn btn-accent">← All Contacts</a>
                     <?php if ($can_create): ?>
-                        <a href="add.php" class="btn btn-primary">➕ Add Contact</a>
+                        <a href="add.php" class="btn">➕ Add Contact</a>
                     <?php endif; ?>
-                    <a href="index.php" class="btn btn-secondary">← All Contacts</a>
                 </div>
             </div>
         </div>
@@ -74,15 +74,15 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Filters and Search -->
         <div class="card" style="margin-bottom: 24px;">
-            <form method="GET" action="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">🔍 Search</label>
+            <form method="GET" action="" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 16px;">
+                <div class="form-group">
+                    <label>🔍 Search</label>
                     <input type="text" name="search" value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" 
                            placeholder="Name, email, phone, org..." class="form-control">
                 </div>
                 
-                <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">📂 Contact Type</label>
+                <div class="form-group">
+                    <label>📂 Contact Type</label>
                     <select name="contact_type" class="form-control">
                         <option value="">All Types</option>
                         <option value="Client" <?php echo (isset($_GET['contact_type']) && $_GET['contact_type'] === 'Client') ? 'selected' : ''; ?>>Client</option>
@@ -93,8 +93,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </select>
                 </div>
                 
-                <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1b2a57;">🏷️ Tag</label>
+                <div class="form-group">
+                    <label>🏷️ Tag</label>
                     <select name="tag" class="form-control">
                         <option value="">All Tags</option>
                         <?php foreach ($all_tags as $tag): ?>
@@ -107,8 +107,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
                 
                 <div style="display: flex; gap: 8px; align-items: flex-end;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Apply Filters</button>
-                    <a href="my.php" class="btn btn-secondary">Clear</a>
+                    <button type="submit" class="btn">Filter</button>
+                    <a href="my.php" class="btn btn-accent">Clear</a>
                 </div>
             </form>
         </div>
@@ -121,7 +121,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <h3 style="color: #495057; margin-bottom: 8px;">No Contacts Found</h3>
                     <p>You haven't created any contacts yet or no contacts match your filters.</p>
                     <?php if ($can_create): ?>
-                        <a href="add.php" class="btn btn-primary" style="margin-top: 16px;">➕ Add First Contact</a>
+                        <a href="add.php" class="btn" style="margin-top: 16px;">➕ Add First Contact</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -144,7 +144,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                 <?php echo get_contact_initials($contact['name']); ?>
                             </div>
                             <div style="flex: 1; min-width: 0;">
-                                <h3 style="margin: 0 0 4px 0; color: #1b2a57; font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <h3 style="margin: 0 0 4px 0; color: #003581; font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                     <?php echo htmlspecialchars($contact['name']); ?>
                                 </h3>
                                 <?php if (!empty($contact['designation'])): ?>

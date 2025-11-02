@@ -216,17 +216,17 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 					<p>Document ID: #<?php echo (int) $document['id']; ?></p>
 				</div>
 				<div style="display:flex;gap:10px;flex-wrap:wrap;">
-					<a href="index.php" class="btn btn-secondary">← Back to list</a>
+					<a href="index.php" class="btn btn-accent" style="text-decoration: none;">← Back</a>
 					<?php if ($can_edit): ?>
-						<a href="edit.php?id=<?php echo (int) $document['id']; ?>" class="btn" style="background:#003581;color:#fff;">Edit</a>
+						<a href="edit.php?id=<?php echo (int) $document['id']; ?>" class="btn btn-accent" style="text-decoration: none;">✏️ Edit</a>
 					<?php endif; ?>
 					<?php if ($file_exists): ?>
-						<a href="<?php echo htmlspecialchars($file_url, ENT_QUOTES); ?>" target="_blank" rel="noopener" class="btn" style="background:#17a2b8;color:#fff;">Download</a>
+						<a href="<?php echo htmlspecialchars($file_url, ENT_QUOTES); ?>" target="_blank" rel="noopener" class="btn" style="text-decoration: none;">💾 Download</a>
 					<?php endif; ?>
 					<?php if ($can_archive): ?>
-						<form method="POST" onsubmit="return confirm('Archive this document?');">
+						<form method="POST" onsubmit="return confirm('Archive this document?');" style="display:inline;">
 							<input type="hidden" name="action" value="archive">
-							<button type="submit" class="btn" style="background:#dc3545;color:#fff;">Archive</button>
+							<button type="submit" class="btn" style="background:#dc3545;color:#fff;">🗄️ Archive</button>
 						</form>
 					<?php endif; ?>
 				</div>

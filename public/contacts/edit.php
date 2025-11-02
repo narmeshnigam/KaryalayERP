@@ -97,11 +97,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="page-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div style="flex: 1;">
-                    <h1 style="margin: 0 0 8px 0;">✏️ Edit Contact</h1>
-                    <p style="color: #6c757d; margin: 0;">Modify contact information</p>
+                    <h1>✏️ Edit Contact</h1>
+                    <p>Modify contact information</p>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="view.php?id=<?php echo $contact_id; ?>" class="btn btn-secondary">← Back to Contact</a>
+                    <a href="view.php?id=<?php echo $contact_id; ?>" class="btn btn-accent">← Back to Contact</a>
                 </div>
             </div>
         </div>
@@ -110,7 +110,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Error Display -->
         <?php if (!empty($errors)): ?>
-            <div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+            <div class="alert alert-error">
                 <strong>⚠️ Please fix the following errors:</strong>
                 <ul style="margin: 8px 0 0 20px;">
                     <?php foreach ($errors as $error): ?>
@@ -128,7 +128,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <div>
                     <!-- Basic Information -->
                     <div class="card" style="margin-bottom: 24px;">
-                        <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                        <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                             👤 Basic Information
                         </h3>
                         
@@ -169,7 +169,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     
                     <!-- Contact Information -->
                     <div class="card" style="margin-bottom: 24px;">
-                        <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                        <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                             📞 Contact Methods
                         </h3>
                         
@@ -223,7 +223,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     
                     <!-- Additional Information -->
                     <div class="card" style="margin-bottom: 24px;">
-                        <h3 style="margin: 0 0 20px 0; color: #1b2a57; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px;">
+                        <h3 style="margin: 0 0 20px 0; color: #003581; border-bottom: 2px solid #003581; padding-bottom: 12px;">
                             📝 Additional Information
                         </h3>
                         
@@ -251,7 +251,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <div>
                     <!-- Share Settings -->
                     <div class="card" style="margin-bottom: 24px;">
-                        <h3 style="margin: 0 0 16px 0; color: #1b2a57; font-size: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+                        <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                             👁️ Visibility
                         </h3>
                         
@@ -276,7 +276,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     
                     <!-- Entity Linking -->
                     <div class="card" style="margin-bottom: 24px;">
-                        <h3 style="margin: 0 0 16px 0; color: #1b2a57; font-size: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+                        <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                             🔗 Entity Linking
                         </h3>
                         
@@ -307,10 +307,10 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <!-- Actions -->
                     <div class="card">
                         <div style="display: grid; gap: 10px;">
-                            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            <button type="submit" class="btn" style="width: 100%;">
                                 💾 Update Contact
                             </button>
-                            <a href="view.php?id=<?php echo $contact_id; ?>" class="btn btn-secondary" style="width: 100%; text-align: center;">
+                            <a href="view.php?id=<?php echo $contact_id; ?>" class="btn btn-accent" style="width: 100%; text-align: center;">
                                 Cancel
                             </a>
                         </div>
