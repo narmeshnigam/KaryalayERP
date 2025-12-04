@@ -121,10 +121,45 @@ $status_colors = [
 $badge_style = $status_colors[$claim['status']] ?? 'background:#e2e3e5;color:#41464b;';
 ?>
 
+<style>
+.review-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.review-action-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+    .review-header-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .review-header-flex > div {
+        width: 100%;
+    }
+    .review-header-flex .btn {
+        width: 100%;
+        text-align: center;
+        display: block;
+    }
+    .review-action-buttons {
+        flex-direction: column;
+    }
+    .review-action-buttons .btn {
+        width: 100%;
+    }
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content" style="max-width:900px;">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="review-header-flex">
         <div>
           <h1>Review Claim #<?php echo (int) $claim['id']; ?></h1>
           <p>Inspect receipt and decide the appropriate action.</p>
@@ -200,7 +235,7 @@ $badge_style = $status_colors[$claim['status']] ?? 'background:#e2e3e5;color:#41
           <label for="remarks">Remarks (optional)</label>
           <textarea id="remarks" name="remarks" class="form-control" rows="4" placeholder="Add notes for the employee..."><?php echo htmlspecialchars($claim['admin_remarks'] ?? ''); ?></textarea>
         </div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div class="review-action-buttons">
           <button type="submit" name="decision" value="Approved" class="btn" style="background:#28a745;">✓ Approve</button>
           <button type="submit" name="decision" value="Pending" class="btn" style="background:#17a2b8;">⏳ Mark Pending</button>
           <button type="submit" name="decision" value="Rejected" class="btn" style="background:#dc3545;" onclick="return confirm('Reject this claim?');">✗ Reject</button>

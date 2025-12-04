@@ -104,15 +104,34 @@ $visit_time = strtotime($visit['visit_date']);
 $is_upcoming = $visit_time >= time();
 ?>
 
+<style>
+.visit-view-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.visit-view-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.visit-view-profile-card{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+.visit-view-profile-info{flex:1;min-width:280px;}
+
+@media (max-width:768px){
+.visit-view-header-flex{flex-direction:column;align-items:stretch;}
+.visit-view-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.visit-view-header-buttons .btn{width:100%;text-align:center;}
+.visit-view-profile-card{flex-direction:column;text-align:center;}
+.visit-view-profile-info{min-width:100%;}
+}
+
+@media (max-width:480px){
+.visit-view-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="visit-view-header-flex">
         <div>
           <h1>🚗 Visit Details</h1>
           <p>Detailed visit information and follow-up tracking</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="visit-view-header-buttons">
           <?php if ($visits_permissions['can_edit_all'] || $IS_SUPER_ADMIN): ?>
             <a href="edit.php?id=<?php echo $visit_id; ?>" class="btn">✏️ Edit Visit</a>
           <?php endif; ?>
@@ -124,11 +143,11 @@ $is_upcoming = $visit_time >= time();
     <?php echo flash_render(); ?>
 
     <!-- Visit Header Card -->
-    <div class="card" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+    <div class="card visit-view-profile-card">
       <div style="width:84px;height:84px;border-radius:50%;background:#003581;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:32px;">
         🚗
       </div>
-      <div style="flex:1;min-width:280px;">
+      <div class="visit-view-profile-info">
         <div style="font-size:20px;color:#003581;font-weight:700;">
           <?php echo safeValue(crm_visit_get($visit, 'title'), 'Untitled Visit'); ?>
         </div>

@@ -1,437 +1,388 @@
-<?php
+﻿<?php
 /**
  * Payroll Module - Helper Functions
- * Core utility functions for payroll processing
  */
 
-/**
- * Check if payroll tables exist
- */
+require_once __DIR__ . '/../../config/db_connect.php';
+
+// Check if payroll tables exist
 function payroll_tables_exist($conn) {
-    $required_tables = ['payroll_master', 'payroll_records', 'payroll_allowances', 'payroll_deductions', 'payroll_activity_log'];
-    
-    foreach ($required_tables as $table) {
-        $result = @mysqli_query($conn, "SHOW TABLES LIKE '$table'");
-        if (!$result || mysqli_num_rows($result) === 0) {
-            return false;
-        }
-        @mysqli_free_result($result);
+    $tables = ['payroll_master', 'payroll_items', 'payroll_activity_log'];
+    foreach ($tables as $table) {
+        $result = $conn->query("SHOW TABLES LIKE '$table'");
+        if ($result->num_rows == 0) return false;
     }
-    
     return true;
 }
 
-/**
- * Get all payroll batches with filters
- */
-function get_all_payrolls($conn, $filters = []) {
-    $where_clauses = [];
-    $params = [];
-    $types = '';
-    
-    if (!empty($filters['status'])) {
-        $where_clauses[] = "pm.status = ?";
-        $params[] = $filters['status'];
-        $types .= 's';
-    }
-    
-    if (!empty($filters['year'])) {
-        $where_clauses[] = "YEAR(STR_TO_DATE(CONCAT(pm.month, '-01'), '%Y-%m-%d')) = ?";
-        $params[] = $filters['year'];
-        $types .= 'i';
-    }
-    
-    $where_sql = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
-    
-    $sql = "SELECT pm.*, 
-            u1.username as created_by_name,
-            u2.username as locked_by_name,
-            u3.username as paid_by_name
+// Get all payrolls with filters
+function get_all_payrolls($conn, $type = null, $month = null, $status = null) {
+    $sql = "SELECT pm.*, COUNT(pi.id) as item_count, u.username as created_by_name
             FROM payroll_master pm
-            LEFT JOIN users u1 ON pm.created_by = u1.id
-            LEFT JOIN users u2 ON pm.locked_by = u2.id
-            LEFT JOIN users u3 ON pm.paid_by = u3.id
-            $where_sql
-            ORDER BY pm.month DESC";
+            LEFT JOIN payroll_items pi ON pm.id = pi.payroll_id
+            LEFT JOIN users u ON pm.created_by = u.id
+            WHERE 1=1";
     
-    if (!empty($params)) {
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param($types, ...$params);
-        $stmt->execute();
-        $result = $stmt->get_result();
-    } else {
-        $result = $conn->query($sql);
-    }
+    if ($type) $sql .= " AND pm.payroll_type = '" . $conn->real_escape_string($type) . "'";
+    if ($month) $sql .= " AND pm.month_year = '" . $conn->real_escape_string($month) . "'";
+    if ($status) $sql .= " AND pm.status = '" . $conn->real_escape_string($status) . "'";
     
-    $payrolls = [];
-    while ($row = $result->fetch_assoc()) {
-        $payrolls[] = $row;
-    }
-    
-    return $payrolls;
+    $sql .= " GROUP BY pm.id ORDER BY pm.created_at DESC";
+    $result = $conn->query($sql);
+    return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
 }
 
-/**
- * Get payroll by ID
- */
+// Get payroll by ID
 function get_payroll_by_id($conn, $payroll_id) {
-    $stmt = $conn->prepare("
-        SELECT pm.*, 
-        u1.username as created_by_name,
-        u2.username as locked_by_name,
-        u3.username as paid_by_name
-        FROM payroll_master pm
-        LEFT JOIN users u1 ON pm.created_by = u1.id
-        LEFT JOIN users u2 ON pm.locked_by = u2.id
-        LEFT JOIN users u3 ON pm.paid_by = u3.id
-        WHERE pm.id = ?
-    ");
+    $stmt = $conn->prepare("SELECT pm.*, u.username as created_by_name 
+                            FROM payroll_master pm
+                            LEFT JOIN users u ON pm.created_by = u.id
+                            WHERE pm.id = ?");
     $stmt->bind_param("i", $payroll_id);
     $stmt->execute();
-    $result = $stmt->get_result();
-    return $result->fetch_assoc();
+    return $stmt->get_result()->fetch_assoc();
 }
 
-/**
- * Get payroll records for a payroll batch
- */
-function get_payroll_records($conn, $payroll_id) {
-    $stmt = $conn->prepare("
-        SELECT pr.*, 
-        CONCAT_WS(' ', e.first_name, e.last_name) as employee_name,
-        e.employee_code,
-        e.department,
-        e.designation,
-        e.official_email as employee_email
-        FROM payroll_records pr
-        INNER JOIN employees e ON pr.employee_id = e.id
-        WHERE pr.payroll_id = ?
-        ORDER BY e.first_name, e.last_name
-    ");
-    $stmt->bind_param("i", $payroll_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $records = [];
-    while ($row = $result->fetch_assoc()) {
-        $records[] = $row;
-    }
-    return $records;
-}
-
-/**
- * Get single payroll record
- */
-function get_payroll_record($conn, $record_id) {
-    $stmt = $conn->prepare("
-        SELECT pr.*, 
-        CONCAT_WS(' ', e.first_name, e.last_name) as employee_name,
-        e.employee_code,
-        e.department,
-        e.designation,
-        e.official_email as employee_email,
-        e.mobile_number as employee_phone,
-        e.basic_salary,
-        pm.month,
-        pm.status as payroll_status
-        FROM payroll_records pr
-        INNER JOIN employees e ON pr.employee_id = e.id
-        INNER JOIN payroll_master pm ON pr.payroll_id = pm.id
-        WHERE pr.id = ?
-    ");
-    $stmt->bind_param("i", $record_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    return $result->fetch_assoc();
-}
-
-/**
- * Get active employees for payroll generation
- */
-function get_active_employees_for_payroll($conn) {
-    $sql = "SELECT id, CONCAT_WS(' ', first_name, last_name) as employee_name, employee_code, department, designation, basic_salary, official_email
-            FROM employees
-            WHERE status = 'Active' AND basic_salary > 0
-            ORDER BY first_name, last_name";
-    $result = $conn->query($sql);
-    $employees = [];
-    while ($row = $result->fetch_assoc()) {
-        $employees[] = $row;
-    }
-    return $employees;
-}
-
-/**
- * Get attendance days for employee in a month
- */
-function get_attendance_days($conn, $employee_id, $month) {
-    // month format: YYYY-MM
-    $start_date = $month . '-01';
-    $end_date = date('Y-m-t', strtotime($start_date));
+// Get payroll items
+function get_payroll_items($conn, $payroll_id) {
+    $sql = "SELECT pi.*, CONCAT(e.first_name, ' ', e.last_name) as employee_name, 
+            e.employee_code, e.department, e.designation
+        FROM payroll_items pi
+        LEFT JOIN employees e ON pi.employee_id = e.id
+        WHERE pi.payroll_id = ?
+        ORDER BY pi.transaction_number ASC";
     
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) as present_days
-        FROM attendance
-        WHERE employee_id = ? 
-        AND attendance_date BETWEEN ? AND ?
-        AND status IN ('Present', 'Half Day', 'Work From Home')
-    ");
-    $stmt->bind_param("iss", $employee_id, $start_date, $end_date);
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $payroll_id);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $row = $result->fetch_assoc();
-    $present_days = (int)$row['present_days'];
-    $total_days = date('t', strtotime($start_date));
-    return [
-        'present_days' => $present_days,
-        'total_days' => $total_days
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+// Get payroll statistics
+function get_payroll_statistics($conn) {
+    $stats = [
+        'total_payrolls' => 0,
+        'salary_outflow' => 0,
+        'reimbursement_pending' => 0,
+        'locked_this_month' => 0
     ];
-}
-
-/**
- * Get approved reimbursements for employee in a month
- */
-function get_approved_reimbursements($conn, $employee_id, $month) {
-    // month format: YYYY-MM
-    $start_date = $month . '-01';
-    $end_date = date('Y-m-t', strtotime($start_date));
     
-    $stmt = $conn->prepare("
-        SELECT SUM(amount) as total_reimbursements
-        FROM reimbursements
-        WHERE employee_id = ? 
-        AND status = 'Approved'
-        AND expense_date BETWEEN ? AND ?
-    ");
-    $stmt->bind_param("iss", $employee_id, $start_date, $end_date);
+    // Total payrolls this month
+    $current_month = date('Y-m');
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM payroll_master WHERE month_year = ?");
+    $stmt->bind_param("s", $current_month);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $row = $result->fetch_assoc();
-    return (float)($row['total_reimbursements'] ?? 0);
-}
-
-/**
- * Get active allowances
- */
-function get_active_allowances($conn) {
-    $sql = "SELECT * FROM payroll_allowances WHERE active = 1 ORDER BY name";
-    $result = $conn->query($sql);
-    
-    $allowances = [];
-    while ($row = $result->fetch_assoc()) {
-        $allowances[] = $row;
+    if ($row = $stmt->get_result()->fetch_assoc()) {
+        $stats['total_payrolls'] = $row['count'];
     }
     
-    return $allowances;
-}
-
-/**
- * Get active deductions
- */
-function get_active_deductions($conn) {
-    $sql = "SELECT * FROM payroll_deductions WHERE active = 1 ORDER BY name";
-    $result = $conn->query($sql);
-    
-    $deductions = [];
-    while ($row = $result->fetch_assoc()) {
-        $deductions[] = $row;
+    // Total salary outflow (locked/paid)
+    $result = $conn->query("SELECT SUM(total_amount) as total FROM payroll_master 
+                            WHERE payroll_type = 'Salary' AND status IN ('Locked','Paid')");
+    if ($row = $result->fetch_assoc()) {
+        $stats['salary_outflow'] = $row['total'] ?? 0;
     }
     
-    return $deductions;
-}
-
-/**
- * Calculate allowances for base salary
- */
-function calculate_allowances($conn, $base_salary) {
-    $allowances = get_active_allowances($conn);
-    $total = 0;
-    
-    foreach ($allowances as $allowance) {
-        if ($allowance['type'] === 'Fixed') {
-            $total += $allowance['value'];
-        } else if ($allowance['type'] === 'Percent') {
-            $total += ($base_salary * $allowance['value'] / 100);
-        }
+    // Pending reimbursement amount
+    $result = $conn->query("SELECT SUM(total_amount) as total FROM payroll_master 
+                            WHERE payroll_type = 'Reimbursement' AND status = 'Draft'");
+    if ($row = $result->fetch_assoc()) {
+        $stats['reimbursement_pending'] = $row['total'] ?? 0;
     }
     
-    return round($total, 2);
-}
-
-/**
- * Calculate deductions for base salary
- */
-function calculate_deductions($conn, $base_salary) {
-    $deductions = get_active_deductions($conn);
-    $total = 0;
-    
-    foreach ($deductions as $deduction) {
-        if ($deduction['type'] === 'Fixed') {
-            $total += $deduction['value'];
-        } else if ($deduction['type'] === 'Percent') {
-            $total += ($base_salary * $deduction['value'] / 100);
-        }
-    }
-    
-    return round($total, 2);
-}
-
-/**
- * Calculate net pay
- */
-function calculate_net_pay($base_salary, $allowances, $reimbursements, $deductions, $bonus = 0, $penalties = 0) {
-    $net_pay = $base_salary + $allowances + $reimbursements + $bonus - $deductions - $penalties;
-    
-    // Net pay cannot be negative
-    if ($net_pay < 0) {
-        $net_pay = 0;
-    }
-    
-    return round($net_pay, 2);
-}
-
-/**
- * Calculate attendance-adjusted salary
- */
-function calculate_attendance_based_salary($base_salary, $present_days, $total_days) {
-    if ($total_days == 0) {
-        return 0;
-    }
-    
-    return round(($base_salary / $total_days) * $present_days, 2);
-}
-
-/**
- * Check if payroll exists for month
- */
-function payroll_exists_for_month($conn, $month) {
-    $stmt = $conn->prepare("SELECT id FROM payroll_master WHERE month = ?");
-    $stmt->bind_param("s", $month);
+    // Locked this month
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM payroll_master 
+                            WHERE status IN ('Locked','Paid') AND month_year = ?");
+    $stmt->bind_param("s", $current_month);
     $stmt->execute();
-    $result = $stmt->get_result();
-    return $result->num_rows > 0;
+    if ($row = $stmt->get_result()->fetch_assoc()) {
+        $stats['locked_this_month'] = $row['count'];
+    }
+    
+    return $stats;
 }
 
-/**
- * Log payroll activity
- */
-function log_payroll_activity($conn, $payroll_id, $user_id, $action, $details = null) {
-    $stmt = $conn->prepare("INSERT INTO payroll_activity_log (payroll_id, user_id, action, details) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("iiss", $payroll_id, $user_id, $action, $details);
+// Get active employees for salary payroll
+function get_employees_for_payroll($conn, $month_year = null) {
+    if (!$month_year) $month_year = date('Y-m');
+    
+    $sql = "SELECT e.id, CONCAT(e.first_name, ' ', e.last_name) as name, e.employee_code, e.department, e.designation,
+             e.basic_salary, e.hra, e.conveyance_allowance, e.medical_allowance, e.special_allowance, e.gross_salary
+         FROM employees e
+         WHERE e.status = 'Active'
+         ORDER BY name";
+
+    $result = $conn->query($sql);
+    return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+}
+
+// Get unpaid reimbursements
+function get_unpaid_reimbursements($conn) {
+    $sql = "SELECT r.*, CONCAT(e.first_name, ' ', e.last_name) as employee_name, e.employee_code
+        FROM reimbursements r
+        JOIN employees e ON r.employee_id = e.id
+        WHERE r.status = 'Approved' AND r.payment_status = 'Pending'
+        ORDER BY r.date_submitted DESC";
+    
+    $result = $conn->query($sql);
+    return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+}
+
+// Create payroll draft
+function create_payroll_draft($conn, $data) {
+    $stmt = $conn->prepare(
+        "INSERT INTO payroll_master 
+        (payroll_type, month_year, total_employees, total_amount, status, created_by) 
+        VALUES (?, ?, ?, ?, 'Draft', ?)"
+    );
+    
+    $stmt->bind_param(
+        "ssidi",
+        $data['payroll_type'],
+        $data['month_year'],
+        $data['total_employees'],
+        $data['total_amount'],
+        $data['created_by']
+    );
+    
+    if ($stmt->execute()) {
+        return $conn->insert_id;
+    }
+    return false;
+}
+
+// Add payroll item with auto-generated transaction number
+function add_payroll_item($conn, $data) {
+    // Generate unique transaction number if not provided
+    if (empty($data['transaction_number'])) {
+        $data['transaction_number'] = generate_transaction_number($conn, $data['payroll_id']);
+    }
+    
+    $stmt = $conn->prepare(
+        "INSERT INTO payroll_items 
+        (transaction_number, payroll_id, employee_id, item_type, base_salary, allowances, deductions, payable, 
+         attendance_days, reimbursement_id, transaction_ref, remarks, status) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    );
+    
+    $stmt->bind_param(
+        "siisddddsisss",
+        $data['transaction_number'],
+        $data['payroll_id'],
+        $data['employee_id'],
+        $data['item_type'],
+        $data['base_salary'],
+        $data['allowances'],
+        $data['deductions'],
+        $data['payable'],
+        $data['attendance_days'],
+        $data['reimbursement_id'],
+        $data['transaction_ref'],
+        $data['remarks'],
+        $data['status']
+    );
+    
     return $stmt->execute();
 }
 
-/**
- * Get payroll activity log
- */
-function get_payroll_activity_log($conn, $payroll_id) {
-    $stmt = $conn->prepare("
-        SELECT pal.*, u.username
-        FROM payroll_activity_log pal
-        INNER JOIN users u ON pal.user_id = u.id
-        WHERE pal.payroll_id = ?
-        ORDER BY pal.created_at DESC
-    ");
+// Generate unique transaction number for payroll item
+function generate_transaction_number($conn, $payroll_id) {
+    // Get payroll month_year
+    $stmt = $conn->prepare("SELECT month_year FROM payroll_master WHERE id = ?");
     $stmt->bind_param("i", $payroll_id);
     $stmt->execute();
     $result = $stmt->get_result();
     
-    $logs = [];
-    while ($row = $result->fetch_assoc()) {
-        $logs[] = $row;
+    if ($row = $result->fetch_assoc()) {
+        $month_year = str_replace('-', '', $row['month_year']); // Convert 2025-11 to 202511
+    } else {
+        $month_year = date('Ym'); // Fallback to current month
     }
     
-    return $logs;
-}
-
-/**
- * Get payroll dashboard statistics
- */
-function get_payroll_dashboard_stats($conn) {
-    // Current month stats
-    $current_month = date('Y-m');
-    $stmt = $conn->prepare("SELECT * FROM payroll_master WHERE month = ?");
-    $stmt->bind_param("s", $current_month);
+    // Get the last transaction number for this month
+    $prefix = "PAY-{$month_year}-";
+    $stmt = $conn->prepare("SELECT transaction_number FROM payroll_items 
+                           WHERE transaction_number LIKE ? 
+                           ORDER BY transaction_number DESC LIMIT 1");
+    $search_pattern = $prefix . '%';
+    $stmt->bind_param("s", $search_pattern);
     $stmt->execute();
-    $current_payroll = $stmt->get_result()->fetch_assoc();
+    $result = $stmt->get_result();
     
-    // Total employees with salary
-    $total_employees = $conn->query("SELECT COUNT(*) as count FROM employees WHERE status = 'active' AND basic_salary > 0")->fetch_assoc()['count'];
-    
-    // Last 3 months payroll
-    $sql = "SELECT * FROM payroll_master ORDER BY month DESC LIMIT 3";
-    $result = $conn->query($sql);
-    $recent_payrolls = [];
-    while ($row = $result->fetch_assoc()) {
-        $recent_payrolls[] = $row;
-    }
-    
-    // Average salary (fix for MariaDB LIMIT & IN/ALL/ANY/SOME subquery)
-    $latest_payroll_id = null;
-    $res = $conn->query("SELECT id FROM payroll_master ORDER BY month DESC LIMIT 1");
-    if ($res && ($row = $res->fetch_assoc())) {
-        $latest_payroll_id = $row['id'];
-    }
-    $avg_salary = 0;
-    if ($latest_payroll_id) {
-        $res2 = $conn->query("SELECT AVG(net_pay) as avg FROM payroll_records WHERE payroll_id = " . intval($latest_payroll_id));
-        if ($res2 && ($row2 = $res2->fetch_assoc())) {
-            $avg_salary = $row2['avg'] ?? 0;
+    $next_sequence = 1;
+    if ($row = $result->fetch_assoc()) {
+        // Extract sequence number from last transaction
+        $last_number = $row['transaction_number'];
+        $parts = explode('-', $last_number);
+        if (count($parts) === 3) {
+            $next_sequence = intval($parts[2]) + 1;
         }
     }
     
-    // Pending payouts (Locked but not Paid)
-    $pending_payouts = $conn->query("SELECT SUM(total_amount) as total FROM payroll_master WHERE status = 'Locked'")->fetch_assoc()['total'] ?? 0;
+    // Generate new transaction number: PAY-YYYYMM-XXXXX
+    $transaction_number = $prefix . str_pad($next_sequence, 5, '0', STR_PAD_LEFT);
     
-    return [
-        'current_payroll' => $current_payroll,
-        'total_employees' => $total_employees,
-        'recent_payrolls' => $recent_payrolls,
-        'average_salary' => round($avg_salary, 2),
-        'pending_payouts' => $pending_payouts
-    ];
-}
-
-/**
- * Format month display
- */
-function format_month_display($month) {
-    $date = DateTime::createFromFormat('Y-m', $month);
-    if ($date) {
-        return $date->format('F Y');
+    // Verify uniqueness (handle race conditions)
+    $check_stmt = $conn->prepare("SELECT COUNT(*) as count FROM payroll_items WHERE transaction_number = ?");
+    $check_stmt->bind_param("s", $transaction_number);
+    $check_stmt->execute();
+    $check_result = $check_stmt->get_result()->fetch_assoc();
+    
+    if ($check_result['count'] > 0) {
+        // Transaction number already exists, try next sequence
+        $next_sequence++;
+        $transaction_number = $prefix . str_pad($next_sequence, 5, '0', STR_PAD_LEFT);
     }
-    return $month;
+    
+    return $transaction_number;
 }
 
-/**
- * Get status badge class
- */
-function get_status_badge_class($status) {
-    switch ($status) {
-        case 'Draft':
-            return 'badge-draft';
-        case 'Reviewed':
-            return 'badge-reviewed';
-        case 'Locked':
-            return 'badge-locked';
-        case 'Paid':
-            return 'badge-paid';
-        default:
-            return 'badge-default';
+// Update payroll item (for editing transaction numbers and amounts)
+function update_payroll_item($conn, $item_id, $data) {
+    $update_fields = [];
+    $param_types = "";
+    $param_values = [];
+    
+    // Build dynamic UPDATE query based on provided data
+    if (isset($data['transaction_number'])) {
+        $update_fields[] = "transaction_number = ?";
+        $param_types .= "s";
+        $param_values[] = $data['transaction_number'];
     }
+    if (isset($data['base_salary'])) {
+        $update_fields[] = "base_salary = ?";
+        $param_types .= "d";
+        $param_values[] = $data['base_salary'];
+    }
+    if (isset($data['allowances'])) {
+        $update_fields[] = "allowances = ?";
+        $param_types .= "d";
+        $param_values[] = $data['allowances'];
+    }
+    if (isset($data['deductions'])) {
+        $update_fields[] = "deductions = ?";
+        $param_types .= "d";
+        $param_values[] = $data['deductions'];
+    }
+    if (isset($data['payable'])) {
+        $update_fields[] = "payable = ?";
+        $param_types .= "d";
+        $param_values[] = $data['payable'];
+    }
+    if (isset($data['remarks'])) {
+        $update_fields[] = "remarks = ?";
+        $param_types .= "s";
+        $param_values[] = $data['remarks'];
+    }
+    if (isset($data['status'])) {
+        $update_fields[] = "status = ?";
+        $param_types .= "s";
+        $param_values[] = $data['status'];
+    }
+    
+    if (empty($update_fields)) {
+        return false; // Nothing to update
+    }
+    
+    $sql = "UPDATE payroll_items SET " . implode(", ", $update_fields) . " WHERE id = ?";
+    $param_types .= "i";
+    $param_values[] = $item_id;
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param($param_types, ...$param_values);
+    
+    return $stmt->execute();
 }
 
-/**
- * Get status badge HTML
- */
-function get_status_badge($status) {
-    $class = get_status_badge_class($status);
-    return "<span class='status-badge $class'>$status</span>";
+// Update payroll master
+function update_payroll_master($conn, $payroll_id, $data) {
+    $stmt = $conn->prepare(
+        "UPDATE payroll_master 
+        SET total_employees = ?, total_amount = ?
+        WHERE id = ? AND status = 'Draft'"
+    );
+    
+    $stmt->bind_param("idi", $data['total_employees'], $data['total_amount'], $payroll_id);
+    return $stmt->execute();
 }
 
-/**
- * Format currency
- */
+// Lock payroll
+function lock_payroll($conn, $payroll_id, $transaction_mode, $transaction_ref) {
+    $stmt = $conn->prepare(
+        "UPDATE payroll_master 
+        SET status = 'Locked', 
+            transaction_mode = ?,
+            transaction_ref = ?,
+            locked_at = NOW()
+        WHERE id = ? AND status = 'Draft'"
+    );
+    
+    $stmt->bind_param("ssi", $transaction_mode, $transaction_ref, $payroll_id);
+    return $stmt->execute();
+}
+
+// Delete payroll draft
+function delete_payroll_draft($conn, $payroll_id) {
+    $payroll = get_payroll_by_id($conn, $payroll_id);
+    if ($payroll['status'] !== 'Draft') return false;
+    
+    // Delete items first (cascade should handle this, but being explicit)
+    $stmt = $conn->prepare("DELETE FROM payroll_items WHERE payroll_id = ?");
+    $stmt->bind_param("i", $payroll_id);
+    $stmt->execute();
+    
+    // Delete master
+    $stmt = $conn->prepare("DELETE FROM payroll_master WHERE id = ?");
+    $stmt->bind_param("i", $payroll_id);
+    return $stmt->execute();
+}
+
+// Log activity
+function log_payroll_activity($conn, $payroll_id, $action, $user_id, $description = null) {
+    $stmt = $conn->prepare(
+        "INSERT INTO payroll_activity_log (payroll_id, action, user_id, description) 
+        VALUES (?, ?, ?, ?)"
+    );
+    $stmt->bind_param("isis", $payroll_id, $action, $user_id, $description);
+    return $stmt->execute();
+}
+
+// Get activity log
+function get_payroll_activity_log($conn, $payroll_id) {
+    $sql = "SELECT pal.*, u.username
+            FROM payroll_activity_log pal
+            LEFT JOIN users u ON pal.user_id = u.id
+            WHERE pal.payroll_id = ?
+            ORDER BY pal.created_at DESC";
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $payroll_id);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+// Format currency
 function format_currency($amount) {
     return '₹' . number_format($amount, 2);
 }
-?>
+
+// Get month name
+function get_month_name($month_str) {
+    return date('F Y', strtotime($month_str . '-01'));
+}
+
+// Check if payroll exists for month and type
+function payroll_exists_for_month($conn, $month_year, $payroll_type) {
+    $stmt = $conn->prepare(
+        "SELECT id FROM payroll_master 
+        WHERE month_year = ? AND payroll_type = ? AND status != 'Draft'"
+    );
+    $stmt->bind_param("ss", $month_year, $payroll_type);
+    $stmt->execute();
+    return $stmt->get_result()->num_rows > 0;
+}
+
+// Calculate net pay
+function calculate_net_pay($base_salary, $allowances, $deductions) {
+    return ($base_salary + $allowances) - $deductions;
+}

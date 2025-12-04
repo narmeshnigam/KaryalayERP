@@ -1,0 +1,2 @@
+id,name,company_name,phone,email,source,status,notes,interests,follow_up_date,follow_up_type,follow_up_created,last_contacted_at,assigned_to,attachment,location,created_by,created_at,updated_at,deleted_at
+123,"Sample name","Sample company_name","Sample phone","Sample email","Sample source",new,"Sample text content","Sample text content",2025-01-01,call,123,2025-01-01,123,"Sample text content","Sample text content",123,"2025-11-16 00:11:34","2025-11-16 00:11:34","2025-11-16 00:11:34"

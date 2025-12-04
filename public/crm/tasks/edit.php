@@ -489,13 +489,36 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 
 <div class="main-wrapper">
   <div class="main-content">
+<style>
+.task-edit-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.task-edit-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.task-edit-form-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.task-edit-form-grid-1{display:grid;grid-template-columns:1fr;gap:20px;}
+
+@media (max-width:1024px){
+.task-edit-form-grid-3{grid-template-columns:repeat(2,1fr);}
+}
+
+@media (max-width:768px){
+.task-edit-header-flex{flex-direction:column;align-items:stretch;}
+.task-edit-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.task-edit-header-buttons .btn{width:100%;text-align:center;}
+.task-edit-form-grid-3{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.task-edit-header-flex h1{font-size:1.5rem;}
+.task-edit-form-grid-3{gap:15px;}
+}
+</style>
+
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="task-edit-header-flex">
         <div>
           <h1>✏️ Edit Task</h1>
           <p>Update task details and mark completion status</p>
         </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div class="task-edit-header-buttons">
           <a href="view.php?id=<?php echo $task_id; ?>" class="btn btn-secondary">← Back to Task</a>
           <a href="<?php echo crm_role_can_manage($user_role) ? 'index.php' : 'my.php'; ?>" class="btn btn-accent">← All Tasks</a>
         </div>
@@ -519,7 +542,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
           🧰 Task Information
         </h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="task-edit-form-grid-3">
           <div class="form-group">
             <label for="task_type">Task Type <span style="color: #dc3545;">*</span></label>
             <select id="task_type" name="task_type" class="form-control" required>
@@ -661,7 +684,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         </div>
         <?php endif; ?>
         
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="task-edit-form-grid-3">
           <div class="form-group">
             <label for="task_proof_image">Task Proof Image <span id="proof_required" style="color: #dc3545;">*</span></label>
             <input type="file" id="task_proof_image" name="task_proof_image" class="form-control" accept="image/jpeg,image/png,image/jpg">
@@ -697,7 +720,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
           📅 Follow-Up & Additional Details
         </h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="task-edit-form-grid-3">
           <div class="form-group">
             <label for="follow_up_date">Follow-Up Date</label>
             <input type="date" id="follow_up_date" name="follow_up_date" class="form-control" 

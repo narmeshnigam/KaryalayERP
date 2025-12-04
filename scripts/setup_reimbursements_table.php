@@ -56,26 +56,28 @@ function setupReimbursementModule() {
 				return ['success' => false, 'message' => 'Reimbursements table already exists.'];
 		}
 
-		$create_sql = "CREATE TABLE reimbursements (
-				id INT AUTO_INCREMENT PRIMARY KEY,
-				employee_id INT NOT NULL,
-				date_submitted DATE NOT NULL,
-				expense_date DATE NOT NULL,
-				category VARCHAR(50) NOT NULL,
-				amount DECIMAL(10,2) NOT NULL,
-				description TEXT NOT NULL,
-				status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
-				proof_file TEXT DEFAULT NULL,
-				admin_remarks TEXT DEFAULT NULL,
-				action_date TIMESTAMP NULL DEFAULT NULL,
-				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-				updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-				CONSTRAINT fk_reimbursements_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-				INDEX idx_reimbursements_employee (employee_id),
-				INDEX idx_reimbursements_status (status),
-				INDEX idx_reimbursements_expense_date (expense_date),
-				INDEX idx_reimbursements_submitted (date_submitted)
-		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Employee reimbursement claims';";
+	       $create_sql = "CREATE TABLE reimbursements (
+		       id INT AUTO_INCREMENT PRIMARY KEY,
+		       employee_id INT NOT NULL,
+		       date_submitted DATE NOT NULL,
+		       expense_date DATE NOT NULL,
+		       category VARCHAR(50) NOT NULL,
+		       amount DECIMAL(10,2) NOT NULL,
+		       description TEXT NOT NULL,
+		       status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
+			   payment_status ENUM('Pending','Paid') NOT NULL DEFAULT 'Pending',
+			   paid_date DATE NULL,
+		       proof_file TEXT DEFAULT NULL,
+		       admin_remarks TEXT DEFAULT NULL,
+		       action_date TIMESTAMP NULL DEFAULT NULL,
+		       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		       CONSTRAINT fk_reimbursements_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+		       INDEX idx_reimbursements_employee (employee_id),
+		       INDEX idx_reimbursements_status (status),
+		       INDEX idx_reimbursements_expense_date (expense_date),
+		       INDEX idx_reimbursements_submitted (date_submitted)
+	       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Employee reimbursement claims';";
 
 		if (!mysqli_query($conn, $create_sql)) {
 				$error = mysqli_error($conn);

@@ -143,15 +143,30 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.notebook-edit-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.notebook-edit-header-buttons{display:flex;gap:8px;}
+.notebook-edit-form-grid{display:grid;gap:20px;}
+
+@media (max-width:768px){
+.notebook-edit-header-flex{flex-direction:column;align-items:stretch;}
+.notebook-edit-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.notebook-edit-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.notebook-edit-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="notebook-edit-header-flex">
                 <div>
                     <h1 style="margin: 0 0 8px 0;">✏️ Edit Note</h1>
                     <p style="color: #6c757d; margin: 0;">Modify note details and content (Version: <?php echo $note['version']; ?>)</p>
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div class="notebook-edit-header-buttons">
                     <a href="view.php?id=<?php echo $note_id; ?>" class="btn btn-secondary">👁️ View</a>
                     <a href="index.php" class="btn btn-secondary">← Back to Notes</a>
                 </div>
@@ -184,7 +199,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     📝 Note Details
                 </h3>
                 
-                <div style="display: grid; gap: 20px;">
+                <div class="notebook-edit-form-grid">
                     <!-- Title -->
                     <div>
                         <label for="title" style="display: block; margin-bottom: 4px; font-weight: 600; color: #495057;">

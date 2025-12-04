@@ -208,8 +208,8 @@ include __DIR__ . '/../includes/header.php';
                 // Use branding logo if available, otherwise fall back to default
                 $logo_url = !empty($branding_logo) ? $branding_logo : APP_URL . '/assets/logo/logo_white_bg.png';
             ?>
-            <img src="<?php echo $logo_url; ?>" alt="<?php echo APP_NAME; ?>" style="height: 100px;">
-            <p style="color: #666; font-size: 14px;">Please login to continue</p>
+            <img src="<?php echo $logo_url; ?>" alt="<?php echo APP_NAME; ?>" class="login-logo">
+            <p class="login-subtitle">Please login to continue</p>
         </div>
         
         <!-- Error/Success Messages -->
@@ -260,9 +260,9 @@ include __DIR__ . '/../includes/header.php';
         
         <!-- Additional Info -->
         <div class="text-center mt-20">
-            <p style="color: #999; font-size: 13px;">
+            <p class="login-help-text">
                 Need help? Feel free to connect with us. <br>
-                <strong>Email:</strong> hi@karyalay.in | <strong>Call:</strong> +917322005500
+                <strong>Email:</strong> hi@karyalay.in | <strong>Call:</strong> +919608138365
             </p>
         </div>
     </div>

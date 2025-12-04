@@ -66,15 +66,27 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.contacts-import-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+
+@media (max-width:768px){
+.contacts-import-header-flex{flex-direction:column;align-items:stretch;}
+.contacts-import-header-flex .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.contacts-import-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="contacts-import-header-flex">
                 <div style="flex: 1;">
                     <h1>📥 Import Contacts</h1>
                     <p>Bulk import contacts from CSV file</p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div>
                     <a href="index.php" class="btn btn-accent">← Back to Contacts</a>
                 </div>
             </div>

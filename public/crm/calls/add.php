@@ -260,16 +260,39 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 }
 </style>
 
+<style>
+.call-add-header-flex{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;}
+.call-add-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.call-add-form-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.call-add-form-grid-1{display:grid;grid-template-columns:1fr;gap:20px;}
+
+@media (max-width:1024px){
+.call-add-form-grid-3{grid-template-columns:repeat(2,1fr);}
+}
+
+@media (max-width:768px){
+.call-add-header-flex{flex-direction:column;align-items:stretch;}
+.call-add-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.call-add-header-buttons .btn{width:100%;text-align:center;}
+.call-add-form-grid-3{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.call-add-header-flex h1{font-size:1.5rem;}
+.call-add-form-grid-3{gap:15px;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <!-- Page Header -->
     <div class="page-header">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <div class="call-add-header-flex">
         <div>
           <h1>☎️ Add Call</h1>
           <p>Log a past call or schedule a future call with a lead</p>
         </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div class="call-add-header-buttons">
           <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
           <a href="index.php" class="btn btn-secondary">← All Calls</a>
         </div>
@@ -293,7 +316,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
             <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                 📞 Call Information
             </h3>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+            <div class="call-add-form-grid-3">
                 <div class="form-group">
                     <label for="call_type">Call Type <span style="color: #dc3545;">*</span></label>
                     <select id="call_type" name="call_type" class="form-control" required>
@@ -403,7 +426,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
             <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                 📅 Follow-Up & Additional Details
             </h3>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+            <div class="call-add-form-grid-3">
                 <div class="form-group">
                     <label for="follow_up_date">Follow-Up Date</label>
                     <input type="date" id="follow_up_date" name="follow_up_date" class="form-control"

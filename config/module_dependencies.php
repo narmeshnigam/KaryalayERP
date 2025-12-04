@@ -21,7 +21,8 @@ function get_module_dependencies(): array {
         'visitors' => ['employees'],
         'crm' => ['employees'],
         'branding' => [],  // Optional dependency on employees for created_by FK
-        'projects' => ['clients']  // Requires clients module
+        'projects' => ['clients'],  // Requires clients module
+        'workorders' => ['employees', 'clients']  // Requires employees and clients
     ];
 }
 
@@ -41,7 +42,8 @@ function get_module_display_names(): array {
         'visitors' => 'Visitor Logs',
         'crm' => 'CRM (Customer Relationship Management)',
         'branding' => 'Branding Settings',
-        'projects' => 'Projects Management'
+        'projects' => 'Projects Management',
+        'workorders' => 'Work Orders Management'
     ];
 }
 
@@ -60,7 +62,8 @@ function get_module_setup_paths(): array {
         'visitors' => 'scripts/setup_visitor_logs_table.php',
         'crm' => 'scripts/setup_crm_tables.php',
         'branding' => 'scripts/setup_branding_table.php',
-        'projects' => 'scripts/setup_projects_tables.php'
+        'projects' => 'scripts/setup_projects_tables.php',
+        'workorders' => 'scripts/setup_workorders_tables.php'
     ];
 }
 

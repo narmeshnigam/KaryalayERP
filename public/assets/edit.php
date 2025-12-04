@@ -111,15 +111,30 @@ closeConnection($conn);
 ?>
 
 <div class="main-wrapper">
+<style>
+.assets-edit-header-flex{display:flex;justify-content:space-between;align-items:center;}
+.assets-edit-header-buttons{display:flex;gap:10px;}
+
+@media (max-width:768px){
+.assets-edit-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.assets-edit-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.assets-edit-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.assets-edit-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="assets-edit-header-flex">
                 <div>
                     <h1 style="margin: 0;">✏️ Edit Asset</h1>
                     <p style="margin: 5px 0 0 0; color: #666;"><?php echo htmlspecialchars($asset['asset_code']); ?></p>
                 </div>
-                <div style="display: flex; gap: 10px;">
+                <div class="assets-edit-header-buttons">
                     <a href="view.php?id=<?php echo $asset_id; ?>" class="btn btn-accent">👁️ View Details</a>
                     <a href="list.php" class="btn btn-accent">← Back to List</a>
                 </div>

@@ -245,15 +245,30 @@ function formatEmployeeName($code, $first, $last)
     return htmlspecialchars($name !== '' ? $name : 'Employee', ENT_QUOTES);
 }
 ?>
+<style>
+.visitors-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.visitors-header-buttons{display:flex;gap:10px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.visitors-header-flex{flex-direction:column;align-items:stretch;}
+.visitors-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.visitors-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.visitors-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="visitors-header-flex">
         <div>
           <h1>🛂 Visitor Log</h1>
           <p>Track check-ins, check-outs, and visitor purpose for compliance.</p>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="visitors-header-buttons">
           <?php if ($visitor_permissions['can_create']): ?>
             <a href="add.php" class="btn" style="background:#28a745;">＋ New Visitor</a>
           <?php endif; ?>

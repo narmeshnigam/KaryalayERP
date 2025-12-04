@@ -179,15 +179,30 @@ require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
 ?>
 
+<style>
+.visits-my-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.visits-my-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.visits-my-header-flex{flex-direction:column;align-items:stretch;}
+.visits-my-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.visits-my-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.visits-my-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="visits-my-header-flex">
         <div>
           <h1>🚗 My Visits</h1>
           <p>Manage your assigned field visits</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="visits-my-header-buttons">
           <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
           <a href="index.php" class="btn btn-accent">🚗 All Visits</a>
           <a href="add.php" class="btn">➕ Log Visit</a>

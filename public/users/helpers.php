@@ -245,19 +245,20 @@ function email_exists($conn, $email, $exclude_user_id = null) {
  * @return int|false User ID on success, false on failure
  */
 function create_user($conn, $data) {
+    // Insert into users table (note: role is managed via user_roles table)
     $sql = "
         INSERT INTO users (
             entity_id, entity_type, username, full_name, email, phone,
-            password_hash, role_id, status, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            password_hash, status, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ";
-    
+
     $stmt = mysqli_prepare($conn, $sql);
-    
+
     if ($stmt) {
         mysqli_stmt_bind_param(
             $stmt,
-            'issssssiis',
+            'issssssii',
             $data['entity_id'],
             $data['entity_type'],
             $data['username'],
@@ -265,21 +266,47 @@ function create_user($conn, $data) {
             $data['email'],
             $data['phone'],
             $data['password_hash'],
-            $data['role_id'],
             $data['status'],
             $data['created_by']
         );
-        
+
         if (mysqli_stmt_execute($stmt)) {
             $user_id = mysqli_insert_id($conn);
             mysqli_stmt_close($stmt);
+
+            // If a role was provided, assign it using the user_roles mapping table
+            if (!empty($data['role_id'])) {
+                assign_role_to_user($conn, $user_id, (int)$data['role_id'], $data['created_by'] ?? null);
+            }
+
             return $user_id;
         }
-        
+
         mysqli_stmt_close($stmt);
     }
-    
+
     return false;
+}
+
+/**
+ * Assign a role to a user by inserting into user_roles.
+ * Uses INSERT IGNORE to avoid duplicate entries.
+ * @param mysqli $conn
+ * @param int $user_id
+ * @param int $role_id
+ * @param int|null $assigned_by
+ * @return bool True on success
+ */
+function assign_role_to_user($conn, $user_id, $role_id, $assigned_by = null) {
+    $sql = "INSERT IGNORE INTO user_roles (user_id, role_id, assigned_by) VALUES (?, ?, ?)";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) return false;
+    // assigned_by can be null
+    $assigned_by_param = $assigned_by !== null ? (int)$assigned_by : null;
+    mysqli_stmt_bind_param($stmt, 'iii', $user_id, $role_id, $assigned_by_param);
+    $ok = mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+    return (bool)$ok;
 }
 
 /**
@@ -294,6 +321,8 @@ function update_user($conn, $user_id, $data) {
     $params = [];
     $types = '';
     
+    // Note: role(s) are stored in user_roles table. Do not attempt to update a non-existent
+    // role_id column on users table. Role changes will be handled separately below.
     $allowed_fields = [
         'entity_id' => 'i',
         'entity_type' => 's',
@@ -301,7 +330,6 @@ function update_user($conn, $user_id, $data) {
         'full_name' => 's',
         'email' => 's',
         'phone' => 's',
-        'role_id' => 'i',
         'status' => 's'
     ];
     
@@ -327,7 +355,12 @@ function update_user($conn, $user_id, $data) {
         mysqli_stmt_bind_param($stmt, $types, ...$params);
         $success = mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
-        
+
+        // If a role_id was provided, assign it in the user_roles table
+        if (array_key_exists('role_id', $data) && !empty($data['role_id'])) {
+            assign_role_to_user($conn, $user_id, (int)$data['role_id'], $data['updated_by'] ?? null);
+        }
+
         return $success;
     }
     

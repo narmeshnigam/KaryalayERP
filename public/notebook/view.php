@@ -56,12 +56,30 @@ require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
+<style>
+.notebook-view-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.notebook-view-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.notebook-view-main-grid{display:grid;grid-template-columns:1fr 350px;gap:24px;}
+
+@media (max-width:768px){
+.notebook-view-header-flex{flex-direction:column;align-items:stretch;}
+.notebook-view-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.notebook-view-header-buttons .btn,.notebook-view-header-buttons form{width:100%;}
+.notebook-view-header-buttons .btn,.notebook-view-header-buttons button{text-align:center;}
+.notebook-view-main-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.notebook-view-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
     <div class="main-content">
         
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="notebook-view-header-flex">
                 <div style="flex: 1;">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                         <h1>📄 <?php echo htmlspecialchars($note['title']); ?></h1>
@@ -79,7 +97,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <?php endif; ?>
                     </p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="notebook-view-header-buttons">
                     <a href="index.php" class="btn btn-accent">← Back to Notes</a>
                     <?php if ($can_edit): ?>
                         <a href="edit.php?id=<?php echo $note_id; ?>" class="btn">✏️ Edit</a>
@@ -95,7 +113,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 350px; gap: 24px;">
+        <div class="notebook-view-main-grid">
             <!-- Main Content -->
             <div>
                 <!-- Note Content -->

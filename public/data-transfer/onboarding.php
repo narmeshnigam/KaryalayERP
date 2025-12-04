@@ -4,6 +4,8 @@
  * Setup instructions and database configuration
  */
 
+require_once __DIR__ . '/../../config/config.php';
+
 $page_title = 'Data Transfer Module - Setup Required - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 ?>
@@ -208,7 +210,7 @@ require_once __DIR__ . '/../../includes/header_sidebar.php';
     </div>
 
     <div class="center-action">
-        <a href="../../scripts/setup_data_transfer_tables.php" class="btn-setup">
+        <a href="<?php echo APP_URL; ?>/scripts/setup_data_transfer_tables.php" class="btn-setup">
             🔧 Run Setup Now
         </a>
         <p style="margin-top: 20px; color: #6c757d;">You will be redirected to the setup page</p>

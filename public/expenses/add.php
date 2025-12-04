@@ -135,15 +135,36 @@ $page_title = 'Add Expense - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
+<style>
+.expense-add-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.expense-add-header-buttons{display:flex;gap:10px;flex-wrap:wrap;}
+.expense-add-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;}
+
+@media (max-width:1024px){
+.expense-add-form-grid{grid-template-columns:repeat(2,1fr);}
+}
+
+@media (max-width:768px){
+.expense-add-header-flex{flex-direction:column;align-items:stretch;}
+.expense-add-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.expense-add-header-buttons .btn{width:100%;text-align:center;}
+.expense-add-form-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.expense-add-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
     <div class="main-content">
         <div class="page-header">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+            <div class="expense-add-header-flex">
                 <div>
                     <h1>🧾 Record Office Expense</h1>
                     <p>Log operational spending and internal overheads.</p>
                 </div>
-                <div>
+                <div class="expense-add-header-buttons">
                     <a class="btn btn-accent" href="index.php">← Back to Expenses</a>
                 </div>
             </div>
@@ -163,7 +184,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <div class="card" style="padding:24px;">
             <h3 style="margin-top:0;color:#003581;">Expense Details</h3>
-            <form method="post" enctype="multipart/form-data" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;">
+            <form method="post" enctype="multipart/form-data" class="expense-add-form-grid">
                 <div class="form-group" style="margin:0;">
                     <label for="date">Expense Date <span style="color:#dc3545;">*</span></label>
                     <input type="date" class="form-control" name="date" id="date" value="<?php echo htmlspecialchars($date, ENT_QUOTES); ?>" required>

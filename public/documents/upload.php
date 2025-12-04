@@ -131,15 +131,32 @@ $page_title = 'Upload Document - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
+<style>
+.docs-upload-header-flex{display:flex;justify-content:space-between;align-items:center;}
+.docs-upload-header-buttons{display:flex;gap:10px;flex-wrap:wrap;}
+.docs-upload-form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}
+
+@media (max-width:768px){
+.docs-upload-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.docs-upload-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.docs-upload-header-buttons .btn{width:100%;text-align:center;}
+.docs-upload-form-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.docs-upload-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="docs-upload-header-flex">
         <div>
           <h1>📤 Upload Document</h1>
           <p>Add a file to the central vault with proper tagging</p>
         </div>
-        <div>
+        <div class="docs-upload-header-buttons">
           <a href="index.php" class="btn btn-accent" style="text-decoration: none;">← Back to Vault</a>
         </div>
       </div>
@@ -166,7 +183,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
           📄 Document Information
         </h3>
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+        <div class="docs-upload-form-grid">
           <div class="form-group" style="grid-column: 1 / -1;">
             <label for="title">Title <span style="color: #dc3545;">*</span></label>
             <input type="text" id="title" name="title" class="form-control" value="<?php echo htmlspecialchars($form_data['title'], ENT_QUOTES); ?>" maxlength="100" required>

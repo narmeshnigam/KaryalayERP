@@ -9,7 +9,7 @@ require_once __DIR__ . '/helpers.php';
 
 // Check if tables exist
 if (!quotations_tables_exist($conn)) {
-    header('Location: ../../scripts/setup_quotations_tables.php');
+    header('Location: ' . APP_URL . '/scripts/setup_quotations_tables.php');
     exit;
 }
 
@@ -125,10 +125,69 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
 <div class="main-wrapper">
+<style>
+.quotations-edit-header-flex{display:flex;justify-content:space-between;align-items:center;}
+.quotations-edit-readonly-grid{display:grid;grid-template-columns:repeat(3, 1fr);gap:16px;}
+.quotations-edit-basic-grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:20px;}
+.quotations-edit-notes-grid{display:grid;gap:20px;}
+.quotations-edit-buttons{text-align:center;padding:20px 0;display:flex;justify-content:center;gap:15px;flex-wrap:wrap;}
+.quotations-edit-totals-summary{max-width:400px;margin-left:auto;}
+.quotations-edit-totals-row{display:flex;justify-content:space-between;margin-bottom:8px;}
+.item-row{border:1px solid #e0e0e0;padding:16px;margin-bottom:16px;border-radius:8px;background:#f8f9fa;}
+.item-row-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;gap:12px;align-items:end;}
+.item-row-description{margin-top:12px;margin-bottom:0;}
+
+@media (max-width:1024px){
+.quotations-edit-basic-grid{grid-template-columns:1fr;gap:15px;}
+.quotations-edit-readonly-grid{grid-template-columns:1fr;gap:15px;}
+.quotations-edit-totals-summary{margin-left:0;}
+.item-row-grid{grid-template-columns:2fr 1fr 1fr;gap:10px;}
+}
+
+@media (max-width:768px){
+.quotations-edit-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.quotations-edit-header-flex .btn{width:100%;text-align:center;}
+.quotations-edit-header-flex h1{font-size:13px;}
+.quotations-edit-header-flex p{font-size:13px;}
+.quotations-edit-basic-grid .form-group label{font-size:13px;}
+.quotations-edit-basic-grid .form-control{font-size:13px;}
+.quotations-edit-notes-grid .form-group label{font-size:13px;}
+.quotations-edit-notes-grid .form-control{font-size:13px;}
+.quotations-edit-buttons{flex-direction:column;gap:10px;}
+.quotations-edit-buttons .btn{width:100%;}
+.quotations-edit-totals-row strong{font-size:13px;}
+.quotations-edit-totals-row span{font-size:13px;}
+.item-row{padding:12px;margin-bottom:12px;}
+.item-row-grid{grid-template-columns:1fr 1fr;gap:8px;font-size:12px;}
+.item-row-grid label{font-size:11px;}
+.item-row-grid input{font-size:12px;}
+.item-row-grid select{font-size:12px;}
+.item-row-description input{font-size:12px;}
+}
+
+@media (max-width:480px){
+.quotations-edit-header-flex h1{font-size:1.3rem;}
+.quotations-edit-basic-grid .form-control{font-size:16px;}
+.quotations-edit-basic-grid input,.quotations-edit-basic-grid select{font-size:16px;}
+.quotations-edit-notes-grid .form-control{font-size:16px;}
+.quotations-edit-notes-grid textarea{font-size:16px;}
+.quotations-edit-buttons .btn{font-size:14px;}
+.quotations-edit-totals-row strong{font-size:12px;}
+.quotations-edit-totals-row span{font-size:12px;}
+.quotations-edit-totals-row.total-amount{font-size:1rem;}
+.item-row{padding:10px;margin-bottom:10px;border:1px solid #d0d0d0;}
+.item-row-grid{grid-template-columns:1fr;gap:8px;font-size:12px;}
+.item-row-grid label{font-size:12px;font-weight:bold;}
+.item-row-grid input,.item-row-grid select{font-size:16px;width:100%;}
+.item-row-description{margin-top:8px;}
+.item-row-description input{font-size:16px;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="quotations-edit-header-flex">
                 <div>
                     <h1>✏️ Edit Quotation</h1>
                     <p><?php echo htmlspecialchars($quotation['quotation_no']); ?> - <?php echo htmlspecialchars($quotation['title']); ?></p>
@@ -155,7 +214,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <!-- Read-only fields -->
                 <div style="background: #f8f9fa; padding: 16px; border-radius: 4px; margin-bottom: 20px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+                    <div class="quotations-edit-readonly-grid">
                         <div>
                             <strong>Quotation No:</strong> <code><?php echo htmlspecialchars($quotation['quotation_no']); ?></code>
                         </div>
@@ -169,7 +228,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <small class="text-muted">Quotation No and Client cannot be changed after creation</small>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                <div class="quotations-edit-basic-grid">
                     <div class="form-group">
                         <label for="title">Quotation Title <span style="color: #dc3545;">*</span></label>
                         <input type="text" name="title" id="title" class="form-control" required 
@@ -217,20 +276,20 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
                 <!-- Totals Summary -->
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
-                    <div style="max-width: 400px; margin-left: auto;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <div class="quotations-edit-totals-summary">
+                        <div class="quotations-edit-totals-row">
                             <strong>Subtotal:</strong>
                             <span id="displaySubtotal">₹0.00</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <div class="quotations-edit-totals-row">
                             <strong>Discount:</strong>
                             <span id="displayDiscount">₹0.00</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <div class="quotations-edit-totals-row">
                             <strong>Tax:</strong>
                             <span id="displayTax">₹0.00</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 2px solid #003581; font-size: 18px; font-weight: 700; color: #003581;">
+                        <div class="quotations-edit-totals-row total-amount" style="padding-top: 8px; border-top: 2px solid #003581; font-size: 18px; font-weight: 700; color: #003581;">
                             <strong>Total Amount:</strong>
                             <span id="displayTotal">₹0.00</span>
                         </div>
@@ -243,7 +302,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                     📝 Notes & Terms
                 </h3>
-                <div style="display: grid; gap: 20px;">
+                <div class="quotations-edit-notes-grid">
                     <div class="form-group">
                         <label for="notes">Notes</label>
                         <textarea name="notes" id="notes" class="form-control" rows="4" 
@@ -279,11 +338,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Submit Buttons -->
-            <div style="text-align: center; padding: 20px 0;">
+            <div class="quotations-edit-buttons">
                 <button type="submit" class="btn btn-primary" style="padding: 15px 60px; font-size: 16px;">
                     ✅ Update Quotation
                 </button>
-                <a href="view.php?id=<?php echo $quotation_id; ?>" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; margin-left: 15px; text-decoration: none;">
+                <a href="view.php?id=<?php echo $quotation_id; ?>" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; text-decoration: none;">
                     ❌ Cancel
                 </a>
             </div>
@@ -302,7 +361,6 @@ function addItemRow(existingItem = null) {
     const row = document.createElement('div');
     row.className = 'item-row';
     row.id = 'itemRow' + itemRowCounter;
-    row.style.cssText = 'border: 1px solid #e0e0e0; padding: 16px; margin-bottom: 16px; border-radius: 8px; background: #f8f9fa;';
     
     const selectedItemId = existingItem ? existingItem.item_id : '';
     const quantity = existingItem ? existingItem.quantity : '1';
@@ -312,7 +370,7 @@ function addItemRow(existingItem = null) {
     const description = existingItem ? existingItem.description || '' : '';
     
     row.innerHTML = `
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap: 12px; align-items: end;">
+        <div class="item-row-grid">
             <div class="form-group" style="margin: 0;">
                 <label>Item <span style="color: #dc3545;">*</span></label>
                 <select name="items[${itemRowCounter}][item_id]" class="form-control item-select" required onchange="loadItemDetails(this, ${itemRowCounter})">
@@ -344,7 +402,7 @@ function addItemRow(existingItem = null) {
                 <button type="button" class="btn btn-sm btn-danger" onclick="removeItemRow(${itemRowCounter})" title="Remove">🗑️</button>
             </div>
         </div>
-        <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
+        <div class="form-group item-row-description">
             <label>Description (Optional)</label>
             <input type="text" name="items[${itemRowCounter}][description]" class="form-control" placeholder="Custom description..." value="${description}">
         </div>

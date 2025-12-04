@@ -14,7 +14,7 @@ require_once __DIR__ . '/../../../includes/bootstrap.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../login.php');
+  header('Location: ' . APP_URL . '/public/login.php');
     exit;
 }
 
@@ -98,7 +98,7 @@ if ($all_tables_exist) {
         <button onclick="runSetup()" class="btn btn-primary" style="padding:12px 32px;font-size:16px;" id="setupButton">
           🚀 Setup Roles & Permissions Module
         </button>
-        <a href="../../index.php" class="btn btn-secondary" style="margin-left:12px;padding:12px 32px;font-size:16px;">
+        <a href="<?php echo APP_URL; ?>/public/index.php" class="btn btn-secondary" style="margin-left:12px;padding:12px 32px;font-size:16px;">
           ← Back to Dashboard
         </a>
       </div>

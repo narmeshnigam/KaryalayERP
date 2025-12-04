@@ -97,21 +97,75 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     .timeline-item:after { content: ''; position: absolute; left: -17px; top: 17px; width: 2px; height: calc(100% - 10px); background: #e0e0e0; }
     .timeline-item:last-child:after { display: none; }
     .action-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+    .invoices-view-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+
+    @media (max-width:1024px){
+    .invoices-view-grid{grid-template-columns:repeat(2, 1fr);gap:15px;}
+    }
+
+    @media (max-width:768px){
+    .invoice-header{padding:20px;margin-bottom:20px;}
+    .invoice-header h1{font-size:24px !important;margin-bottom:12px;}
+    .invoice-header > div{flex-direction:column !important;}
+    .invoice-header > div > div:last-child{text-align:left;margin-top:12px;}
+    .invoice-header > div > div:last-child > div{font-size:24px;}
+    .status-badge{font-size:12px;padding:6px 12px;}
+    .tabs{gap:0;padding:0 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .tab-btn{padding:12px 16px;font-size:13px;white-space:nowrap;}
+    .tab-content{padding:12px 0;}
+    .info-card{padding:16px;margin-bottom:15px;}
+    .info-card h3{font-size:16px !important;margin-bottom:12px !important;}
+    .info-row{flex-direction:column;padding:10px 0;}
+    .info-row .info-label{margin-bottom:4px;display:block;}
+    .info-row .info-value{margin-left:0;}
+    .action-buttons{gap:10px;flex-direction:column;}
+    .action-buttons .btn{width:100%;text-align:center;display:block;padding:10px 12px !important;font-size:13px;}
+    .items-table{font-size:12px;}
+    .items-table th{padding:10px 8px;font-size:12px;}
+    .items-table td{padding:10px 8px;font-size:12px;}
+    .items-table th:nth-child(n+3),.items-table td:nth-child(n+3){display:none;}
+    .items-table th:first-child,.items-table td:first-child{width:8%;}
+    .items-table th:nth-child(2),.items-table td:nth-child(2){width:92%;}
+    .totals-box{padding:12px;margin:12px 0;}
+    .total-row{font-size:12px;padding:6px 0;}
+    .total-row.grand{font-size:14px;}
+    .invoices-view-grid{grid-template-columns:1fr;gap:12px;}
+    .timeline{padding-left:20px;}
+    .timeline-item:before{left:-18px;width:10px;height:10px;}
+    .timeline-item:after{left:-15px;}
+    }
+
+    @media (max-width:480px){
+    .invoice-header{padding:16px;}
+    .invoice-header h1{font-size:20px !important;}
+    .invoice-header > div > div:first-child > div:first-child{flex-direction:column !important;align-items:flex-start !important;gap:8px !important;}
+    .status-badge{font-size:11px;padding:4px 10px;}
+    .tabs{gap:0;padding:0 8px;}
+    .tab-btn{padding:10px 12px;font-size:12px;}
+    .action-buttons .btn{padding:8px 10px !important;font-size:12px;}
+    .info-card{padding:12px;margin-bottom:12px;}
+    .items-table{font-size:11px;}
+    .items-table th{padding:8px 6px;font-size:11px;}
+    .items-table td{padding:8px 6px;font-size:11px;}
+    .totals-box{padding:10px;}
+    .total-row{font-size:11px;padding:4px 0;}
+    .total-row.grand{font-size:13px;}
+    }
 </style>
 
 <div class="main-wrapper">
     <div class="main-content">
         <!-- Invoice Header -->
         <div class="invoice-header">
-            <div style="display: flex; justify-content: space-between; align-items: start;">
-                <div>
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
+                <div style="flex: 1; min-width: 250px;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;">
                         <h1 style="margin: 0; font-size: 32px;"><?php echo htmlspecialchars($invoice['invoice_no']); ?></h1>
                         <span class="status-badge" style="<?php echo $status_colors[$invoice['status']] ?? 'background: #6c757d;'; ?>">
                             <?php echo $invoice['status']; ?>
                         </span>
                     </div>
-                    <div style="opacity: 0.9; font-size: 16px;">
+                    <div style="opacity: 0.9; font-size: 16px; line-height: 1.6;">
                         <strong>Client:</strong> <?php echo htmlspecialchars($client['name']); ?><br>
                         <strong>Issue Date:</strong> <?php echo date('d M Y', strtotime($invoice['issue_date'])); ?>
                         <?php if ($invoice['due_date']): ?>
@@ -119,7 +173,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <?php endif; ?>
                     </div>
                 </div>
-                <div style="text-align: right;">
+                <div style="text-align: right; min-width: 200px;">
                     <div style="font-size: 28px; font-weight: 700; margin-bottom: 8px;">
                         <?php 
                         $currency_symbol = $invoice['currency'] === 'INR' ? '₹' : '$';
@@ -167,7 +221,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Tab Content: Overview -->
         <div id="tab-overview" class="tab-content active">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+            <div class="invoices-view-grid">
                 <!-- Invoice Details -->
                 <div class="info-card">
                     <h3 style="margin: 0 0 16px 0; color: #003581; border-bottom: 2px solid #e3f2fd; padding-bottom: 10px;">
@@ -297,7 +351,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
             <!-- Notes and Terms -->
             <?php if (!empty($invoice['notes']) || !empty($invoice['terms'])): ?>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-top: 20px;">
+                <div class="invoices-view-grid" style="margin-top: 20px;">
                     <?php if (!empty($invoice['notes'])): ?>
                         <div class="info-card">
                             <h3 style="margin: 0 0 12px 0; color: #003581;">📝 Notes</h3>

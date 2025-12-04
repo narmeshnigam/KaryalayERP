@@ -120,10 +120,23 @@ closeConnection($conn);
 ?>
 
 <div class="main-wrapper">
+<style>
+.assets-add-header-flex{display:flex;justify-content:space-between;align-items:center;}
+
+@media (max-width:768px){
+.assets-add-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.assets-add-header-flex .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.assets-add-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="assets-add-header-flex">
                 <div>
                     <h1 style="margin: 0;">➕ Add New Asset</h1>
                     <p style="margin: 5px 0 0 0; color: #666;">Register a new asset to the system</p>

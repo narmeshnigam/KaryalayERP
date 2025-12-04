@@ -127,10 +127,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 closeConnection($conn);
 ?>
 
+<style>
+.reimb-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+@media (max-width: 600px) {
+    .reimb-header-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .reimb-header-flex > div {
+        width: 100%;
+    }
+    .reimb-header-flex .btn {
+        width: 100%;
+        text-align: center;
+        display: block;
+    }
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="reimb-header-flex">
         <div>
           <h1>🧾 Submit Reimbursement</h1>
           <p>Fill in the details below to create a new claim.</p>

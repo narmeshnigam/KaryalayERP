@@ -63,17 +63,32 @@ closeConnection($conn);
 ?>
 
 <div class="main-wrapper">
+<style>
+.assets-view-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;}
+.assets-view-header-buttons{display:flex;gap:10px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.assets-view-header-flex{flex-direction:column;align-items:stretch;}
+.assets-view-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.assets-view-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.assets-view-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <div class="assets-view-header-flex">
                 <div>
                     <h1 style="margin: 0;"><?php echo htmlspecialchars($asset['asset_code']); ?></h1>
                     <p style="margin: 5px 0 0 0; color: #666; font-size: 18px; font-weight: 600;">
                         <?php echo htmlspecialchars($asset['name']); ?>
                     </p>
                 </div>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div class="assets-view-header-buttons">
                     <a href="edit.php?id=<?php echo $asset_id; ?>" class="btn">✏️ Edit</a>
                     <a href="list.php" class="btn btn-accent">← Back to List</a>
                 </div>

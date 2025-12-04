@@ -11,7 +11,7 @@ authz_require_permission($conn, 'projects', 'view');
 
 // Check if tables exist
 if (!projects_tables_exist($conn)) {
-    header('Location: /KaryalayERP/scripts/setup_projects_tables.php');
+    header('Location: ' . APP_URL . '/scripts/setup_projects_tables.php');
     exit;
 }
 
@@ -204,15 +204,133 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.projects-view-header-flex{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:8px;}
+.projects-view-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.projects-view-header-flex{flex-direction:column;align-items:stretch;}
+.projects-view-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.projects-view-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.projects-view-header-flex h1{font-size:1.5rem;}
+}
+
+/* Header Info Section Responsive */
+.projects-view-header-info{display:flex;gap:20px;align-items:flex-start;margin-bottom:20px;}
+
+@media (max-width:768px){
+.projects-view-header-info{flex-direction:column;gap:16px;}
+.project-avatar{width:60px;height:60px;font-size:24px;}
+}
+
+@media (max-width:480px){
+.projects-view-header-info{gap:12px;}
+.project-avatar{width:50px;height:50px;font-size:20px;border-radius:8px;}
+}
+
+/* Header Meta Responsive */
+.project-header-meta{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;}
+
+@media (max-width:768px){
+.project-header-meta{gap:12px;}
+.meta-item{font-size:13px;}
+}
+
+@media (max-width:480px){
+.project-header-meta{gap:8px;}
+.meta-item{font-size:12px;}
+}
+
+/* Progress Section Responsive */
+.progress-section{margin-top:16px;}
+
+@media (max-width:480px){
+.progress-section{font-size:13px;}
+}
+
+/* Tabs Responsive */
+.projects-view-tabs{display:flex;gap:0;border-bottom:2px solid #e9ecef;margin-bottom:24px;overflow-x:auto;}
+
+@media (max-width:768px){
+.projects-view-tabs a{padding:12px 16px;font-size:14px;}
+}
+
+@media (max-width:480px){
+.projects-view-tabs{margin-bottom:16px;}
+.projects-view-tabs a{padding:10px 12px;font-size:13px;}
+}
+
+/* KPI Grid Responsive */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;}
+
+@media (max-width:768px){
+.kpi-grid{grid-template-columns:repeat(3,1fr);gap:12px;}
+}
+
+@media (max-width:480px){
+.kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+.kpi-card{padding:16px;}
+.kpi-value{font-size:24px;}
+.kpi-label{font-size:12px;}
+}
+
+/* Overview Grid Responsive */
+.projects-view-overview-grid{display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:24px;}
+
+@media (max-width:768px){
+.projects-view-overview-grid{grid-template-columns:1fr;gap:16px;}
+}
+
+@media (max-width:480px){
+.projects-view-overview-grid{gap:12px;}
+}
+
+/* Members List Responsive */
+.projects-view-members-list{display:flex;flex-direction:column;gap:12px;}
+
+@media (max-width:480px){
+.projects-view-members-list{gap:10px;}
+.member-avatar{width:32px;height:32px;font-size:12px;}
+}
+
+/* Recent Items Lists Responsive */
+.projects-view-recent-list{display:flex;flex-direction:column;gap:12px;}
+
+@media (max-width:480px){
+.projects-view-recent-list{gap:10px;}
+}
+
+/* Table Responsive - Card Style on Mobile */
+.projects-view-table-wrapper{overflow-x:auto;}
+
+@media (max-width:600px){
+.projects-view-table-wrapper table{display:block;}
+.projects-view-table-wrapper thead{display:none;}
+.projects-view-table-wrapper tbody{display:block;}
+.projects-view-table-wrapper tr{display:block;margin-bottom:16px;border:1px solid #dee2e6;border-radius:6px;overflow:hidden;padding:0;}
+.projects-view-table-wrapper td{display:block;padding:12px;border:none;border-bottom:1px solid #e9ecef;text-align:left;}
+.projects-view-table-wrapper td:last-child{border-bottom:none;}
+.projects-view-table-wrapper td::before{content:attr(data-label);font-weight:600;color:#003581;display:block;font-size:12px;margin-bottom:4px;}
+}
+
+@media (max-width:480px){
+.projects-view-table-wrapper tr{margin-bottom:12px;}
+.projects-view-table-wrapper td{padding:10px;font-size:13px;}
+.projects-view-table-wrapper td::before{font-size:11px;}
+}
+</style>
+
         <!-- Project Header -->
         <div class="page-header">
-            <div style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px;">
+            <div class="projects-view-header-info">
                 <div class="project-avatar">
                     <?= get_project_initials($project['title']) ?>
                 </div>
                 <div style="flex: 1;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+                    <div class="projects-view-header-flex">
                         <div>
                             <h1 style="margin: 0 0 4px 0; font-size: 28px;">
                                 <?= htmlspecialchars($project['title']) ?>
@@ -221,7 +339,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                 #<?= htmlspecialchars($project['project_code']) ?>
                             </span>
                         </div>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <div class="projects-view-header-buttons">
                             <?php if ($can_edit): ?>
                                 <a href="edit.php?id=<?= $project_id ?>" class="btn" style="text-decoration: none;">✏️ Edit</a>
                             <?php endif; ?>
@@ -306,7 +424,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <?php require_once __DIR__ . '/../../includes/flash.php'; ?>
 
         <!-- Tabs -->
-        <div style="display: flex; gap: 0; border-bottom: 2px solid #e9ecef; margin-bottom: 24px; overflow-x: auto;">
+        <div class="projects-view-tabs">
             <a href="?id=<?= $project_id ?>&tab=overview" 
                style="padding: 16px 24px; text-decoration: none; white-space: nowrap; border-bottom: 3px solid <?= $active_tab === 'overview' ? '#003581' : 'transparent' ?>; color: <?= $active_tab === 'overview' ? '#003581' : '#6c757d' ?>; font-weight: 600; transition: all 0.3s;">
                 📊 Overview
@@ -364,7 +482,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px;">
+            <div class="projects-view-overview-grid">
                 <!-- Description -->
                 <div class="card">
                     <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 16px;">
@@ -385,7 +503,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         👥 Team Members
                     </h3>
                     <?php if (!empty($members)): ?>
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="projects-view-members-list">
                             <?php foreach (array_slice($members, 0, 5) as $member): ?>
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <div class="member-avatar">
@@ -419,7 +537,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <h3 style="font-size: 18px; font-weight: 700; color: #003581; margin-bottom: 16px;">
                         📋 Phases
                     </h3>
-                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="projects-view-recent-list">
                         <?php foreach (array_slice($phases, 0, 5) as $phase): ?>
                             <div style="padding: 16px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid 
                                 <?= $phase['status'] === 'Completed' ? '#28a745' : ($phase['status'] === 'In Progress' ? '#003581' : '#6c757d') ?>;">
@@ -505,6 +623,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
                 
                 <?php if (!empty($recent_tasks)): ?>
+                    <div class="projects-view-table-wrapper">
                     <table class="table">
                         <thead>
                             <tr>
@@ -520,10 +639,10 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <tbody>
                             <?php foreach ($recent_tasks as $task): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($task['title']) ?></td>
-                                    <td><?= $task['phase_title'] ? htmlspecialchars($task['phase_title']) : '-' ?></td>
-                                    <td><?= $task['assignees'] ? htmlspecialchars($task['assignees']) : 'Unassigned' ?></td>
-                                    <td>
+                                    <td data-label="Task"><?= htmlspecialchars($task['title']) ?></td>
+                                    <td data-label="Phase"><?= $task['phase_title'] ? htmlspecialchars($task['phase_title']) : '-' ?></td>
+                                    <td data-label="Assignees"><?= $task['assignees'] ? htmlspecialchars($task['assignees']) : 'Unassigned' ?></td>
+                                    <td data-label="Priority">
                                         <span class="badge" style="background: 
                                             <?= $task['priority'] === 'Critical' ? '#dc3545' : 
                                                 ($task['priority'] === 'High' ? '#faa718' : 
@@ -531,9 +650,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                             <?= get_priority_icon($task['priority']) ?> <?= htmlspecialchars($task['priority']) ?>
                                         </span>
                                     </td>
-                                    <td><?= $task['due_date'] ? date('M j, Y', strtotime($task['due_date'])) : '-' ?></td>
-                                    <td><?= number_format($task['progress'], 0) ?>%</td>
-                                    <td>
+                                    <td data-label="Due Date"><?= $task['due_date'] ? date('M j, Y', strtotime($task['due_date'])) : '-' ?></td>
+                                    <td data-label="Progress"><?= number_format($task['progress'], 0) ?>%</td>
+                                    <td data-label="Status">
                                         <span class="badge" style="background: 
                                             <?= $task['status'] === 'Completed' ? '#28a745' : 
                                                 ($task['status'] === 'In Progress' ? '#003581' : '#6c757d') ?>;">
@@ -544,6 +663,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    </div>
                 <?php else: ?>
                     <div style="text-align: center; padding: 40px; color: #6c757d;">
                         <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
@@ -679,6 +799,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
                 
                 <?php if (!empty($recent_documents)): ?>
+                    <div class="projects-view-table-wrapper">
                     <table class="table">
                         <thead>
                             <tr>
@@ -693,17 +814,17 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <tbody>
                             <?php foreach ($recent_documents as $doc): ?>
                                 <tr>
-                                    <td>
+                                    <td data-label="Document">
                                         <div style="display: flex; align-items: center; gap: 8px;">
                                             <span style="font-size: 24px;">📄</span>
                                             <?= htmlspecialchars($doc['file_name']) ?>
                                         </div>
                                     </td>
-                                    <td><?= htmlspecialchars($doc['doc_type']) ?></td>
-                                    <td>v<?= $doc['version'] ?></td>
-                                    <td><?= htmlspecialchars($doc['uploaded_by_name']) ?></td>
-                                    <td><?= date('M j, Y', strtotime($doc['uploaded_at'])) ?></td>
-                                    <td>
+                                    <td data-label="Type"><?= htmlspecialchars($doc['doc_type']) ?></td>
+                                    <td data-label="Version">v<?= $doc['version'] ?></td>
+                                    <td data-label="Uploaded By"><?= htmlspecialchars($doc['uploaded_by_name']) ?></td>
+                                    <td data-label="Date"><?= date('M j, Y', strtotime($doc['uploaded_at'])) ?></td>
+                                    <td data-label="Actions">
                                         <a href="<?= htmlspecialchars($doc['file_path']) ?>" class="btn btn-sm btn-primary" download>
                                             ⬇️ Download
                                         </a>
@@ -712,6 +833,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    </div>
                 <?php else: ?>
                     <div style="text-align: center; padding: 40px; color: #6c757d;">
                         <div style="font-size: 48px; margin-bottom: 16px;">📎</div>

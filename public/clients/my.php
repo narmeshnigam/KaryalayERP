@@ -56,15 +56,95 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.clients-my-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.clients-my-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.clients-my-header-flex{flex-direction:column;align-items:stretch;}
+.clients-my-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.clients-my-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.clients-my-header-flex h1{font-size:1.5rem;}
+}
+
+/* Statistics Grid Responsive */
+.clients-my-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;}
+
+@media (max-width:768px){
+.clients-my-stats-grid{grid-template-columns:repeat(2,1fr);gap:12px;}
+}
+
+@media (max-width:480px){
+.clients-my-stats-grid{grid-template-columns:1fr;gap:12px;}
+.stat-card{padding:16px;gap:12px;}
+.stat-value{font-size:24px;}
+.stat-label{font-size:12px;}
+}
+
+/* Filter Form Responsive */
+.clients-my-filter-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
+
+@media (max-width:768px){
+.clients-my-filter-form{grid-template-columns:repeat(2,1fr);gap:12px;}
+}
+
+@media (max-width:480px){
+.clients-my-filter-form{grid-template-columns:1fr;gap:12px;}
+.clients-my-filter-form .form-group{margin-bottom:0;}
+.form-control{font-size:16px;}
+}
+
+/* Filter Buttons */
+.clients-my-filter-buttons{display:flex;gap:8px;align-items:flex-end;}
+
+@media (max-width:768px){
+.clients-my-filter-buttons{grid-column:1/-1;flex-direction:column;}
+.clients-my-filter-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.clients-my-filter-buttons{gap:8px;}
+.clients-my-filter-buttons .btn{font-size:13px;padding:10px 16px;}
+}
+
+/* Table Responsive - Card Style on Mobile */
+.clients-my-table-wrapper{overflow-x:auto;}
+
+@media (max-width:600px){
+.clients-my-table-wrapper .table{display:block;}
+.clients-my-table-wrapper .table thead{display:none;}
+.clients-my-table-wrapper .table tbody{display:block;}
+.clients-my-table-wrapper .table tr{display:block;margin-bottom:16px;border:1px solid #dee2e6;border-radius:6px;overflow:hidden;}
+.clients-my-table-wrapper .table td{display:block;padding:12px;border:none;border-bottom:1px solid #e9ecef;text-align:left;}
+.clients-my-table-wrapper .table td:last-child{border-bottom:none;}
+.clients-my-table-wrapper .table td::before{content:attr(data-label);font-weight:600;color:#003581;display:block;font-size:12px;margin-bottom:4px;}
+.clients-my-table-wrapper .table td:nth-child(1)::before{content:'Client';}
+.clients-my-table-wrapper .table td:nth-child(2)::before{content:'Contact Details';}
+.clients-my-table-wrapper .table td:nth-child(3)::before{content:'Industry';}
+.clients-my-table-wrapper .table td:nth-child(4)::before{content:'Status';}
+.clients-my-table-wrapper .table td:nth-child(5)::before{content:'Stats';}
+.clients-my-table-wrapper .table td:nth-child(6)::before{content:'Actions';}
+.clients-my-table-wrapper .table td[style*="text-align: center"]{text-align:left;}
+}
+
+@media (max-width:480px){
+.clients-my-table-wrapper .table tr{margin-bottom:12px;}
+.clients-my-table-wrapper .table td{padding:10px;font-size:13px;}
+.clients-my-table-wrapper .table td::before{font-size:11px;margin-bottom:2px;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="clients-my-header-flex">
                 <div style="flex: 1;">
                     <h1>👤 My Clients</h1>
                     <p>Clients you own and manage</p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="clients-my-header-buttons">
                     <a href="index.php" class="btn btn-accent">🏢 All Clients</a>
                     <a href="import_export.php" class="btn btn-accent">📤 Import/Export</a>
                     <?php if ($can_create): ?>
@@ -78,7 +158,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 
         <!-- Statistics Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="clients-my-stats-grid">
             <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
                 <div class="stat-content">
                     <div class="stat-value"><?= count($clients) ?></div>
@@ -121,7 +201,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Filters and Search -->
         <div class="card" style="margin-bottom: 24px;">
-            <form method="GET" action="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <form method="GET" action="" class="clients-my-filter-form">
                 <div class="form-group">
                     <label>🔍 Search</label>
                     <input type="text" name="search" class="form-control" 
@@ -151,7 +231,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </select>
                 </div>
                 
-                <div style="display: flex; gap: 8px; align-items: flex-end;">
+                <div class="clients-my-filter-buttons">
                     <button type="submit" class="btn" style="flex: 1;">Apply Filters</button>
                     <a href="my.php" class="btn btn-accent" style="flex: 1;">Clear</a>
                 </div>
@@ -162,6 +242,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <!-- Clients Table -->
         <?php if (count($clients) > 0): ?>
             <div class="card">
+                <div class="clients-my-table-wrapper">
                 <table class="table">
                     <thead>
                         <tr>
@@ -176,7 +257,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <tbody>
                         <?php foreach ($clients as $client): ?>
                             <tr>
-                                <td>
+                                <td data-label="Client">
                                     <div style="display: flex; gap: 12px; align-items: center;">
                                         <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #003581 0%, #0059b3 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;">
                                             <?= get_client_initials($client['name']) ?>
@@ -193,7 +274,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="Contact Details">
                                     <?php if ($client['email']): ?>
                                         <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13px;">
                                             <span>📧</span>
@@ -211,22 +292,22 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                         </div>
                                     <?php endif; ?>
                                 </td>
-                                <td><?= htmlspecialchars($client['industry'] ?? '-') ?></td>
-                                <td>
+                                <td data-label="Industry"><?= htmlspecialchars($client['industry'] ?? '-') ?></td>
+                                <td data-label="Status">
                                     <?php if ($client['status'] === 'Active'): ?>
                                         <span class="badge badge-success"><?= get_status_icon($client['status']) ?> <?= htmlspecialchars($client['status']) ?></span>
                                     <?php else: ?>
                                         <span class="badge badge-secondary"><?= get_status_icon($client['status']) ?> <?= htmlspecialchars($client['status']) ?></span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td data-label="Stats">
                                     <div style="display: flex; gap: 12px; font-size: 12px; color: #6c757d;">
                                         <div title="Contacts">👥 <?= $client['contact_count'] ?></div>
                                         <div title="Addresses">📍 <?= $client['address_count'] ?></div>
                                         <div title="Documents">📄 <?= $client['document_count'] ?></div>
                                     </div>
                                 </td>
-                                <td style="text-align: center;">
+                                <td data-label="Actions" style="text-align: left;">
                                     <div style="display: flex; gap: 8px; justify-content: center;">
                                         <a href="view.php?id=<?= $client['id'] ?>" class="btn btn-accent" style="padding: 6px 12px; font-size: 12px;" title="View">
                                             👁️ View
@@ -240,6 +321,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             </div>
         <?php else: ?>
             <div class="card" style="text-align: center; padding: 60px 20px;">

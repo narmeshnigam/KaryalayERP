@@ -12,7 +12,7 @@ authz_require_permission($conn, 'projects', 'view');
 
 // Check if tables exist
 if (!projects_tables_exist($conn)) {
-    header('Location: /KaryalayERP/scripts/setup_projects_tables.php');
+    header('Location: ' . APP_URL . '/scripts/setup_projects_tables.php');
     exit;
 }
 
@@ -368,15 +368,83 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.projects-header-flex{display:flex;justify-content:space-between;align-items:center;}
+.projects-header-buttons{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+
+@media (max-width:768px){
+.projects-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.projects-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.projects-header-buttons .btn,.view-toggle{width:100%;}
+.view-toggle{justify-content:space-between;}
+}
+
+@media (max-width:480px){
+.projects-header-flex h1{font-size:1.5rem;}
+}
+
+/* Stats Grid Responsive */
+.projects-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:25px;}
+
+@media (max-width:768px){
+.projects-stats-grid{grid-template-columns:repeat(2,1fr);gap:16px;}
+}
+
+@media (max-width:480px){
+.projects-stats-grid{grid-template-columns:1fr;gap:12px;}
+.projects-stats-grid .card{padding:16px;}
+.projects-stats-grid .card>div:first-child{font-size:28px;}
+}
+
+/* Filter Form Responsive */
+.projects-filter-form{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:15px;align-items:end;}
+
+@media (max-width:1024px){
+.projects-filter-form{grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;}
+.projects-filter-form .projects-filter-buttons{grid-column:1/-1;display:flex;gap:10px;}
+}
+
+@media (max-width:768px){
+.projects-filter-form{grid-template-columns:repeat(2,1fr);gap:12px;}
+}
+
+@media (max-width:480px){
+.projects-filter-form{grid-template-columns:1fr;gap:12px;}
+.form-control{font-size:16px;}
+.form-group{margin-bottom:0;}
+.projects-filter-buttons{flex-direction:column;}
+.projects-filter-buttons .btn{width:100%;text-align:center;}
+}
+
+/* Table Responsive - Card Style on Mobile */
+.projects-table-wrapper{overflow-x:auto;}
+
+@media (max-width:600px){
+.projects-table-wrapper table{display:block;}
+.projects-table-wrapper thead{display:none;}
+.projects-table-wrapper tbody{display:block;}
+.projects-table-wrapper tr{display:block;margin-bottom:16px;border:1px solid #dee2e6;border-radius:6px;overflow:hidden;padding:0;}
+.projects-table-wrapper td{display:block;padding:12px;border:none;border-bottom:1px solid #e9ecef;text-align:left;}
+.projects-table-wrapper td:last-child{border-bottom:none;}
+.projects-table-wrapper td::before{content:attr(data-label);font-weight:600;color:#003581;display:block;font-size:12px;margin-bottom:4px;}
+.projects-table-wrapper td[style*="text-align: center"]{text-align:left;}
+}
+
+@media (max-width:480px){
+.projects-table-wrapper tr{margin-bottom:12px;}
+.projects-table-wrapper td{padding:10px;font-size:13px;}
+.projects-table-wrapper td::before{font-size:11px;margin-bottom:2px;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="projects-header-flex">
                 <div>
                     <h1>🚀 Projects</h1>
                     <p>Manage and track all projects</p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <div class="projects-header-buttons">
                     <?php if ($is_admin_or_manager): ?>
                     <div class="view-toggle">
                         <button class="view-toggle-btn active" onclick="switchView('list')" id="listViewBtn">
@@ -400,7 +468,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="projects-list active" id="projectsList">
             
             <!-- Statistics Cards -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
+            <div class="projects-stats-grid">
                 <div class="card" style="text-align: center; background: linear-gradient(135deg, #003581 0%, #004aad 100%); color: white;">
                     <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?= $stats['total'] ?></div>
                     <div style="font-size: 14px; opacity: 0.9;">Total Projects</div>
@@ -429,7 +497,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
             <!-- Filters and Search -->
             <div class="card" style="margin-bottom: 25px;">
-                <form method="GET" action="" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+                <form method="GET" action="" class="projects-filter-form">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>🔍 Search Projects</label>
                         <input type="text" name="search" class="form-control" 
@@ -468,7 +536,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         </select>
                     </div>
                     
-                    <div style="display: flex; gap: 10px;">
+                    <div class="projects-filter-buttons" style="display: flex; gap: 10px;">
                         <button type="submit" class="btn" style="white-space: nowrap;">Search</button>
                         <a href="index.php" class="btn btn-accent" style="white-space: nowrap; text-decoration: none; display: inline-block; text-align: center;">Clear</a>
                     </div>
@@ -483,7 +551,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                             <span style="font-size: 14px; color: #6c757d; font-weight: normal;">(<?= count($projects) ?> records)</span>
                         </h3>
                     </div>
-                    <div style="overflow-x: auto;">
+                    <div class="projects-table-wrapper">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
@@ -501,7 +569,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <tbody>
                             <?php foreach ($projects as $project): ?>
                                 <tr style="border-bottom: 1px solid #dee2e6;">
-                                    <td>
+                                    <td data-label="Project">
                                         <div style="display: flex; gap: 12px; align-items: center;">
                                             <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #003581 0%, #0059b3 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;">
                                                 <?= get_project_initials($project['title']) ?>
@@ -518,12 +586,12 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                             </div>
                                         </div>
                                     </td>
-                                    <td style="padding: 12px;">
+                                    <td data-label="Type" style="padding: 12px;">
                                         <span style="background: #e3f2fd; color: #003581; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; display: inline-block;">
                                             <?= get_project_type_icon($project['type']) ?> <?= htmlspecialchars($project['type']) ?>
                                         </span>
                                     </td>
-                                    <td style="padding: 12px;">
+                                    <td data-label="Client" style="padding: 12px;">
                                         <?php if ($project['client_name']): ?>
                                             <a href="../clients/view.php?id=<?= $project['client_id'] ?>" 
                                                style="color: #003581; text-decoration: none;">
@@ -533,13 +601,13 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                             <span style="color: #6c757d;">-</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td style="padding: 12px; font-size: 13px;"><?= htmlspecialchars($project['owner_username']) ?></td>
-                                    <td style="padding: 12px;">
+                                    <td data-label="Owner" style="padding: 12px; font-size: 13px;"><?= htmlspecialchars($project['owner_username']) ?></td>
+                                    <td data-label="Priority" style="padding: 12px;">
                                         <span style="background: #e3f2fd; color: #003581; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; display: inline-block;">
                                             <?= get_priority_icon($project['priority']) ?> <?= htmlspecialchars($project['priority']) ?>
                                         </span>
                                     </td>
-                                    <td style="padding: 12px;">
+                                    <td data-label="Progress" style="padding: 12px;">
                                         <div style="display: flex; align-items: center; gap: 8px;">
                                             <div style="flex: 1; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
                                                 <div style="height: 100%; background: #003581; width: <?= $project['progress'] ?>%;"></div>
@@ -552,7 +620,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                             <?= $project['completed_tasks'] ?>/<?= $project['task_count'] ?> tasks
                                         </div>
                                     </td>
-                                    <td style="padding: 12px; text-align: center;">
+                                    <td data-label="Status" style="padding: 12px; text-align: center;">
                                         <?php if ($project['status'] === 'In Progress'): ?>
                                             <span style="background: #d4edda; color: #155724; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-block;">
                                                 <?= get_project_status_icon($project['status']) ?> <?= htmlspecialchars($project['status']) ?>
@@ -567,7 +635,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td style="padding: 12px; font-size: 13px;">
+                                    <td data-label="Dates" style="padding: 12px; font-size: 13px;">
                                         <?php if ($project['start_date']): ?>
                                             <div style="font-size: 13px;">
                                                 📅 <?= date('M d, Y', strtotime($project['start_date'])) ?>
@@ -579,7 +647,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                             </div>
                                         <?php endif; ?>
                                     </td>
-                                    <td style="padding: 12px; text-align: center;">
+                                    <td data-label="Actions" style="padding: 12px; text-align: center;">
                                         <div style="display: flex; gap: 8px; justify-content: center;">
                                             <a href="view.php?id=<?= $project['id'] ?>" 
                                                class="btn" 

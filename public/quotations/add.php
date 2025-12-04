@@ -9,7 +9,7 @@ require_once __DIR__ . '/helpers.php';
 
 // Check if tables exist
 if (!quotations_tables_exist($conn)) {
-    header('Location: ../../scripts/setup_quotations_tables.php');
+    header('Location: ' . APP_URL . '/scripts/setup_quotations_tables.php');
     exit;
 }
 
@@ -115,10 +115,53 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
 <div class="main-wrapper">
+<style>
+.quotations-add-header-flex{display:flex;justify-content:space-between;align-items:center;}
+.quotations-add-basic-grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:20px;}
+.quotations-add-notes-grid{display:grid;gap:20px;}
+.quotations-add-buttons{text-align:center;padding:20px 0;display:flex;justify-content:center;gap:15px;flex-wrap:wrap;}
+.quotations-add-buttons .btn{padding:15px 60px;font-size:16px;}
+.item-row{border:1px solid #e0e0e0;padding:16px;margin-bottom:16px;border-radius:8px;background:#f8f9fa;}
+.item-row-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;gap:12px;align-items:end;}
+.item-row-description{margin-top:12px;margin-bottom:0;}
+
+@media (max-width:1024px){
+.quotations-add-basic-grid{grid-template-columns:1fr;gap:15px;}
+.item-row-grid{grid-template-columns:2fr 1fr 1fr;gap:10px;}
+}
+
+@media (max-width:768px){
+.quotations-add-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.quotations-add-header-flex .btn{width:100%;text-align:center;}
+.quotations-add-basic-grid input,.quotations-add-basic-grid select,.quotations-add-notes-grid textarea{font-size:13px;}
+.alert{padding:12px;font-size:13px;}
+.alert li{margin-bottom:4px;}
+.item-row{padding:12px;margin-bottom:12px;}
+.item-row-grid{grid-template-columns:1fr 1fr;gap:8px;font-size:12px;}
+.item-row-grid label{font-size:11px;}
+.item-row-grid input,.item-row-grid select{font-size:12px;}
+.item-row-description input{font-size:12px;}
+}
+
+@media (max-width:480px){
+.quotations-add-header-flex h1{font-size:1.5rem;}
+.quotations-add-basic-grid input,.quotations-add-basic-grid select{font-size:16px;}
+.quotations-add-notes-grid textarea{font-size:16px;}
+.quotations-add-buttons{flex-direction:column;}
+.quotations-add-buttons .btn{width:100%;padding:12px 20px;margin:0 !important;}
+.item-row{padding:10px;margin-bottom:10px;border:1px solid #d0d0d0;}
+.item-row-grid{grid-template-columns:1fr;gap:8px;font-size:12px;}
+.item-row-grid label{font-size:12px;font-weight:bold;}
+.item-row-grid input,.item-row-grid select{font-size:16px;width:100%;}
+.item-row-description{margin-top:8px;}
+.item-row-description input{font-size:16px;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="quotations-add-header-flex">
                 <div>
                     <h1>➕ Add New Quotation</h1>
                     <p>Create a professional quotation for clients or leads</p>
@@ -142,7 +185,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                     📋 Basic Details
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                <div class="quotations-add-basic-grid">
                     <div class="form-group">
                         <label for="title">Quotation Title <span style="color: #dc3545;">*</span></label>
                         <input type="text" name="title" id="title" class="form-control" required 
@@ -237,7 +280,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                     📝 Notes & Terms
                 </h3>
-                <div style="display: grid; gap: 20px;">
+                <div class="quotations-add-notes-grid">
                     <div class="form-group">
                         <label for="notes">Notes</label>
                         <textarea name="notes" id="notes" class="form-control" rows="4" 
@@ -264,11 +307,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Submit Buttons -->
-            <div style="text-align: center; padding: 20px 0;">
+            <div class="quotations-add-buttons">
                 <button type="submit" class="btn btn-primary" style="padding: 15px 60px; font-size: 16px;">
                     ✅ Create Quotation
                 </button>
-                <a href="index.php" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; margin-left: 15px; text-decoration: none;">
+                <a href="index.php" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; text-decoration: none;">
                     ❌ Cancel
                 </a>
             </div>
@@ -286,10 +329,9 @@ function addItemRow() {
     const row = document.createElement('div');
     row.className = 'item-row';
     row.id = 'itemRow' + itemRowCounter;
-    row.style.cssText = 'border: 1px solid #e0e0e0; padding: 16px; margin-bottom: 16px; border-radius: 8px; background: #f8f9fa;';
     
     row.innerHTML = `
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap: 12px; align-items: end;">
+        <div class="item-row-grid">
             <div class="form-group" style="margin: 0;">
                 <label>Item <span style="color: #dc3545;">*</span></label>
                 <select name="items[${itemRowCounter}][item_id]" class="form-control item-select" required onchange="loadItemDetails(this, ${itemRowCounter})">
@@ -321,7 +363,7 @@ function addItemRow() {
                 <button type="button" class="btn btn-sm btn-danger" onclick="removeItemRow(${itemRowCounter})" title="Remove">🗑️</button>
             </div>
         </div>
-        <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
+        <div class="form-group item-row-description">
             <label>Description (Optional)</label>
             <input type="text" name="items[${itemRowCounter}][description]" class="form-control" placeholder="Custom description...">
         </div>

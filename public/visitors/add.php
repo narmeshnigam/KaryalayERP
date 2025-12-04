@@ -164,15 +164,32 @@ $page_title = 'Add Visitor - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
+<style>
+.visitor-add-header-flex{display:flex;justify-content:space-between;align-items:center;}
+.visitor-add-header-buttons{display:flex;gap:10px;flex-wrap:wrap;}
+.visitor-add-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;}
+
+@media (max-width:768px){
+.visitor-add-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.visitor-add-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.visitor-add-header-buttons .btn{width:100%;text-align:center;}
+.visitor-add-form-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.visitor-add-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="visitor-add-header-flex">
         <div>
           <h1>🛂 Add Visitor Entry</h1>
           <p>Capture visitor details, purpose, and check-in time.</p>
         </div>
-        <div>
+        <div class="visitor-add-header-buttons">
           <a href="index.php" class="btn btn-secondary">← Back to Visitor Log</a>
         </div>
       </div>
@@ -197,7 +214,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
           <input type="text" id="visitor_name" name="visitor_name" class="form-control" value="<?php echo htmlspecialchars($visitor_name, ENT_QUOTES); ?>" required>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;">
+        <div class="visitor-add-form-grid">
           <div class="form-group" style="margin:0;">
             <label for="phone">Phone</label>
             <input type="text" id="phone" name="phone" class="form-control" placeholder="Optional" value="<?php echo htmlspecialchars($phone, ENT_QUOTES); ?>">

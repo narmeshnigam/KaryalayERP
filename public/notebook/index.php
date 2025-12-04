@@ -17,8 +17,8 @@ if (!notebook_tables_exist($conn)) {
     echo '<h3 class="card-title">📒 Notebook Module Not Set Up</h3>';
     echo '<p class="text-muted">The Notebook module database tables have not been created yet. To use this module, please run the setup for Notebook.</p>';
     echo '<div style="margin-top:16px;display:flex;gap:10px;">';
-    echo '<a href="/KaryalayERP/scripts/setup_notebook_tables.php" class="btn btn-primary">Run Notebook Setup</a>';
-    echo '<a href="/KaryalayERP/setup/index.php" class="btn btn-secondary">Open Setup Wizard</a>';
+    echo '<a href="' . APP_URL . '/scripts/setup_notebook_tables.php" class="btn btn-primary">Run Notebook Setup</a>';
+    echo '<a href="' . APP_URL . '/setup/index.php" class="btn btn-secondary">Open Setup Wizard</a>';
     echo '</div>';
     echo '</div>';
     echo '</div></div>';
@@ -64,14 +64,55 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 <div class="main-wrapper">
     <div class="main-content">
         
+<style>
+.notebook-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.notebook-header-buttons{display:flex;gap:8px;}
+.notebook-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:25px;}
+.notebook-filter-form{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:15px;align-items:end;}
+.notebook-notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;}
+.notebook-note-card{border:1px solid #dee2e6;border-radius:8px;padding:16px;background:#fff;transition:all 0.3s;position:relative;}
+
+@media (max-width:1024px){
+.notebook-stats-grid{grid-template-columns:repeat(2,1fr);}
+.notebook-filter-form{grid-template-columns:1fr 1fr;gap:12px;}
+}
+
+@media (max-width:768px){
+.notebook-header-flex{flex-direction:column;align-items:stretch;gap:12px;}
+.notebook-header-flex h1{font-size:1.3rem;}
+.notebook-header-flex p{font-size:13px;}
+.notebook-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.notebook-header-buttons .btn{width:100%;text-align:center;padding:12px 20px !important;}
+.notebook-stats-grid{grid-template-columns:1fr;gap:12px;}
+.notebook-stats-grid .card{padding:16px;}
+.notebook-stats-grid .card > div:first-child{font-size:28px;}
+.notebook-filter-form{grid-template-columns:1fr;gap:10px;}
+.notebook-filter-form > div:last-child{display:flex;flex-direction:column;}
+.notebook-filter-form button,.notebook-filter-form a{width:100%;}
+.notebook-notes-grid{grid-template-columns:1fr;gap:12px;}
+.notebook-note-card{padding:12px;}
+}
+
+@media (max-width:480px){
+.notebook-header-flex h1{font-size:1.2rem;}
+.notebook-header-flex p{font-size:12px;}
+.notebook-header-buttons .btn{padding:10px 16px !important;font-size:12px;}
+.notebook-stats-grid .card{padding:10px;}
+.notebook-stats-grid .card > div:first-child{font-size:24px;}
+.notebook-stats-grid .card > div:last-child{font-size:11px;}
+.notebook-filter-form{gap:8px;}
+.notebook-filter-form input,.notebook-filter-form select,.notebook-filter-form button{font-size:13px;height:36px;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="notebook-header-flex">
                 <div>
                     <h1 style="margin: 0 0 8px 0;">📒 Notebook</h1>
                     <p style="color: #6c757d; margin: 0;">Organize your notes, documents, and knowledge base</p>
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div class="notebook-header-buttons">
                     <a href="my.php" class="btn btn-accent" style="text-decoration: none;">📝 My Notes</a>
                     <a href="shared.php" class="btn btn-accent" style="text-decoration: none;">🔗 Shared With Me</a>
                     <?php if ($can_create): ?>
@@ -82,7 +123,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         </div>
 
         <!-- Statistics Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
+        <div class="notebook-stats-grid">
             <div class="card" style="text-align: center; background: linear-gradient(135deg, #003581 0%, #004aad 100%); color: white;">
                 <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['total_notes']; ?></div>
                 <div style="font-size: 14px; opacity: 0.9;">Total Notes</div>
@@ -111,7 +152,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Filters -->
         <div class="card" style="margin-bottom: 25px;">
-            <form method="GET" action="" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: end;">
+            <form method="GET" action="" class="notebook-filter-form">
                 <!-- Search -->
                 <div class="form-group" style="margin-bottom: 0;">
                     <label for="search">🔍 Search Notes</label>
@@ -180,9 +221,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <?php endif; ?>
                 </div>
             <?php else: ?>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+                <div class="notebook-notes-grid">
                     <?php foreach ($notes as $note): ?>
-                        <div class="note-card" style="border: 1px solid #dee2e6; border-radius: 8px; padding: 16px; background: #fff; transition: all 0.3s; position: relative;">
+                        <div class="notebook-note-card">
                             <?php if ($note['is_pinned']): ?>
                                 <div style="position: absolute; top: 8px; right: 8px; background: #faa718; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">
                                     📌 PINNED
@@ -254,6 +295,10 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <style>
 .note-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+.notebook-note-card:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     transform: translateY(-2px);
 }

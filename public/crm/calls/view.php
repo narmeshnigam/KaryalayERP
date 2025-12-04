@@ -97,15 +97,34 @@ function safeValue($value, $fallback = '—') {
 }
 ?>
 
+<style>
+.call-view-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.call-view-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.call-view-profile-card{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+.call-view-profile-info{flex:1;min-width:280px;}
+
+@media (max-width:768px){
+.call-view-header-flex{flex-direction:column;align-items:stretch;}
+.call-view-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.call-view-header-buttons .btn{width:100%;text-align:center;}
+.call-view-profile-card{flex-direction:column;text-align:center;}
+.call-view-profile-info{min-width:100%;}
+}
+
+@media (max-width:480px){
+.call-view-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="call-view-header-flex">
         <div>
           <h1>☎️ Call Details</h1>
           <p>Detailed call information and follow-up tracking</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="call-view-header-buttons">
           <?php if ($calls_permissions['can_edit_all']): ?>
             <a href="edit.php?id=<?php echo $call_id; ?>" class="btn">✏️ Edit Call</a>
           <?php endif; ?>
@@ -117,11 +136,11 @@ function safeValue($value, $fallback = '—') {
     <?php echo flash_render(); ?>
 
     <!-- Call Header Card -->
-    <div class="card" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+    <div class="card call-view-profile-card">
       <div style="width:84px;height:84px;border-radius:50%;background:#003581;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:32px;">
         ☎️
       </div>
-      <div style="flex:1;min-width:280px;">
+      <div class="call-view-profile-info">
         <div style="font-size:20px;color:#003581;font-weight:700;">
           <?php echo safeValue(crm_call_get($call, 'title'), 'Untitled Call'); ?>
         </div>

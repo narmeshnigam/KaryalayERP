@@ -39,13 +39,59 @@ if (!$settings) {
   .char-count { font-size:12px; color:#6c757d; margin-top:4px; }
   .char-count.warn { color:#faa718; }
   .char-count.error { color:#dc3545; }
+
+  .branding-logo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .branding-org-form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .branding-address-form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .branding-contact-form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .branding-submit-buttons { text-align: center; padding: 20px 0; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+
+  @media (max-width:1024px){
+  .branding-org-form-grid{grid-template-columns:repeat(2, 1fr);}
+  .branding-contact-form-grid{grid-template-columns:repeat(2, 1fr);}
+  }
+
+  @media (max-width:768px){
+  .branding-logo-grid{grid-template-columns:1fr;gap:12px;}
+  .branding-org-form-grid{grid-template-columns:1fr;gap:12px;}
+  .branding-org-form-grid > div[style*="grid-column"]{grid-column:unset !important;}
+  .branding-address-form-grid{grid-template-columns:1fr;gap:12px;}
+  .branding-address-form-grid > div[style*="grid-column"]{grid-column:unset !important;}
+  .branding-contact-form-grid{grid-template-columns:1fr;gap:12px;}
+  .logo-preview{min-height:100px;padding:16px;}
+  .logo-preview img{max-height:80px;}
+  .branding-submit-buttons{flex-direction:column;gap:10px;}
+  .branding-submit-buttons button,.branding-submit-buttons a{width:100%;padding:12px 20px !important;font-size:14px;}
+  }
+
+  @media (max-width:480px){
+  .logo-preview{min-height:80px;padding:12px;font-size:12px;}
+  .logo-preview img{max-height:60px;}
+  .branding-submit-buttons button,.branding-submit-buttons a{padding:10px 16px !important;font-size:12px;}
+  }
 </style>
 
 <div class="main-wrapper">
+<style>
+.branding-header-flex{display:flex;justify-content:space-between;align-items:center;}
+
+@media (max-width:768px){
+.branding-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.branding-header-flex .btn{width:100%;text-align:center;}
+.branding-header-flex h1{font-size:1.3rem;}
+.branding-header-flex p{font-size:13px;}
+}
+
+@media (max-width:480px){
+.branding-header-flex h1{font-size:1.2rem;}
+.branding-header-flex .btn{padding:8px 16px !important;font-size:12px;}
+}
+</style>
+
   <div class="main-content">
     <!-- Page Header -->
     <div class="page-header">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="branding-header-flex">
         <div>
           <h1>🏢 Branding & Organization Settings</h1>
           <p>Manage your organization's visual identity and business information</p>
@@ -66,7 +112,7 @@ if (!$settings) {
         </h3>
         <p style="color:#6c757d;margin-bottom:24px;font-size:14px;">Upload logos for different use cases. Recommended formats: PNG, SVG (max 2MB each)</p>
         
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+        <div class="branding-logo-grid">
           <!-- Login Page Logo -->
           <div>
             <label style="font-weight:600;margin-bottom:8px;display:block;">Logo for Login Page</label>
@@ -170,13 +216,8 @@ if (!$settings) {
         <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
           🏢 Organization Information
         </h3>
-      <!-- Organization Information Section -->
-      <div class="card" style="margin-bottom: 25px;">
-        <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
-          🏢 Organization Information
-        </h3>
         
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="branding-org-form-grid">
           <div class="form-group">
             <label>Organization Name <span style="color: #dc3545;">*</span></label>
             <input type="text" id="org_name" name="org_name" class="form-control" 
@@ -211,7 +252,7 @@ if (!$settings) {
           📍 Address Information
         </h3>
         
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+        <div class="branding-address-form-grid">
           <div class="form-group" style="grid-column: 1 / -1;">
             <label>Address Line 1</label>
             <input type="text" id="address_line1" name="address_line1" class="form-control" 
@@ -256,7 +297,7 @@ if (!$settings) {
           📞 Contact Information
         </h3>
         
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="branding-contact-form-grid">
           <div class="form-group">
             <label>Email</label>
             <input type="email" id="email" name="email" class="form-control" 
@@ -293,11 +334,11 @@ if (!$settings) {
       </div>
 
       <!-- Submit Buttons -->
-      <div style="text-align: center; padding: 20px 0;">
+      <div class="branding-submit-buttons">
         <button type="submit" class="btn" style="padding: 15px 60px; font-size: 16px;">
           💾 Save Settings
         </button>
-        <a href="view.php" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; margin-left: 15px; text-decoration: none;">
+        <a href="view.php" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; text-decoration: none;">
           👁️ Preview
         </a>
       </div>

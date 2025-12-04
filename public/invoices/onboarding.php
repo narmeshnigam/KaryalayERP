@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../config/db_connect.php';
 require_once __DIR__ . '/../../includes/bootstrap.php';
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
+    header('Location: ' . APP_URL . '/public/login.php');
     exit;
 }
 
@@ -33,8 +33,8 @@ echo '<li style="padding:6px 0;"><strong>✓</strong> Automatic inventory deduct
 echo '<li style="padding:6px 0;"><strong>✓</strong> Payment terms & overdue tracking</li>';
 echo '<li style="padding:6px 0;"><strong>✓</strong> Export to Excel & professional PDFs</li>';
 echo '</ul></div>';
-echo '<a href="../../scripts/setup_invoices_tables.php" class="btn btn-primary" style="padding:14px 32px;font-size:16px;margin-top:20px;">🚀 Setup Invoices Module</a>';
-echo '<a href="../index.php" class="btn btn-accent" style="margin-left:10px;margin-top:20px;padding:14px 32px;font-size:16px;">← Back to Dashboard</a>';
+echo '<a href="' . APP_URL . '/scripts/setup_invoices_tables.php" class="btn btn-primary" style="padding:14px 32px;font-size:16px;margin-top:20px;">🚀 Setup Invoices Module</a>';
+echo '<a href="' . APP_URL . '/public/index.php" class="btn btn-accent" style="margin-left:10px;margin-top:20px;padding:14px 32px;font-size:16px;">← Back to Dashboard</a>';
 echo '</div></div>';
 
 require_once __DIR__ . '/../../includes/footer_sidebar.php';

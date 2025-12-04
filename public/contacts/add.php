@@ -70,15 +70,29 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.contacts-add-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.contacts-add-main-grid{display:grid;grid-template-columns:2fr 1fr;gap:24px;}
+
+@media (max-width:768px){
+.contacts-add-header-flex{flex-direction:column;align-items:stretch;}
+.contacts-add-header-flex .btn{width:100%;text-align:center;}
+.contacts-add-main-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.contacts-add-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="contacts-add-header-flex">
                 <div style="flex: 1;">
                     <h1>➕ Add New Contact</h1>
                     <p>Create a new contact entry in your address book</p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div>
                     <a href="index.php" class="btn btn-accent">← Back to Contacts</a>
                 </div>
             </div>
@@ -100,7 +114,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Add Contact Form -->
         <form method="POST" action="">
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+            <div class="contacts-add-main-grid">
                 
                 <!-- Main Form -->
                 <div>

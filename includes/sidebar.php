@@ -43,10 +43,12 @@ if ($conn_sidebar) {
 }
 
 $sidebar_conn_auth = null;
-if (isset($conn) && $conn instanceof mysqli) {
+$sidebar_conn_managed = false;
+if (isset($conn) && $conn instanceof mysqli && (($conn->thread_id ?? 0) > 0)) {
     $sidebar_conn_auth = $conn;
 } else {
     $sidebar_conn_auth = createConnection(true);
+    $sidebar_conn_managed = true;
 }
 
 // Get auth context - use global if set by auth_check.php, otherwise create new
@@ -122,7 +124,7 @@ $nav_items = [
         'requires' => ['table' => 'reimbursements', 'permission' => 'view_all']
     ],
     [
-        'icon' => 'crm.png',
+        'icon' => 'CRM.png',
         'label' => 'CRM',
         'link' => APP_URL . '/public/crm/index.php',
         'active' => (strpos($current_path, '/crm/') !== false && strpos($current_path, '/crm/dashboard.php') === false),
@@ -136,11 +138,18 @@ $nav_items = [
         'requires' => ['table' => 'office_expenses', 'permission' => 'view_all']
     ],
     [
-        'icon' => 'salary.png',
+        'icon' => 'my_salary.png',
         'label' => 'Salary',
         'link' => APP_URL . '/public/salary/admin.php',
         'active' => (strpos($current_path, '/public/salary/') !== false && strpos($current_path, '/employee_portal/') === false),
         'requires' => ['table' => 'salary_records', 'permission' => 'view_all']
+    ],
+    [
+        'icon' => 'payroll.png',
+        'label' => 'Payroll',
+        'link' => APP_URL . '/public/payroll/index.php',
+        'active' => (strpos($current_path, '/public/payroll/') !== false),
+        'requires' => ['table' => 'payroll_master', 'permission' => 'view_all']
     ],
     [
         'icon' => 'documents.png',
@@ -150,35 +159,35 @@ $nav_items = [
         'requires' => ['table' => 'documents', 'permission' => 'view_all']
     ],
     [
-        'icon' => 'visitors.png',
+        'icon' => 'visitor.png',
         'label' => 'Visitor Log',
         'link' => APP_URL . '/public/visitors/index.php',
         'active' => (strpos($current_path, '/visitors/') !== false),
         'requires' => ['table' => 'visitor_logs', 'permission' => 'view_all']
     ],
     [
-        'icon' => 'documents.png',
+        'icon' => 'notebook.png',
         'label' => 'Notebook',
         'link' => APP_URL . '/public/notebook/index.php',
         'active' => (strpos($current_path, '/notebook/') !== false),
         'requires' => ['table' => 'notebook_notes', 'permission' => 'view']
     ],
     [
-        'icon' => 'employees.png',
+        'icon' => 'contacts.png',
         'label' => 'Contacts',
         'link' => APP_URL . '/public/contacts/index.php',
         'active' => (strpos($current_path, '/contacts/') !== false),
         'requires' => ['table' => 'contacts', 'permission' => 'view']
     ],
     [
-        'icon' => 'employees.png',
+        'icon' => 'client.png',
         'label' => 'Clients',
         'link' => APP_URL . '/public/clients/index.php',
         'active' => (strpos($current_path, '/clients/') !== false),
         'requires' => ['table' => 'clients', 'permission' => 'view']
     ],
     [
-        'icon' => 'documents.png',
+        'icon' => 'projects.png',
         'label' => 'Projects',
         'link' => APP_URL . '/public/projects/index.php',
         'active' => (strpos($current_path, '/projects/') !== false),
@@ -186,20 +195,27 @@ $nav_items = [
     ],
     [
         'icon' => 'documents.png',
+        'label' => 'Work Orders',
+        'link' => APP_URL . '/public/workorders/index.php',
+        'active' => (strpos($current_path, '/workorders/') !== false),
+        'requires' => ['table' => 'work_orders', 'permission' => 'read']
+    ],
+    [
+        'icon' => 'catalog.png',
         'label' => 'Catalog',
         'link' => APP_URL . '/public/catalog/index.php',
         'active' => (strpos($current_path, '/catalog/') !== false),
         'requires' => ['table' => 'items_master', 'permission' => 'view']
     ],
     [
-        'icon' => 'documents.png',
+        'icon' => 'quotations.png',
         'label' => 'Quotations',
         'link' => APP_URL . '/public/quotations/index.php',
         'active' => (strpos($current_path, '/quotations/') !== false),
         'requires' => ['table' => 'quotations', 'permission' => 'view_all']
     ],
     [
-        'icon' => 'documents.png',
+        'icon' => 'invoice.png',
         'label' => 'Invoices',
         'link' => APP_URL . '/public/invoices/index.php',
         'active' => (strpos($current_path, '/invoices/') !== false),
@@ -213,21 +229,21 @@ $nav_items = [
         'requires' => ['table' => 'payments', 'permission' => 'view_all']
     ],
     [
-        'icon' => 'salary.png',
+        'icon' => 'payroll.png',
         'label' => 'Payroll',
         'link' => APP_URL . '/public/payroll/index.php',
         'active' => (strpos($current_path, '/payroll/') !== false),
         'requires' => ['table' => 'payroll_master', 'permission' => 'view_all']
     ],
     [
-        'icon' => 'documents.png',
+        'icon' => 'data transfer.png',
         'label' => 'Data Transfer',
         'link' => APP_URL . '/public/data-transfer/index.php',
         'active' => (strpos($current_path, '/data-transfer/') !== false),
         'requires' => ['table' => 'data_transfer_logs', 'permission' => 'view_all']
     ],
     [
-        'icon' => 'documents.png',
+        'icon' => 'assets.png',
         'label' => 'Assets',
         'link' => APP_URL . '/public/assets/index.php',
         'active' => (strpos($current_path, '/assets/') !== false),
@@ -241,7 +257,7 @@ $nav_items = [
         'requires' => ['table' => 'branding_settings', 'permission' => 'view_all']
     ],
     [
-        'icon' => 'settings.png',
+        'icon' => 'roles_permissions.png',
         'label' => 'Roles & Permissions',
         'link' => APP_URL . '/public/settings/roles/index.php',
         'active' => (strpos($current_path, '/settings/roles/') !== false || strpos($current_path, '/settings/permissions/') !== false),
@@ -251,7 +267,7 @@ $nav_items = [
         ]
     ],
     [
-        'icon' => 'employees.png',
+        'icon' => 'user_management.png',
         'label' => 'Users Management',
         'link' => APP_URL . '/public/users/index.php',
         'active' => (strpos($current_path, '/public/users/') !== false && strpos($current_path, '/my-account.php') === false),
@@ -262,7 +278,7 @@ $nav_items = [
 // Employee-specific menu items (always shown at bottom)
 $employee_items = [];
 $employee_items[] = [
-    'icon' => 'attendance.png',
+    'icon' => 'my_attendance.png',
     'label' => 'My Attendance',
     'link' => APP_URL . '/public/employee_portal/attendance/index.php',
     'active' => (strpos($current_path, '/employee_portal/attendance/') !== false),
@@ -272,7 +288,7 @@ $employee_items[] = [
     ]
 ];
 $employee_items[] = [
-    'icon' => 'expenses.png',
+    'icon' => 'my_reimbursements.png',
     'label' => 'My Reimbursements',
     'link' => APP_URL . '/public/employee_portal/reimbursements/index.php',
     'active' => (strpos($current_path, '/employee_portal/reimbursements/') !== false),
@@ -282,7 +298,7 @@ $employee_items[] = [
     ]
 ];
 $employee_items[] = [
-    'icon' => 'salary.png',
+    'icon' => 'my_salary.png',
     'label' => 'My Salary',
     'link' => APP_URL . '/public/employee_portal/salary/index.php',
     'active' => (strpos($current_path, '/employee_portal/salary/') !== false),
@@ -293,7 +309,7 @@ $employee_items[] = [
 ];
 if ($current_employee_id) {
     $employee_items[] = [
-        'icon' => 'employees.png',
+            'icon' => 'my_profile.png',
         'label' => 'My Profile',
         'link' => APP_URL . '/public/employee/view_employee.php?id=' . $current_employee_id,
         'active' => ($current_page == 'view_employee.php' && isset($_GET['id']) && (int)$_GET['id'] === $current_employee_id),
@@ -304,7 +320,7 @@ if ($current_employee_id) {
     ];
 }
 $employee_items[] = [
-    'icon' => 'settings.png',
+    'icon' => 'my_account.png',
     'label' => 'My Account',
     'link' => APP_URL . '/public/users/my-account.php',
     'active' => (strpos($current_path, '/users/my-account.php') !== false),
@@ -318,7 +334,8 @@ $employee_items[] = [
 function getIconPath($icon_name) {
     $icon_path = __DIR__ . '/../assets/icons/' . $icon_name;
     if (file_exists($icon_path)) {
-        return '../assets/icons/' . $icon_name;
+        $app_url = defined('APP_URL') ? rtrim(APP_URL, '/') : '';
+        return $app_url . '/assets/icons/' . rawurlencode($icon_name);
     }
     return null;
 }
@@ -374,7 +391,7 @@ if ($conn_branding) {
     }
 
     .sidebar.collapsed {
-        width: 70px;
+        width: 90px;
     }
 
     /* Mobile Header (hidden by default, shown when sidebar is collapsed on mobile) */
@@ -597,12 +614,15 @@ if ($conn_branding) {
     }
 
     .sidebar.collapsed .sidebar-nav-link {
+        flex-direction: column;
         justify-content: center;
-        padding: 16px 10px;
+        align-items: center;
+        padding: 12px 5px;
+        gap: 4px;
     }
 
     .sidebar.collapsed .sidebar-nav-link:hover {
-        padding-left: 10px;
+        padding-left: 5px;
     }
 
     .nav-icon {
@@ -610,12 +630,17 @@ if ($conn_branding) {
         height: 24px;
         object-fit: contain;
         flex-shrink: 0;
-        filter: brightness(0) invert(1);
+        filter: none;
+        transition: filter 0.2s ease;
     }
 
     .sidebar-nav-link.active .nav-icon,
-    .sidebar-nav-link:hover .nav-icon {
-        filter: none;
+    .sidebar-nav-link:hover:not(.active) .nav-icon {
+        filter: brightness(0) invert(1);
+    }
+
+    .logout-link .nav-icon {
+        filter: brightness(0) invert(1);
     }
 
     .nav-icon-fallback {
@@ -631,15 +656,21 @@ if ($conn_branding) {
     .nav-text {
         margin-left: 15px;
         white-space: nowrap;
-        transition: opacity 0.3s ease;
+        transition: all 0.3s ease;
         font-size: 14px;
         font-weight: 500;
     }
 
     .sidebar.collapsed .nav-text {
-        opacity: 0;
-        width: 0;
         margin-left: 0;
+        margin-top: 2px;
+        font-size: 9px;
+        font-weight: 600;
+        text-align: center;
+        line-height: 1.2;
+        max-width: 80px;
+        white-space: normal;
+        word-wrap: break-word;
     }
 
     /* Logout Section */
@@ -666,8 +697,11 @@ if ($conn_branding) {
     }
 
     .sidebar.collapsed .logout-link {
+        flex-direction: column;
+        align-items: center;
         justify-content: center;
-        padding: 12px 10px;
+        padding: 12px 5px;
+        gap: 4px;
     }
 
     .sidebar.collapsed .logout-link:hover {
@@ -683,12 +717,12 @@ if ($conn_branding) {
     }
 
     body.sidebar-collapsed .main-wrapper {
-        margin-left: 70px;
+        margin-left: 90px;
     }
 
     /* Legacy support for sidebar class */
     .sidebar.collapsed ~ .main-wrapper {
-        margin-left: 70px;
+        margin-left: 90px;
     }
 
     /* Mobile Responsive Styles */
@@ -792,32 +826,15 @@ if ($conn_branding) {
         text-transform: uppercase;
     }
 
-    /* Tooltip for collapsed state */
-    .sidebar.collapsed .sidebar-nav-link {
+    /* Tooltip for collapsed state - disabled since text is now visible */
+    .sidebar.collapsed .sidebar-nav-link,
+    .sidebar.collapsed .logout-link {
         position: relative;
     }
 
-    .sidebar.collapsed .sidebar-nav-link::after {
-        content: attr(data-tooltip);
-        position: absolute;
-        left: 70px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: #003581;
-        color: white;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 13px;
-        white-space: nowrap;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s ease;
-        z-index: 1000;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    .sidebar.collapsed .sidebar-nav-link:hover::after {
-        opacity: 1;
+    .sidebar.collapsed .sidebar-nav-link::after,
+    .sidebar.collapsed .logout-link::after {
+        display: none;
     }
 </style>
 
@@ -1094,7 +1111,7 @@ if ($conn_branding) {
 </script>
 
 <?php
-if ((!isset($conn) || !($conn instanceof mysqli)) && isset($sidebar_conn_auth) && $sidebar_conn_auth instanceof mysqli) {
+if (!empty($sidebar_conn_managed) && $sidebar_conn_auth instanceof mysqli) {
     @closeConnection($sidebar_conn_auth);
 }
 ?>

@@ -1,0 +1,7 @@
+/.env
+/.env.*
+/vendor/
+/vendor
+/smtp/credentials.local.php
+/.idea/
+/.vscode/

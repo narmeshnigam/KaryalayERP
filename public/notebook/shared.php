@@ -75,15 +75,29 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.notebook-shared-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.notebook-shared-header-buttons{display:flex;gap:8px;}
+
+@media (max-width:768px){
+.notebook-shared-header-flex{flex-direction:column;align-items:stretch;}
+.notebook-shared-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.notebook-shared-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.notebook-shared-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="notebook-shared-header-flex">
                 <div>
                     <h1 style="margin: 0 0 8px 0;">🔗 Shared With Me</h1>
                     <p style="color: #6c757d; margin: 0;">Notes shared by other users</p>
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div class="notebook-shared-header-buttons">
                     <a href="index.php" class="btn btn-secondary">📒 All Notes</a>
                     <a href="my.php" class="btn btn-secondary">📝 My Notes</a>
                     <?php if ($can_create): ?>

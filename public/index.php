@@ -35,58 +35,21 @@ include __DIR__ . '/../includes/header_sidebar.php';
 include __DIR__ . '/../includes/sidebar.php';
 ?>
 
-<style>
-    :root{
-        --brand-blue: #0b5ed7; --brand-blue-2: #0747b2; --brand-amber: #f59e0b; --brand-green:#198754; --brand-teal:#0ea5a4; --brand-red:#dc3545;
-        --card-shadow: 0 8px 22px rgba(11,35,74,0.08);
-    }
-    .page-header { margin-bottom: 12px; }
-    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; margin-bottom:24px; }
-    .kpi-tile { padding:22px; border-radius:12px; color:#fff; text-align:center; box-shadow:var(--card-shadow); min-height:120px; display:flex; flex-direction:column; justify-content:center; align-items:center; }
-    .kpi-tile.blue { background:linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-blue-2) 100%); }
-    .kpi-tile.green { background:linear-gradient(135deg, var(--brand-green) 0%, #16a34a 100%); }
-    .kpi-tile.amber { background:linear-gradient(135deg, var(--brand-amber) 0%, #f97316 100%); }
-    .kpi-tile.red { background:linear-gradient(135deg, var(--brand-red) 0%, #e6504b 100%); }
-    .kpi-tile.teal { background:linear-gradient(135deg, var(--brand-teal) 0%, #0891b2 100%); }
-    .kpi-label { color:rgba(255,255,255,0.95); font-size:13px; margin-bottom:8px; font-weight:600; letter-spacing:0.2px; }
-    .kpi-value { font-size:34px; font-weight:800; color:#fff; margin-bottom:6px; text-shadow:0 2px 6px rgba(0,0,0,0.12); }
-    .kpi-sub { font-size:13px; color:rgba(255,255,255,0.92); }
-    .kpi-delta { font-size:12px; font-weight:700; display:inline-block; padding:6px 9px; border-radius:999px; background:rgba(0,0,0,0.12); color:#fff; }
-    .kpi-delta.up { color:#e6ffea; background:rgba(20,120,45,0.18); }
-    .kpi-delta.down { color:#ffeef0; background:rgba(220,53,69,0.12); }
-    .ring { width:56px; height:56px; border-radius:50%; background: conic-gradient(rgba(255,255,255,0.95) calc(var(--p)*1%), rgba(255,255,255,0.12) 0); display:grid; place-items:center; position:relative; flex-shrink:0; box-shadow: inset 0 -3px 8px rgba(0,0,0,0.06); border:3px solid rgba(255,255,255,0.06); }
-    .ring::before { content:''; position:absolute; inset:10px; background:rgba(0,0,0,0.06); border-radius:50%; }
-    .ring > span { position:relative; font-size:12px; font-weight:800; color:white; z-index:2; }
-    .grid-2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(450px,1fr)); gap:24px; margin-bottom:24px; }
-    .grid-3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:24px; }
-    .section-card { padding:24px; }
-    .card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
-    .card-header h3 { margin:0; color:#0b3a75; font-size:18px; font-weight:700; }
-    .card-header p { margin:0; color:#6c757d; font-size:13px; }
-    .quick-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
-    .qa { display:flex; align-items:center; gap:10px; padding:12px 14px; border:1px solid #e6edf5; border-radius:10px; background:#f7f9fc; text-decoration:none; color:#0d2d66; font-weight:600; }
-    .qa:hover { background:#edf2ff; }
-    .muted { color:#6c757d; }
-    table.table { width:100%; border-collapse:collapse; }
-    table.table th { padding:10px 12px; text-align:left; font-size:13px; font-weight:600; color:#6c757d; border-bottom:2px solid #e1e8ed; background:#f8f9fa; }
-    table.table td { padding:10px 12px; font-size:13px; color:#1b2a57; border-bottom:1px solid #f0f0f0; }
-    table.table tr:hover { background:#f8f9fa; }
-    @media (max-width: 1024px) { .grid-2 { grid-template-columns: 1fr; } }
-</style>
-
 <div class="main-wrapper">
     <div class="main-content">
         <!-- Header Bar -->
         <div class="page-header">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+            <div class="page-header-content">
                 <div>
                     <h1>🏠 Welcome, <?php echo htmlspecialchars($full_name); ?></h1>
                     <p class="muted" id="dashDate"></p>
                 </div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                    <form method="get" action="<?php echo APP_URL; ?>/public/search.php" style="display:flex;gap:8px;align-items:center;">
-                        <input type="text" name="q" placeholder="Search employees, leads, tasks..." class="form-control" style="min-width:260px;" />
-                        <button class="btn btn-primary" type="submit">Search</button>
+                <div class="page-header-search-wrapper">
+                    <form method="get" action="<?php echo APP_URL; ?>/public/search.php" class="page-header-search-form">
+                        <div class="search-form-row">
+                            <input type="text" name="q" placeholder="Search employees, leads, tasks..." class="form-control" />
+                            <button class="btn btn-primary" type="submit">Search</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -100,28 +63,36 @@ include __DIR__ . '/../includes/sidebar.php';
                 <div class="kpi-value" id="kpi_total_leads">0</div>
                 <div class="kpi-delta" id="kpi_total_leads_delta">—</div>
             </div>
-            <div class="kpi-tile amber" <?php if(!($isAdmin||$isManager)) echo 'style="display:none;"'; ?>>
+            <?php if($isAdmin || $isManager): ?>
+            <div class="kpi-tile amber">
                 <div class="kpi-label">CRM • Conversion Rate</div>
                 <div class="kpi-value" id="kpi_conv_rate">0%</div>
                 <div class="kpi-delta" id="kpi_conv_rate_delta">—</div>
             </div>
+            <?php endif; ?>
             <!-- Employee -->
-            <div class="kpi-tile teal" <?php if(!$isAdmin) echo 'style="display:none;"'; ?>>
+            <?php if($isAdmin): ?>
+            <div class="kpi-tile teal">
                 <div class="kpi-label">Employees • Total Active</div>
                 <div class="kpi-value" id="kpi_total_employees">0</div>
                 <div class="kpi-delta" id="kpi_total_employees_delta">—</div>
             </div>
+            <?php endif; ?>
             <!-- Attendance -->
-            <div class="kpi-tile green" <?php if(!$isAdmin) echo 'style="display:none;"'; ?>>
+            <?php if($isAdmin): ?>
+            <div class="kpi-tile green">
                 <div class="kpi-label">Attendance • Present Today</div>
                 <div class="kpi-value" id="kpi_present_today">0</div>
                 <div class="kpi-delta" id="kpi_present_today_delta">—</div>
             </div>
-            <div class="kpi-tile green" <?php if($isAdmin||$isManager) echo 'style="display:none;"'; ?>>
+            <?php endif; ?>
+            <?php if(!$isAdmin && !$isManager): ?>
+            <div class="kpi-tile green">
                 <div class="kpi-label">My Attendance • Today</div>
                 <div class="kpi-value" id="kpi_my_attendance">—</div>
                 <div class="kpi-sub" id="kpi_my_hours">Hours: 0</div>
             </div>
+            <?php endif; ?>
             <!-- Tasks -->
             <div class="kpi-tile red">
                 <div class="kpi-label">Tasks • Pending</div>
@@ -129,65 +100,73 @@ include __DIR__ . '/../includes/sidebar.php';
                 <div class="kpi-sub" id="kpi_overdue_tasks">Overdue: 0</div>
             </div>
             <!-- Reimbursements -->
-            <div class="kpi-tile amber" <?php if(!($isAdmin||$isManager)) echo 'style="display:none;"'; ?>>
+            <?php if($isAdmin || $isManager): ?>
+            <div class="kpi-tile amber">
                 <div class="kpi-label">Reimbursements • Claims Pending</div>
                 <div class="kpi-value" id="kpi_claims_pending">0</div>
                 <div class="kpi-delta" id="kpi_claims_pending_delta">—</div>
             </div>
+            <?php endif; ?>
             <!-- Expenses -->
-            <div class="kpi-tile blue" <?php if(!($isAdmin||$isManager)) echo 'style="display:none;"'; ?>>
+            <?php if($isAdmin || $isManager): ?>
+            <div class="kpi-tile blue">
                 <div class="kpi-label">Expenses • Total (Month)</div>
                 <div class="kpi-value" id="kpi_total_expenses">₹0</div>
                 <div class="kpi-delta" id="kpi_total_expenses_delta">—</div>
             </div>
+            <?php endif; ?>
             <!-- Salary -->
-            <div class="kpi-tile teal" <?php if(!$isAdmin) echo 'style="display:none;"'; ?>>
+            <?php if($isAdmin): ?>
+            <div class="kpi-tile teal">
                 <div class="kpi-label">Salary • Payroll Completed</div>
-                <div style="display:flex;align-items:center;gap:12px;justify-content:center;">
+                <div class="kpi-flex-container">
                     <div class="ring" style="--p: 0" id="kpi_payroll_ring"><span>0%</span></div>
-                    <div class="kpi-value" id="kpi_payroll_pct" style="margin:0;">0%</div>
+                    <div class="kpi-value" id="kpi_payroll_pct">0%</div>
                 </div>
             </div>
+            <?php endif; ?>
             <!-- Visitors -->
-            <div class="kpi-tile blue" <?php if(!$isAdmin) echo 'style="display:none;"'; ?>>
+            <?php if($isAdmin): ?>
+            <div class="kpi-tile blue">
                 <div class="kpi-label">Visitor Log • Today</div>
                 <div class="kpi-value" id="kpi_visitors_today">0</div>
                 <div class="kpi-sub" id="kpi_visitors_sub">—</div>
             </div>
+            <?php endif; ?>
         </div>
 
         <!-- Visual Analytics -->
         <div class="grid-2">
             <div class="card section-card">
                 <div class="card-header"><div><h3>Organizational Overview</h3><p>Employees vs Active Tasks by Department</p></div></div>
-                <canvas id="chartOrg" style="max-height:260px;"></canvas>
+                <canvas id="chartOrg" class="chart-canvas"></canvas>
             </div>
             <div class="card section-card">
                 <div class="card-header"><div><h3>Monthly Expense Trend</h3><p>Expenses • Salary • Reimbursements</p></div></div>
-                <canvas id="chartExpense" style="max-height:260px;"></canvas>
+                <canvas id="chartExpense" class="chart-canvas"></canvas>
             </div>
         </div>
 
         <div class="grid-3">
             <div class="card section-card">
                 <div class="card-header"><div><h3>Attendance Heatmap</h3><p>Current month presence density</p></div></div>
-                <div id="heatmap" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;min-height:140px;"></div>
+                <div id="heatmap" class="heatmap-container"></div>
             </div>
             <div class="card section-card">
                 <div class="card-header"><div><h3>CRM Performance</h3><p>Active • Converted • Dropped</p></div></div>
-                <canvas id="chartCRM" style="max-height:220px;"></canvas>
+                <canvas id="chartCRM" class="chart-canvas-small"></canvas>
             </div>
             <div class="card section-card">
                 <div class="card-header"><div><h3>Task Completion Trend</h3><p>Assigned vs Completed per week</p></div></div>
-                <canvas id="chartTasks" style="max-height:220px;"></canvas>
+                <canvas id="chartTasks" class="chart-canvas-small"></canvas>
             </div>
         </div>
 
         <!-- Activity Panels -->
-        <div class="grid-2" style="margin-top:24px;">
+        <div class="grid-2">
             <div class="card section-card">
                 <div class="card-header"><div><h3>My Tasks</h3><p>Top 5 pending/ongoing</p></div></div>
-                <div style="overflow:auto;">
+                <div class="overflow-auto">
                     <table class="table" id="tblMyTasks"><thead><tr><th>Title</th><th>Due</th><th>Status</th><th>Lead</th><th></th></tr></thead><tbody><tr><td colspan="5" class="muted">No tasks found.</td></tr></tbody></table>
                 </div>
             </div>
@@ -197,36 +176,36 @@ include __DIR__ . '/../includes/sidebar.php';
             </div>
         </div>
 
-        <div class="grid-2" style="margin-top:24px;">
+        <div class="grid-2">
             <div class="card section-card">
                 <div class="card-header"><div><h3>CRM Follow-ups</h3><p>Upcoming follow-ups</p></div></div>
-                <div style="overflow:auto;">
+                <div class="overflow-auto">
                     <table class="table" id="tblFollowups"><thead><tr><th>Type</th><th>Date</th><th>Lead</th><th>Assigned</th><th>Status</th></tr></thead><tbody><tr><td colspan="5" class="muted">No follow-ups scheduled.</td></tr></tbody></table>
                 </div>
             </div>
             <div class="card section-card">
                 <div class="card-header"><div><h3>Reimbursements & Expenses</h3><p>Latest 5 items</p></div></div>
-                <div style="overflow:auto;">
+                <div class="overflow-auto">
                     <table class="table" id="tblFinance"><thead><tr><th>Type</th><th>Date</th><th>Employee</th><th>Amount</th><th>Status</th></tr></thead><tbody><tr><td colspan="5" class="muted">No items.</td></tr></tbody></table>
                 </div>
             </div>
         </div>
 
-        <div class="grid-2" style="margin-top:24px;">
+        <div class="grid-2">
             <div class="card section-card">
                 <div class="card-header"><div><h3>Salary Summary</h3><p>Current pay cycle</p></div></div>
                 <div id="salaryPanel" class="muted">No data.</div>
             </div>
             <div class="card section-card">
                 <div class="card-header"><div><h3>Visitor Log</h3><p>Today</p></div></div>
-                <div style="overflow:auto;">
+                <div class="overflow-auto">
                     <table class="table" id="tblVisitors"><thead><tr><th>Name</th><th>Purpose</th><th>Time</th><th>Employee</th></tr></thead><tbody><tr><td colspan="4" class="muted">No visitors recorded.</td></tr></tbody></table>
                 </div>
             </div>
         </div>
 
         <!-- Quick Actions & Announcements -->
-        <div class="grid-2" style="margin-top:24px;">
+        <div class="grid-2">
             <div class="card section-card">
                 <div class="card-header"><div><h3>Quick Actions</h3><p>Get things done faster</p></div></div>
                 <div class="quick-actions">
@@ -240,7 +219,7 @@ include __DIR__ . '/../includes/sidebar.php';
             </div>
             <div class="card section-card">
                 <div class="card-header"><div><h3>Announcements</h3><p>Organization-wide notices</p></div></div>
-                <ul id="announcements" class="muted" style="margin:0;padding-left:16px;">
+                <ul id="announcements" class="muted announcements-list">
                     <li>No announcements.</li>
                 </ul>
             </div>

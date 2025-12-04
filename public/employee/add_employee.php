@@ -270,12 +270,12 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="emp-header-flex">
                 <div>
                     <h1>➕ Add New Employee</h1>
                     <p>Enter employee information and details</p>
                 </div>
-                <div>
+                <div class="emp-header-btn-mobile">
                     <a href="index.php" class="btn btn-accent">
                         ← Back to Employee List
                     </a>
@@ -294,13 +294,13 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <form method="POST" enctype="multipart/form-data">
             <!-- Personal Information -->
-            <div class="card" style="margin-bottom: 25px;">
-                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+            <div class="card emp-card">
+                <h3 class="emp-section-title">
                     👤 Personal Information
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div class="emp-form-grid-3">
                     <div class="form-group">
-                        <label>First Name <span style="color: #dc3545;">*</span></label>
+                        <label>First Name <span class="emp-required">*</span></label>
                         <input type="text" name="first_name" class="form-control" required value="<?php echo $_POST['first_name'] ?? ''; ?>">
                     </div>
                     <div class="form-group">
@@ -308,15 +308,15 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <input type="text" name="middle_name" class="form-control" value="<?php echo $_POST['middle_name'] ?? ''; ?>">
                     </div>
                     <div class="form-group">
-                        <label>Last Name <span style="color: #dc3545;">*</span></label>
+                        <label>Last Name <span class="emp-required">*</span></label>
                         <input type="text" name="last_name" class="form-control" required value="<?php echo $_POST['last_name'] ?? ''; ?>">
                     </div>
                     <div class="form-group">
-                        <label>Date of Birth <span style="color: #dc3545;">*</span></label>
+                        <label>Date of Birth <span class="emp-required">*</span></label>
                         <input type="date" name="date_of_birth" class="form-control" required value="<?php echo $_POST['date_of_birth'] ?? ''; ?>">
                     </div>
                     <div class="form-group">
-                        <label>Gender <span style="color: #dc3545;">*</span></label>
+                        <label>Gender <span class="emp-required">*</span></label>
                         <select name="gender" class="form-control" required>
                             <option value="">Select Gender</option>
                             <option value="Male" <?php echo ($_POST['gender'] ?? '') == 'Male' ? 'selected' : ''; ?>>Male</option>
@@ -359,13 +359,13 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Contact Information -->
-            <div class="card" style="margin-bottom: 25px;">
-                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+            <div class="card emp-card">
+                <h3 class="emp-section-title">
                     📞 Contact Information
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div class="emp-form-grid-3">
                     <div class="form-group">
-                        <label>Official Email <span style="color: #dc3545;">*</span></label>
+                        <label>Official Email <span class="emp-required">*</span></label>
                         <input type="email" name="official_email" class="form-control" required value="<?php echo $_POST['official_email'] ?? ''; ?>">
                     </div>
                     <div class="form-group">
@@ -373,7 +373,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <input type="email" name="personal_email" class="form-control" value="<?php echo $_POST['personal_email'] ?? ''; ?>">
                     </div>
                     <div class="form-group">
-                        <label>Mobile Number <span style="color: #dc3545;">*</span></label>
+                        <label>Mobile Number <span class="emp-required">*</span></label>
                         <input type="tel" name="mobile_number" class="form-control" required value="<?php echo $_POST['mobile_number'] ?? ''; ?>">
                     </div>
                     <div class="form-group">
@@ -396,15 +396,15 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Address Information -->
-            <div class="card" style="margin-bottom: 25px;">
-                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+            <div class="card emp-card">
+                <h3 class="emp-section-title">
                     🏠 Address Information
                 </h3>
-                <div style="margin-bottom: 20px;">
-                    <strong style="color: #003581;">Current Address:</strong>
+                <div class="emp-subsection-row">
+                    <strong class="emp-subtitle-label">Current Address:</strong>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
-                    <div class="form-group" style="grid-column: 1 / -1;">
+                <div class="emp-form-grid-2 emp-subsection-row-large">
+                    <div class="form-group emp-grid-full">
                         <label>Current Address</label>
                         <textarea name="current_address" class="form-control" rows="2"><?php echo $_POST['current_address'] ?? ''; ?></textarea>
                     </div>
@@ -421,14 +421,14 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <input type="text" name="current_pincode" class="form-control" value="<?php echo $_POST['current_pincode'] ?? ''; ?>">
                     </div>
                 </div>
-                <div style="margin-bottom: 20px;">
-                    <strong style="color: #003581;">Permanent Address:</strong>
-                    <label style="margin-left: 20px; font-weight: normal;">
+                <div class="emp-subsection-row">
+                    <strong class="emp-subtitle-label">Permanent Address:</strong>
+                    <label class="emp-checkbox-inline">
                         <input type="checkbox" onclick="copyAddress(this)"> Same as Current Address
                     </label>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
-                    <div class="form-group" style="grid-column: 1 / -1;">
+                <div class="emp-form-grid-2">
+                    <div class="form-group emp-grid-full">
                         <label>Permanent Address</label>
                         <textarea name="permanent_address" class="form-control" rows="2" id="permanent_address"><?php echo $_POST['permanent_address'] ?? ''; ?></textarea>
                     </div>
@@ -448,13 +448,13 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Employment Information -->
-            <div class="card" style="margin-bottom: 25px;">
-                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+            <div class="card emp-card">
+                <h3 class="emp-section-title">
                     💼 Employment Information
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div class="emp-form-grid-3">
                     <div class="form-group">
-                        <label>Department <span style="color: #dc3545;">*</span></label>
+                        <label>Department <span class="emp-required">*</span></label>
                         <select name="department" class="form-control" required>
                             <option value="">Select Department</option>
                             <?php foreach ($departments as $dept): ?>
@@ -463,7 +463,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Designation <span style="color: #dc3545;">*</span></label>
+                        <label>Designation <span class="emp-required">*</span></label>
                         <select name="designation" class="form-control" required>
                             <option value="">Select Designation</option>
                             <?php foreach ($designations as $desig): ?>
@@ -481,7 +481,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Date of Joining <span style="color: #dc3545;">*</span></label>
+                        <label>Date of Joining <span class="emp-required">*</span></label>
                         <input type="date" name="date_of_joining" class="form-control" required value="<?php echo $_POST['date_of_joining'] ?? ''; ?>">
                     </div>
                     <div class="form-group">
@@ -517,11 +517,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Salary Information -->
-            <div class="card" style="margin-bottom: 25px;">
-                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+            <div class="card emp-card">
+                <h3 class="emp-section-title">
                     💰 Salary & Financial Information
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div class="emp-form-grid-3">
                     <div class="form-group">
                         <label>Salary Type</label>
                         <select name="salary_type" class="form-control">
@@ -550,9 +550,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <label>Special Allowance</label>
                         <input type="number" step="0.01" name="special_allowance" class="form-control" value="0" onchange="calculateGross()">
                     </div>
-                    <div class="form-group" style="grid-column: 1 / -1;">
+                    <div class="form-group emp-grid-full">
                         <label><strong>Gross Salary</strong></label>
-                        <input type="text" id="gross_display" class="form-control" readonly style="background: #e9ecef; font-weight: 700; font-size: 18px; color: #003581;" value="₹ 0.00">
+                        <input type="text" id="gross_display" class="form-control emp-gross-display" readonly value="₹ 0.00">
                     </div>
                     <div class="form-group">
                         <label>PF Number</label>
@@ -574,11 +574,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Bank Details -->
-            <div class="card" style="margin-bottom: 25px;">
-                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+            <div class="card emp-card">
+                <h3 class="emp-section-title">
                     🏦 Bank Details
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                <div class="emp-form-grid-2">
                     <div class="form-group">
                         <label>Bank Name</label>
                         <input type="text" name="bank_name" class="form-control" value="<?php echo $_POST['bank_name'] ?? ''; ?>">
@@ -599,11 +599,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Documents & Identification -->
-            <div class="card" style="margin-bottom: 25px;">
-                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+                <div class="card emp-card">
+                <h3 class="emp-section-title">
                     📄 Documents & Identification
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                <div class="emp-form-grid-2">
                     <div class="form-group">
                         <label>Aadhar Number</label>
                         <input type="text" name="aadhar_number" class="form-control" value="<?php echo $_POST['aadhar_number'] ?? ''; ?>">
@@ -636,11 +636,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Education & Experience -->
-            <div class="card" style="margin-bottom: 25px;">
-                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+            <div class="card emp-card">
+                <h3 class="emp-section-title">
                     🎓 Education & Experience
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                <div class="emp-form-grid-2">
                     <div class="form-group">
                         <label>Highest Qualification</label>
                         <input type="text" name="highest_qualification" class="form-control" placeholder="e.g., B.Tech, MBA, etc." value="<?php echo $_POST['highest_qualification'] ?? ''; ?>">
@@ -677,11 +677,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Additional Information -->
-            <div class="card" style="margin-bottom: 25px;">
-                <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+            <div class="card emp-card">
+                <h3 class="emp-section-title">
                     ℹ️ Additional Information
                 </h3>
-                <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                <div class="emp-single-column-grid">
                     <div class="form-group">
                         <label>Skills (comma-separated)</label>
                         <textarea name="skills" class="form-control" rows="2" placeholder="e.g., PHP, JavaScript, Project Management"><?php echo $_POST['skills'] ?? ''; ?></textarea>
@@ -698,11 +698,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Submit Buttons -->
-            <div style="text-align: center; padding: 20px 0;">
-                <button type="submit" class="btn" style="padding: 15px 60px; font-size: 16px;">
+            <div class="emp-button-group">
+                <button type="submit" class="btn">
                     ✅ Add Employee
                 </button>
-                <a href="index.php" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; margin-left: 15px; text-decoration: none;">
+                <a href="index.php" class="btn btn-accent">
                     ❌ Cancel
                 </a>
             </div>

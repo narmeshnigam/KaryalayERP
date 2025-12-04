@@ -13,7 +13,6 @@ if (!crm_tables_exist($conn)) {
 // Month/year and optional day selection
 $month = isset($_GET['month']) ? max(1, min(12, (int)$_GET['month'])) : (int)date('n');
 $year  = isset($_GET['year']) ? max(2020, min(2100, (int)$_GET['year'])) : (int)date('Y');
-$selected_day = isset($_GET['day']) ? $_GET['day'] : '';
 
 $first_day = sprintf('%04d-%02d-01', $year, $month);
 $last_day  = date('Y-m-t', strtotime($first_day));
@@ -36,24 +35,14 @@ $push_event = function(string $date, array $e) use (&$events_by_date) {
   $events_by_date[$key][] = $e;
 };
 
-// Colors and icons per module
-$type_meta = [
-  'Task' => ['bg' => '#e3f2fd', 'fg' => '#1e40af', 'icon' => '✓', 'module' => 'tasks', 'date_col' => 'due_date'],
-  'Call' => ['bg' => '#fff7ed', 'fg' => '#c2410c', 'icon' => '📞', 'module' => 'calls', 'date_col' => 'call_date'],
-  'Meeting' => ['bg' => '#ecfdf5', 'fg' => '#065f46', 'icon' => '📋', 'module' => 'meetings', 'date_col' => 'meeting_date'],
-  'Visit' => ['bg' => '#ecfeff', 'fg' => '#0f766e', 'icon' => '🚗', 'module' => 'visits', 'date_col' => 'visit_date'],
-  'Follow-up' => ['bg' => '#f5f3ff', 'fg' => '#5b21b6', 'icon' => '🔔', 'module' => 'leads', 'date_col' => 'follow_up_date'],
-];
-
-// Fetch within month
-$from = $first_day . ' 00:00:00';
-$to   = $last_day . ' 23:59:59';
-
 // Tasks
 if ($show_tasks) {
   $sql = "SELECT id, title, status, due_date FROM crm_tasks WHERE deleted_at IS NULL AND due_date BETWEEN ? AND ? ORDER BY due_date";
   $stmt = mysqli_prepare($conn, $sql);
-  if ($stmt) { mysqli_stmt_bind_param($stmt, 'ss', $first_day, $last_day); mysqli_stmt_execute($stmt); $res = mysqli_stmt_get_result($stmt);
+  if ($stmt) {
+    mysqli_stmt_bind_param($stmt, 'ss', $first_day, $last_day);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
     while ($res && ($r = mysqli_fetch_assoc($res))) {
       $push_event((string)$r['due_date'], [
         'type' => 'Task',
@@ -63,7 +52,8 @@ if ($show_tasks) {
         'link' => './tasks/view.php?id=' . (int)$r['id']
       ]);
     }
-    if ($res) mysqli_free_result($res); mysqli_stmt_close($stmt);
+    if ($res) mysqli_free_result($res);
+    mysqli_stmt_close($stmt);
   }
 }
 
@@ -71,7 +61,10 @@ if ($show_tasks) {
 if ($show_calls) {
   $sql = "SELECT id, title, call_date FROM crm_calls WHERE deleted_at IS NULL AND call_date BETWEEN ? AND ? ORDER BY call_date";
   $stmt = mysqli_prepare($conn, $sql);
-  if ($stmt) { mysqli_stmt_bind_param($stmt, 'ss', $first_day, $last_day); mysqli_stmt_execute($stmt); $res = mysqli_stmt_get_result($stmt);
+  if ($stmt) {
+    mysqli_stmt_bind_param($stmt, 'ss', $first_day, $last_day);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
     while ($res && ($r = mysqli_fetch_assoc($res))) {
       $push_event((string)$r['call_date'], [
         'type' => 'Call',
@@ -81,7 +74,8 @@ if ($show_calls) {
         'link' => './calls/view.php?id=' . (int)$r['id']
       ]);
     }
-    if ($res) mysqli_free_result($res); mysqli_stmt_close($stmt);
+    if ($res) mysqli_free_result($res);
+    mysqli_stmt_close($stmt);
   }
 }
 
@@ -89,7 +83,10 @@ if ($show_calls) {
 if ($show_meetings) {
   $sql = "SELECT id, title, meeting_date FROM crm_meetings WHERE deleted_at IS NULL AND meeting_date BETWEEN ? AND ? ORDER BY meeting_date";
   $stmt = mysqli_prepare($conn, $sql);
-  if ($stmt) { mysqli_stmt_bind_param($stmt, 'ss', $from, $to); mysqli_stmt_execute($stmt); $res = mysqli_stmt_get_result($stmt);
+  if ($stmt) {
+    mysqli_stmt_bind_param($stmt, 'ss', $first_day, $last_day);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
     while ($res && ($r = mysqli_fetch_assoc($res))) {
       $push_event((string)$r['meeting_date'], [
         'type' => 'Meeting',
@@ -99,7 +96,8 @@ if ($show_meetings) {
         'link' => './meetings/view.php?id=' . (int)$r['id']
       ]);
     }
-    if ($res) mysqli_free_result($res); mysqli_stmt_close($stmt);
+    if ($res) mysqli_free_result($res);
+    mysqli_stmt_close($stmt);
   }
 }
 
@@ -107,7 +105,10 @@ if ($show_meetings) {
 if ($show_visits) {
   $sql = "SELECT id, title, visit_date FROM crm_visits WHERE deleted_at IS NULL AND visit_date BETWEEN ? AND ? ORDER BY visit_date";
   $stmt = mysqli_prepare($conn, $sql);
-  if ($stmt) { mysqli_stmt_bind_param($stmt, 'ss', $first_day, $last_day); mysqli_stmt_execute($stmt); $res = mysqli_stmt_get_result($stmt);
+  if ($stmt) {
+    mysqli_stmt_bind_param($stmt, 'ss', $first_day, $last_day);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
     while ($res && ($r = mysqli_fetch_assoc($res))) {
       $push_event((string)$r['visit_date'], [
         'type' => 'Visit',
@@ -117,7 +118,8 @@ if ($show_visits) {
         'link' => './visits/view.php?id=' . (int)$r['id']
       ]);
     }
-    if ($res) mysqli_free_result($res); mysqli_stmt_close($stmt);
+    if ($res) mysqli_free_result($res);
+    mysqli_stmt_close($stmt);
   }
 }
 
@@ -125,7 +127,10 @@ if ($show_visits) {
 if ($show_followups) {
   $sql = "SELECT id, name AS title, follow_up_date FROM crm_leads WHERE deleted_at IS NULL AND follow_up_date IS NOT NULL AND follow_up_date BETWEEN ? AND ? ORDER BY follow_up_date";
   $stmt = mysqli_prepare($conn, $sql);
-  if ($stmt) { mysqli_stmt_bind_param($stmt, 'ss', $first_day, $last_day); mysqli_stmt_execute($stmt); $res = mysqli_stmt_get_result($stmt);
+  if ($stmt) {
+    mysqli_stmt_bind_param($stmt, 'ss', $first_day, $last_day);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
     while ($res && ($r = mysqli_fetch_assoc($res))) {
       $push_event((string)$r['follow_up_date'], [
         'type' => 'Follow-up',
@@ -135,9 +140,29 @@ if ($show_followups) {
         'link' => './leads/view.php?id=' . (int)$r['id']
       ]);
     }
-    if ($res) mysqli_free_result($res); mysqli_stmt_close($stmt);
+    if ($res) {
+      mysqli_free_result($res);
+    }
+    mysqli_stmt_close($stmt);
   }
 }
+
+// Meta for activity types (shared with UI and legend)
+$type_meta = [
+  'Task' => ['label' => 'Task', 'icon' => '📋', 'bg' => '#e3f2fd', 'fg' => '#003581'],
+  'Call' => ['label' => 'Call', 'icon' => '📞', 'bg' => '#fff7ed', 'fg' => '#c2410c'],
+  'Meeting' => ['label' => 'Meeting', 'icon' => '👥', 'bg' => '#ecfdf5', 'fg' => '#047857'],
+  'Visit' => ['label' => 'Visit', 'icon' => '🚗', 'bg' => '#ecfeff', 'fg' => '#0e7490'],
+  'Follow-up' => ['label' => 'Follow-up', 'icon' => '🔁', 'bg' => '#f5f3ff', 'fg' => '#6d28d9'],
+];
+$type_meta_default = ['label' => 'CRM', 'icon' => '•', 'bg' => '#f3f4f6', 'fg' => '#374151'];
+
+// Calendar helpers
+$day_labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+$start_of_month = strtotime($first_day);
+$days_in_month = (int)date('t', $start_of_month);
+$first_weekday = (int)date('w', $start_of_month); // 0 (Sun) - 6 (Sat)
+$today_key = date('Y-m-d');
 
 // Prepare month navigation
 $prev_month = $month - 1; $prev_year = $year; if ($prev_month < 1) { $prev_month = 12; $prev_year--; }
@@ -148,131 +173,313 @@ $page_title = 'CRM Calendar - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
+<style>
+.cal-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.cal-nav-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 15px;
+}
+.cal-nav-flex a {
+    flex: 1;
+}
+.cal-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+}
+.cal-legend-flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+.desktop-text {
+    display: inline;
+}
+.mobile-text {
+    display: none !important;
+}
+@media (max-width: 600px) {
+    .cal-header-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .cal-header-flex > div {
+        width: 100%;
+    }
+    .cal-header-flex .btn {
+        width: 100%;
+        text-align: center;
+        display: block;
+    }
+    .cal-nav-flex {
+        flex-direction: column;
+        align-items: stretch;
+        margin-bottom: 15px;
+    }
+    .cal-nav-flex h2 {
+        order: -1;
+        text-align: center;
+        margin-bottom: 12px !important;
+    }
+    .cal-nav-flex a {
+        width: 100%;
+        flex: none;
+    }
+    .cal-calendar-grid {
+        gap: 3px;
+        padding: 8px !important;
+    }
+    .cal-calendar-grid > div {
+        aspect-ratio: 1;
+        padding: 2px !important;
+        font-size: 10px;
+    }
+    .cal-calendar-grid > div.day-header {
+        padding: 6px !important;
+        font-size: 10px !important;
+    }
+    .cal-calendar-grid > div.day-cell {
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .cal-calendar-grid > div.day-cell:active {
+        transform: scale(0.95);
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .cal-calendar-grid div div:first-child {
+        font-size: 11px;
+        font-weight: 700;
+    }
+    .cal-calendar-grid > div > div[style*="margin-top"] {
+        padding: 1px 2px !important;
+        font-size: 7px !important;
+        margin-top: 1px !important;
+        line-height: 1;
+    }
+    .cal-legend-flex {
+        gap: 12px;
+        font-size: 12px;
+    }
+    .cal-legend-flex > div {
+        flex: 1 1 calc(50% - 6px);
+    }
+    .desktop-text {
+        display: none;
+    }
+    .mobile-text {
+        display: inline !important;
+    }
+}
+</style>
 <div class="main-wrapper">
   <div class="main-content">
-    <!-- Header -->
+    <!-- Page Header -->
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="cal-header-flex">
         <div>
           <h1>🗓️ CRM Calendar</h1>
-          <p>Compact monthly view of all activities with quick links</p>
+          <p>Monthly view of all CRM activities</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <a class="btn btn-accent" href="./index.php">← CRM Dashboard</a>
+        <div>
+          <a href="./index.php" class="btn btn-accent">← Back to Dashboard</a>
         </div>
       </div>
     </div>
 
+    <!-- Month Navigation -->
     <div class="card">
-      <!-- Navigation & Filters -->
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
-        <div style="display:flex;gap:8px;align-items:center;">
-          <a class="btn" href="?month=<?php echo $prev_month; ?>&year=<?php echo $prev_year; ?>">← Prev</a>
-          <div style="font-weight:700;color:#003581;font-size:18px;min-width:180px;text-align:center;"><?php echo htmlspecialchars($month_name . ' ' . $year); ?></div>
-          <a class="btn" href="?month=<?php echo $next_month; ?>&year=<?php echo $next_year; ?>">Next →</a>
-          <a class="btn btn-secondary" href="?month=<?php echo (int)date('n'); ?>&year=<?php echo (int)date('Y'); ?>">Today</a>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      <div class="cal-nav-flex">
+        <a href="?month=<?php echo $prev_month; ?>&year=<?php echo $prev_year; ?>" class="btn btn-accent">
+          ← Previous
+        </a>
+        <h2 style="margin:0;color:#003581;"><?php echo htmlspecialchars($month_name . ' ' . $year); ?></h2>
+        <a href="?month=<?php echo $next_month; ?>&year=<?php echo $next_year; ?>" class="btn btn-accent">
+          Next →
+        </a>
+      </div>
+
+      <!-- Calendar Grid -->
+      <div style="background:#f8f9fa;padding:20px;border-radius:8px;">
+        <div class="cal-calendar-grid">
+          <?php foreach ($day_labels as $label): ?>
+            <div class="day-header" style="text-align:center;font-weight:700;color:#003581;padding:10px;background:white;border-radius:6px;">
+              <?php echo htmlspecialchars($label, ENT_QUOTES); ?>
+            </div>
+          <?php endforeach; ?>
+
           <?php
-            // Simple color chips legend
-            $legend = [
-              ['Task','#e3f2fd','#1e40af'],
-              ['Call','#fff7ed','#c2410c'],
-              ['Meeting','#ecfdf5','#065f46'],
-              ['Visit','#ecfeff','#0f766e'],
-              ['Follow-up','#f5f3ff','#5b21b6'],
-            ];
-            foreach ($legend as $l) {
-              $bg = ($l[0] === 'Follow-up') ? '#f5f3ff' : '#f9fafb';
-              echo '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:16px;background:'.$bg.';">'
-                .'<span style="width:10px;height:10px;border-radius:50%;background:'.$l[1].';border:1px solid #e5e7eb;"></span>'
-                .'<span style="font-size:12px;color:#374151;">'.$l[0].'</span>'
-                .'</span>';
+            // Empty cells for days before the first day
+            for ($i = 0; $i < $first_weekday; $i++) {
+              echo '<div style="aspect-ratio:1;background:#e9ecef;border-radius:6px;"></div>';
+            }
+
+            // Render each day
+            for ($day = 1; $day <= $days_in_month; $day++) {
+              $cell_date = sprintf('%04d-%02d-%02d', $year, $month, $day);
+              $cell_events = $events_by_date[$cell_date] ?? [];
+              $is_today = ($cell_date === $today_key);
+              
+              $border = $is_today ? '2px solid #003581' : '1px solid #dee2e6';
+              
+              echo '<div class="day-cell" onclick="showDayDetail(\'' . htmlspecialchars($cell_date, ENT_QUOTES) . '\')" style="aspect-ratio:1;background:white;border:' . $border . ';border-radius:6px;padding:8px;display:flex;flex-direction:column;position:relative;overflow:hidden;cursor:pointer;">';
+              echo '<div style="font-weight:700;color:#212529;">' . $day . '</div>';
+              
+              if (!empty($cell_events)) {
+                $visible_events = array_slice($cell_events, 0, 3);
+                foreach ($visible_events as $event) {
+                  $meta = $type_meta[$event['type']] ?? $type_meta_default;
+                  $chip_bg = htmlspecialchars($meta['bg'], ENT_QUOTES);
+                  $chip_fg = htmlspecialchars($meta['fg'], ENT_QUOTES);
+                  $chip_icon = htmlspecialchars($meta['icon'], ENT_QUOTES);
+                  $chip_title = htmlspecialchars($event['title'] ?? 'CRM Item', ENT_QUOTES);
+                  
+                  echo '<div style="margin-top:5px;padding:3px 6px;background:' . $chip_bg . ';color:' . $chip_fg . ';border-radius:10px;font-size:10px;">';
+                  echo '<span class="desktop-text">' . $chip_icon . ' ' . $chip_title . '</span>';
+                  echo '<span class="mobile-text" style="display:none;">' . $chip_icon . '</span>';
+                  echo '</div>';
+                }
+                
+                if (count($cell_events) > 3) {
+                  $remaining = count($cell_events) - 3;
+                  echo '<div style="font-size:10px;color:#495057;margin-top:3px;" class="desktop-text">+' . $remaining . ' more</div>';
+                }
+              }
+              
+              echo '</div>';
+            }
+            
+            // Empty cells to complete the grid
+            $total_cells = $first_weekday + $days_in_month;
+            $remaining_cells = 7 - ($total_cells % 7);
+            if ($remaining_cells < 7) {
+              for ($i = 0; $i < $remaining_cells; $i++) {
+                echo '<div style="aspect-ratio:1;background:#e9ecef;border-radius:6px;"></div>';
+              }
             }
           ?>
         </div>
       </div>
 
-      <!-- Day headers -->
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:8px;">
-        <?php foreach (['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as $dow): ?>
-          <div style="text-align:center;font-weight:700;color:#003581;padding:8px;background:#fff;border-radius:6px;border:1px solid #e5e7eb;"><?php echo $dow; ?></div>
-        <?php endforeach; ?>
-      </div>
-
-      <!-- Month grid -->
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px;">
-        <?php
-          $first_ts = strtotime($first_day);
-          $start_w = (int)date('w', $first_ts);
-          $days_in_month = (int)date('t', $first_ts);
-
-          for ($i=0; $i<$start_w; $i++) echo '<div style="aspect-ratio:1;background:#f3f4f6;border-radius:6px;border:1px solid #e5e7eb;"></div>';
-
-          for ($d = 1; $d <= $days_in_month; $d++) {
-            $date_str = sprintf('%04d-%02d-%02d', $year, $month, $d);
-            $is_today = ($date_str === date('Y-m-d'));
-            $list = $events_by_date[$date_str] ?? [];
-
-            // sort per-day events: Follow-up first, then Meetings, Calls, Visits, Tasks
-            usort($list, function($a,$b){
-              $order = ['Follow-up'=>0,'Meeting'=>1,'Call'=>2,'Visit'=>3,'Task'=>4];
-              return ($order[$a['type']] ?? 9) <=> ($order[$b['type']] ?? 9);
-            });
-
-            echo '<div style="aspect-ratio:1;background:#ffffff;border:' . ($is_today?'2px solid #003581':'1px solid #e5e7eb') . ';border-radius:8px;padding:8px;display:flex;flex-direction:column;min-height:140px;">';
-            echo '<div style="display:flex;justify-content:space-between;align-items:center;">'
-                .'<div style="font-weight:700;color:#111827;">'.$d.'</div>'
-                .'<a href="?month='.(int)$month.'&year='.(int)$year.'&day='.$date_str.'#agenda" style="font-size:11px;color:#003581;text-decoration:none;">Agenda</a>'
-                .'</div>';
-
-            // chips
-            $max = 4; $shown = 0; 
-            foreach ($list as $ev) {
-              if ($shown >= $max) break; $shown++;
-              $meta = $type_meta[$ev['type']] ?? ['bg'=>'#f3f4f6','fg'=>'#374151','icon'=>'•'];
-              echo '<a href="'.htmlspecialchars($ev['link']).'" style="display:flex;gap:6px;align-items:center;margin-top:6px;padding:6px 8px;background:'.$meta['bg'].';color:'.$meta['fg'].';border-radius:6px;text-decoration:none;border:1px solid #e5e7eb;">'
-                 .'<span style="font-size:13px;">'.$meta['icon'].'</span>'
-                 .'<span style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'.htmlspecialchars($ev['title']).'</span>'
-                 .'</a>';
-            }
-            $remain = max(0, count($list) - $shown);
-            if ($remain > 0) {
-              echo '<a href="?month='.(int)$month.'&year='.(int)$year.'&day='.$date_str.'#agenda" style="margin-top:6px;font-size:12px;color:#6b7280;text-decoration:none;">+'.$remain.' more</a>';
-            }
-            echo '</div>';
-          }
-
-          $total_cells = $start_w + $days_in_month;
-          $remaining = 7 - ($total_cells % 7);
-          if ($remaining < 7) {
-            for ($i=0;$i<$remaining;$i++) echo '<div style="aspect-ratio:1;background:#f3f4f6;border-radius:6px;border:1px solid #e5e7eb;"></div>';
-          }
-        ?>
-      </div>
-
-      <?php if ($selected_day && isset($events_by_date[$selected_day])): ?>
-        <div id="agenda" style="margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <h3 style="margin:0;color:#003581;">Agenda • <?php echo htmlspecialchars(date('D, d M Y', strtotime($selected_day))); ?></h3>
-            <a class="btn btn-secondary" href="?month=<?php echo (int)$month; ?>&year=<?php echo (int)$year; ?>">Close</a>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <?php foreach ($events_by_date[$selected_day] as $ev): $meta = $type_meta[$ev['type']] ?? ['bg'=>'#f3f4f6','fg'=>'#374151','icon'=>'•']; ?>
-              <a href="<?php echo htmlspecialchars($ev['link']); ?>" style="display:flex;gap:10px;align-items:center;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#ffffff;text-decoration:none;">
-                <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:<?php echo $meta['bg']; ?>;color:<?php echo $meta['fg']; ?>;font-size:14px;"><?php echo $meta['icon']; ?></span>
-                <div style="flex:1;min-width:0;">
-                  <div style="font-weight:600;color:#003581;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">[<?php echo $ev['type']; ?>] <?php echo htmlspecialchars($ev['title']); ?></div>
-                  <?php if (!empty($ev['status'])): ?><div style="margin-top:2px;font-size:11px;color:#6b7280;">Status: <?php echo htmlspecialchars($ev['status']); ?></div><?php endif; ?>
-                </div>
-                <span style="font-size:12px;color:#6b7280;">View →</span>
-              </a>
-            <?php endforeach; ?>
+      <!-- Legend -->
+      <div style="margin-top:20px;padding:15px;background:#f8f9fa;border-radius:8px;">
+        <div style="font-weight:600;color:#003581;margin-bottom:10px;">📋 Legend:</div>
+        <div class="cal-legend-flex">
+          <?php foreach ($type_meta as $meta): ?>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:20px;height:20px;background:<?php echo htmlspecialchars($meta['bg'], ENT_QUOTES); ?>;border:1px solid #dee2e6;border-radius:4px;"></div>
+              <span style="font-size:14px;"><?php echo htmlspecialchars($meta['label'], ENT_QUOTES); ?></span>
+            </div>
+          <?php endforeach; ?>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:20px;height:20px;background:white;border:2px solid #003581;border-radius:4px;"></div>
+            <span style="font-size:14px;">Today</span>
           </div>
         </div>
-      <?php endif; ?>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- Day Detail Modal -->
+<div id="dayDetailModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;align-items:center;justify-content:center;padding:15px;overflow-y:auto;">
+  <div style="background:white;border-radius:12px;padding:30px;max-width:500px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="margin:0;color:#003581;" id="modalDateTitle">Date</h3>
+      <button onclick="closeDayDetailModal()" style="background:none;border:none;font-size:28px;cursor:pointer;padding:0;color:#6c757d;line-height:1;">&times;</button>
+    </div>
+    
+    <div id="modalContent">
+      <!-- Content will be inserted here -->
+    </div>
+    
+    <div style="margin-top:20px;text-align:center;">
+      <button onclick="closeDayDetailModal()" class="btn" style="padding:10px 24px;">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Store CRM events data
+const crmEventsByDate = <?php echo json_encode($events_by_date, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+const crmTypeMeta = <?php echo json_encode($type_meta, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+
+function showDayDetail(date) {
+  const events = crmEventsByDate[date] || [];
+  const dateObj = new Date(date + 'T00:00:00');
+  const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  
+  document.getElementById('modalDateTitle').textContent = formattedDate;
+  
+  let content = '';
+  
+  if (!events.length) {
+    content = `
+      <div style="background:#f8f9fa;border-left:4px solid #6c757d;padding:15px;border-radius:6px;margin-bottom:15px;">
+        <div style="color:#6c757d;text-align:center;">No CRM activities scheduled for this date</div>
+      </div>
+    `;
+  } else {
+    events.forEach((ev) => {
+      const meta = crmTypeMeta[ev.type] || { bg: '#f3f4f6', fg: '#374151', icon: '•', label: 'CRM' };
+      const safeLink = escapeHtml(ev.link || '#');
+      const safeTitle = escapeHtml(ev.title || 'CRM Item');
+      const safeStatus = ev.status ? escapeHtml(ev.status) : '';
+      const safeType = escapeHtml(meta.label || ev.type || 'CRM');
+      
+      content += `
+        <div style="background:${meta.bg};border-left:4px solid ${meta.fg};padding:15px;border-radius:6px;margin-bottom:15px;">
+          <div style="font-weight:600;color:${meta.fg};">${meta.icon} ${safeType}</div>
+          <div style="margin-top:8px;color:#495057;"><strong>Title:</strong> ${safeTitle}</div>
+          ${safeStatus ? `<div style="color:#495057;"><strong>Status:</strong> ${safeStatus}</div>` : ''}
+          <div style="margin-top:10px;">
+            <a href="${safeLink}" class="btn btn-sm" style="display:inline-block;padding:6px 12px;font-size:13px;">View Details →</a>
+          </div>
+        </div>
+      `;
+    });
+  }
+  
+  document.getElementById('modalContent').innerHTML = content;
+  document.getElementById('dayDetailModal').style.display = 'flex';
+}
+
+function closeDayDetailModal() {
+  document.getElementById('dayDetailModal').style.display = 'none';
+}
+
+function escapeHtml(value) {
+  if (!value && value !== 0) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeDayDetailModal();
+  }
+});
+
+// Close modal on outside click
+document.getElementById('dayDetailModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeDayDetailModal();
+  }
+});
+</script>
+
 <?php require_once __DIR__ . '/../../includes/footer_sidebar.php'; ?>
 <?php closeConnection($conn); ?>

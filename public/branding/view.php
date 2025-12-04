@@ -55,12 +55,61 @@ if (!$settings) {
     color:#a0aec0; 
     font-style:italic; 
   }
+
+  @media (max-width:1024px){
+  .card-container{grid-template-columns:repeat(2, 1fr);gap:15px;}
+  }
+
+  @media (max-width:768px){
+  .card-container{grid-template-columns:1fr;gap:12px;}
+  .card-container .card[style*="grid-column"]{grid-column:unset !important;}
+  }
+</style>
+
+<style>
+.branding-view-header-flex{display:flex;justify-content:space-between;align-items:center;}
+.branding-view-logo-card{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+.branding-view-logo-avatar{width:84px;height:84px;border-radius:50%;background:#003581;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:28px;flex-shrink:0;}
+.branding-view-logo-content{flex:1;min-width:200px;}
+.branding-logo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:16px;}
+.branding-org-details-grid{display:grid;grid-template-columns:1fr;gap:12px;font-size:14px;}
+.branding-system-info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;font-size:14px;}
+
+@media (max-width:1024px){
+.branding-logo-grid{grid-template-columns:repeat(2,1fr);gap:15px;}
+.branding-system-info-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:768px){
+.branding-view-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.branding-view-header-flex .btn{width:100%;text-align:center;}
+.branding-view-header-flex h1{font-size:1.3rem;}
+.branding-view-header-flex p{font-size:13px;}
+.branding-view-logo-card{flex-direction:column;gap:16px;}
+.branding-view-logo-avatar{width:64px;height:64px;font-size:24px;margin:0 auto;}
+.branding-view-logo-content{text-align:center;}
+.branding-view-logo-content > div:first-child{font-size:18px;}
+.branding-logo-grid{grid-template-columns:repeat(2,1fr);gap:12px;}
+.logo-display{padding:16px;min-height:100px;}
+.logo-display img{max-height:80px;}
+}
+
+@media (max-width:480px){
+.branding-view-header-flex h1{font-size:1.2rem;}
+.branding-view-header-flex .btn{padding:8px 16px !important;font-size:12px;}
+.branding-view-logo-avatar{width:56px;height:56px;font-size:20px;}
+.branding-view-logo-content > div:first-child{font-size:16px;}
+.branding-view-logo-content > div:nth-child(2){font-size:12px;}
+.branding-logo-grid{grid-template-columns:1fr;gap:10px;}
+.logo-display{padding:12px;min-height:80px;font-size:12px;}
+.logo-display img{max-height:60px;}
+}
 </style>
 
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="branding-view-header-flex">
         <div>
           <h1>🏢 Organization Information</h1>
           <p>Company branding and contact details</p>
@@ -74,11 +123,11 @@ if (!$settings) {
     </div>
 
     <!-- Header Card with Organization Name -->
-    <div class="card" style="display:flex;gap:20px;align-items:center;">
-      <div style="width:84px;height:84px;border-radius:50%;background:#003581;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:28px;">
+    <div class="card branding-view-logo-card">
+      <div class="branding-view-logo-avatar">
         <?php echo strtoupper(substr($settings['org_name'] ?? 'K', 0, 1)); ?>
       </div>
-      <div style="flex:1;">
+      <div class="branding-view-logo-content">
         <div style="font-size:20px;color:#003581;font-weight:700;">
           <?php echo htmlspecialchars($settings['org_name'] ?? 'Organization'); ?>
         </div>
@@ -106,7 +155,7 @@ if (!$settings) {
       <!-- Logo Assets Card - Full Width -->
       <div class="card" style="grid-column:1/-1;">
         <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">🎨 Logo Assets</h3>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:16px;">
+        <div class="branding-logo-grid">
           <div>
             <strong style="font-size:13px;color:#6c757d;display:block;margin-bottom:8px;">Login Page Logo</strong>
             <div class="logo-display">
@@ -156,7 +205,7 @@ if (!$settings) {
       <!-- Organization Details Card -->
       <div class="card">
         <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">🏢 Organization Details</h3>
-        <div style="display:grid;grid-template-columns:1fr;gap:12px;font-size:14px;">
+        <div class="branding-org-details-grid">
           <div><strong>Organization Name:</strong> <?php echo htmlspecialchars($settings['org_name'] ?? '—'); ?></div>
           <?php if (!empty($settings['legal_name'])): ?>
             <div><strong>Legal Name:</strong> <?php echo htmlspecialchars($settings['legal_name']); ?></div>
@@ -173,7 +222,7 @@ if (!$settings) {
       <!-- Address Card -->
       <div class="card">
         <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">📍 Address</h3>
-        <div style="display:grid;grid-template-columns:1fr;gap:12px;font-size:14px;">
+        <div class="branding-org-details-grid">
           <?php if (!empty($settings['address_line1']) || !empty($settings['address_line2'])): ?>
             <div>
               <strong>Address:</strong><br>
@@ -206,7 +255,7 @@ if (!$settings) {
       <!-- Contact Information Card -->
       <div class="card">
         <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">📞 Contact Information</h3>
-        <div style="display:grid;grid-template-columns:1fr;gap:12px;font-size:14px;">
+        <div class="branding-org-details-grid">
           <?php if (!empty($settings['email'])): ?>
             <div>
               <strong>Email:</strong><br>
@@ -255,7 +304,7 @@ if (!$settings) {
       <!-- System Information Card -->
       <div class="card" style="grid-column:1/-1;">
         <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">🗂️ System Information</h3>
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;font-size:14px;">
+        <div class="branding-system-info-grid">
           <div><strong>Last Updated:</strong> <?php echo date('F j, Y \a\t g:i A', strtotime($settings['updated_at'])); ?></div>
           <?php if (!empty($settings['created_by'])): ?>
             <div><strong>Created By:</strong> User ID <?php echo htmlspecialchars($settings['created_by']); ?></div>

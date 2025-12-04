@@ -56,28 +56,88 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
 <style>
-    .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    .items-table th { background: #f8f9fa; padding: 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; }
-    .items-table td { padding: 10px; border-bottom: 1px solid #dee2e6; }
-    .items-table input, .items-table select, .items-table textarea { width: 100%; padding: 6px 8px; border: 1px solid #ced4da; border-radius: 4px; }
-    .items-table textarea { resize: vertical; min-height: 40px; }
+    .invoices-items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    .invoices-items-table th { background: #f8f9fa; padding: 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; }
+    .invoices-items-table td { padding: 10px; border-bottom: 1px solid #dee2e6; }
+    .invoices-items-table input, .invoices-items-table select, .invoices-items-table textarea { width: 100%; padding: 6px 8px; border: 1px solid #ced4da; border-radius: 4px; }
+    .invoices-items-table textarea { resize: vertical; min-height: 40px; }
+    .invoices-item-row{border:1px solid #e0e0e0;padding:16px;margin-bottom:16px;border-radius:8px;background:#f8f9fa;}
+    .invoices-item-row-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;gap:12px;align-items:end;}
+    .invoices-item-row-description{margin-top:12px;margin-bottom:0;}
     .btn-remove { background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; }
     .btn-remove:hover { background: #c82333; }
-    .totals-panel { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px; }
-    .total-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #dee2e6; }
-    .total-row.grand { font-size: 18px; font-weight: 700; color: #003581; border-top: 2px solid #003581; margin-top: 8px; padding-top: 12px; }
+    .invoices-totals-panel { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px; }
+    .invoices-total-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #dee2e6; }
+    .invoices-total-row.grand { font-size: 18px; font-weight: 700; color: #003581; border-top: 2px solid #003581; margin-top: 8px; padding-top: 12px; }
     .autocomplete-results { position: absolute; background: white; border: 1px solid #ced4da; border-top: none; max-height: 200px; overflow-y: auto; width: calc(100% - 20px); z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     .autocomplete-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #f8f9fa; }
     .autocomplete-item:hover { background: #f8f9fa; }
     .form-section { background: white; padding: 24px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
     .section-header { font-size: 16px; font-weight: 600; color: #003581; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e3f2fd; }
+
+    @media (max-width:1024px){
+    .invoices-item-row-grid{grid-template-columns:2fr 1fr 1fr;gap:10px;}
+    }
+
+    @media (max-width:768px){
+    .invoices-item-row{padding:12px;margin-bottom:12px;}
+    .invoices-item-row-grid{grid-template-columns:1fr 1fr;gap:8px;font-size:12px;}
+    .invoices-item-row-grid label{font-size:11px;}
+    .invoices-item-row-grid input,.invoices-item-row-grid select{font-size:12px;}
+    .invoices-item-row-description input{font-size:12px;}
+    .invoices-totals-panel{padding:12px;margin-top:15px;}
+    .invoices-total-row{font-size:13px;padding:6px 0;}
+    .invoices-total-row.grand{font-size:14px;}
+    }
+
+    @media (max-width:480px){
+    .invoices-item-row{padding:10px;margin-bottom:10px;border:1px solid #d0d0d0;}
+    .invoices-item-row-grid{grid-template-columns:1fr;gap:8px;font-size:12px;}
+    .invoices-item-row-grid label{font-size:12px;font-weight:bold;}
+    .invoices-item-row-grid input,.invoices-item-row-grid select{font-size:16px;width:100%;}
+    .invoices-item-row-description{margin-top:8px;}
+    .invoices-item-row-description input{font-size:16px;}
+    .btn-remove{padding:4px 8px;font-size:12px;}
+    .invoices-totals-panel{padding:10px;margin-top:10px;}
+    .invoices-total-row{font-size:11px;padding:4px 0;}
+    .invoices-total-row.grand{font-size:12px;}
+    }
 </style>
 
 <div class="main-wrapper">
+<style>
+.invoices-edit-header-flex{display:flex;justify-content:space-between;align-items:center;}
+.invoices-edit-basic-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:20px;}
+.invoices-edit-layout{display:grid;grid-template-columns:1fr 400px;gap:20px;}
+.invoices-edit-buttons{text-align:center;padding:20px 0;display:flex;justify-content:center;gap:15px;flex-wrap:wrap;}
+
+@media (max-width:1024px){
+.invoices-edit-basic-grid{grid-template-columns:repeat(2, 1fr);gap:15px;}
+.invoices-edit-layout{grid-template-columns:1fr;gap:15px;}
+}
+
+@media (max-width:768px){
+.invoices-edit-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.invoices-edit-header-flex .btn{width:100%;text-align:center;}
+.invoices-edit-header-flex h1{font-size:1.3rem;}
+.invoices-edit-header-flex p{font-size:13px;}
+.invoices-edit-basic-grid{grid-template-columns:1fr;gap:12px;}
+.invoices-edit-basic-grid input,.invoices-edit-basic-grid select{font-size:13px;}
+.invoices-edit-layout{gap:12px;}
+.invoices-edit-buttons{flex-direction:column;gap:10px;}
+.invoices-edit-buttons button,.invoices-edit-buttons a{width:100%;padding:10px 20px !important;}
+}
+
+@media (max-width:480px){
+.invoices-edit-header-flex h1{font-size:1.2rem;}
+.invoices-edit-header-flex .btn{padding:8px 16px !important;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="invoices-edit-header-flex">
                 <div>
                     <h1>✏️ Edit Invoice: <?php echo htmlspecialchars($invoice['invoice_no']); ?></h1>
                     <p>Modify draft invoice details and items</p>
@@ -105,7 +165,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                     📋 Basic Information
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div class="invoices-edit-basic-grid">
                     <div>
                         <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #495057;">Client *</label>
                         <select name="client_id" id="client_id" required style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px;">
@@ -170,24 +230,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     🛒 Invoice Items
                 </h3>
                 
-                <table class="items-table" id="itemsTable">
-                    <thead>
-                        <tr>
-                            <th style="width: 30%;">Item *</th>
-                            <th style="width: 20%;">Description</th>
-                            <th style="width: 8%;">Qty *</th>
-                            <th style="width: 8%;">Unit</th>
-                            <th style="width: 10%;">Price *</th>
-                            <th style="width: 8%;">Tax %</th>
-                            <th style="width: 10%;">Discount</th>
-                            <th style="width: 10%;">Total</th>
-                            <th style="width: 6%;"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="itemsTableBody">
-                        <!-- Dynamic rows will be added here -->
-                    </tbody>
-                </table>
+                <div id="itemsTableBody">
+                    <!-- Dynamic rows will be added here -->
+                </div>
 
                 <button type="button" onclick="addItemRow()" class="btn btn-accent" style="margin-top: 10px;">
                     ➕ Add Item
@@ -195,7 +240,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Totals Panel -->
-            <div style="display: grid; grid-template-columns: 1fr 400px; gap: 20px;">
+            <div class="invoices-edit-layout">
                 <!-- Notes and Terms -->
                 <div class="card" style="margin-bottom: 25px;">
                     <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
@@ -216,26 +261,26 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
 
                 <!-- Totals Calculation -->
-                <div class="card totals-panel">
+                <div class="card invoices-totals-panel">
                     <h3 style="color: #003581; margin-bottom: 12px; border-bottom: 2px solid #003581; padding-bottom: 8px;">📊 Calculation Summary</h3>
                     
-                    <div class="total-row">
+                    <div class="invoices-total-row">
                         <span>Subtotal:</span>
                         <span id="display_subtotal">₹0.00</span>
                     </div>
-                    <div class="total-row">
+                    <div class="invoices-total-row">
                         <span>Tax:</span>
                         <span id="display_tax">₹0.00</span>
                     </div>
-                    <div class="total-row">
+                    <div class="invoices-total-row">
                         <span>Discount:</span>
                         <span id="display_discount">₹0.00</span>
                     </div>
-                    <div class="total-row">
+                    <div class="invoices-total-row">
                         <span>Round Off:</span>
                         <span id="display_roundoff">₹0.00</span>
                     </div>
-                    <div class="total-row grand">
+                    <div class="invoices-total-row grand">
                         <span>Grand Total:</span>
                         <span id="display_grand_total">₹0.00</span>
                     </div>
@@ -250,11 +295,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Action Buttons -->
-            <div style="text-align: center; padding: 20px 0;">
+            <div class="invoices-edit-buttons">
                 <button type="submit" class="btn" style="padding: 12px 48px; font-size: 16px;">
                     💾 Save Changes
                 </button>
-                <a href="view.php?id=<?php echo $invoice_id; ?>" class="btn btn-accent" style="padding: 12px 32px; font-size: 16px; margin-left: 12px; text-decoration: none;">
+                <a href="view.php?id=<?php echo $invoice_id; ?>" class="btn btn-accent" style="padding: 12px 32px; font-size: 16px; text-decoration: none;">
                     ❌ Cancel
                 </a>
             </div>
@@ -295,53 +340,74 @@ function addItemRow(itemData = null) {
     const tbody = document.getElementById('itemsTableBody');
     const rowId = ++itemRowCounter;
     
-    const row = document.createElement('tr');
+    const row = document.createElement('div');
+    row.className = 'invoices-item-row';
     row.id = `item-row-${rowId}`;
     row.innerHTML = `
-        <td style="position: relative;">
-            <input type="text" 
-                   class="item-search" 
-                   id="item-search-${rowId}"
-                   placeholder="Search item..."
-                   autocomplete="off"
-                   value="${itemData ? itemData.item_name : ''}"
-                   onkeyup="searchItems(${rowId})"
-                   onfocus="searchItems(${rowId})">
-            <div class="autocomplete-results" id="autocomplete-${rowId}" style="display: none;"></div>
-            <input type="hidden" name="items[${rowId}][item_id]" id="item-id-${rowId}" value="${itemData ? itemData.item_id : ''}">
-        </td>
-        <td>
-            <textarea name="items[${rowId}][description]" id="item-desc-${rowId}" rows="2">${itemData ? (itemData.description || '') : ''}</textarea>
-        </td>
-        <td>
-            <input type="number" name="items[${rowId}][quantity]" id="item-qty-${rowId}" 
-                   value="${itemData ? itemData.quantity : 1}" step="0.01" min="0.01" required onchange="calculateLineTotal(${rowId})">
-        </td>
-        <td>
-            <input type="text" name="items[${rowId}][unit]" id="item-unit-${rowId}" 
-                   placeholder="pcs" value="${itemData ? (itemData.unit || 'pcs') : 'pcs'}">
-        </td>
-        <td>
-            <input type="number" name="items[${rowId}][unit_price]" id="item-price-${rowId}" 
-                   value="${itemData ? itemData.unit_price : 0}" step="0.01" min="0" required onchange="calculateLineTotal(${rowId})">
-        </td>
-        <td>
-            <input type="number" name="items[${rowId}][tax_percent]" id="item-tax-${rowId}" 
-                   value="${itemData ? itemData.tax_percent : 0}" step="0.01" min="0" max="100" onchange="calculateLineTotal(${rowId})">
-        </td>
-        <td>
-            <input type="number" name="items[${rowId}][discount]" id="item-discount-${rowId}" 
-                   value="${itemData ? itemData.discount : 0}" step="0.01" min="0" onchange="calculateLineTotal(${rowId})">
-            <input type="hidden" name="items[${rowId}][discount_type]" value="Amount">
-        </td>
-        <td>
-            <input type="number" id="item-total-${rowId}" value="${itemData ? itemData.line_total : 0}" step="0.01" readonly 
-                   style="background: #f8f9fa; font-weight: 600;">
-            <input type="hidden" name="items[${rowId}][line_total]" id="item-line-total-${rowId}" value="${itemData ? itemData.line_total : 0}">
-        </td>
-        <td style="text-align: center;">
-            <button type="button" class="btn-remove" onclick="removeItemRow(${rowId})" title="Remove">❌</button>
-        </td>
+        <div class="invoices-item-row-grid">
+            <div class="form-group" style="margin: 0; position: relative;">
+                <label>Item <span style="color: #dc3545;">*</span></label>
+                <input type="text" 
+                       class="item-search" 
+                       id="item-search-${rowId}"
+                       placeholder="Search item..."
+                       autocomplete="off"
+                       value="${itemData ? itemData.item_name : ''}"
+                       onkeyup="searchItems(${rowId})"
+                       onfocus="searchItems(${rowId})"
+                       tabindex="0"
+                       style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px;">
+                <div class="autocomplete-results" id="autocomplete-${rowId}" style="display: none;"></div>
+                <input type="hidden" name="items[${rowId}][item_id]" id="item-id-${rowId}" value="${itemData ? itemData.item_id : ''}">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label>Qty <span style="color: #dc3545;">*</span></label>
+                <input type="number" name="items[${rowId}][quantity]" id="item-qty-${rowId}" 
+                       value="${itemData ? itemData.quantity : 1}" step="0.01" min="0.01" required onchange="calculateLineTotal(${rowId})"
+                       style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label>Unit</label>
+                <input type="text" name="items[${rowId}][unit]" id="item-unit-${rowId}" 
+                       placeholder="pcs" value="${itemData ? (itemData.unit || 'pcs') : 'pcs'}"
+                       style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label>Price <span style="color: #dc3545;">*</span></label>
+                <input type="number" name="items[${rowId}][unit_price]" id="item-price-${rowId}" 
+                       value="${itemData ? itemData.unit_price : 0}" step="0.01" min="0" required onchange="calculateLineTotal(${rowId})"
+                       style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label>Tax %</label>
+                <input type="number" name="items[${rowId}][tax_percent]" id="item-tax-${rowId}" 
+                       value="${itemData ? itemData.tax_percent : 0}" step="0.01" min="0" max="100" onchange="calculateLineTotal(${rowId})"
+                       style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px;">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label>Discount</label>
+                <input type="number" name="items[${rowId}][discount]" id="item-discount-${rowId}" 
+                       value="${itemData ? itemData.discount : 0}" step="0.01" min="0" onchange="calculateLineTotal(${rowId})"
+                       style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px;">
+                <input type="hidden" name="items[${rowId}][discount_type]" value="Amount">
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label>Total</label>
+                <input type="number" id="item-total-${rowId}" value="${itemData ? itemData.line_total : 0}" step="0.01" readonly 
+                       style="width: 100%; padding: 8px 12px; background: #e9ecef; font-weight: 600; border: 1px solid #ced4da; border-radius: 4px;">
+                <input type="hidden" name="items[${rowId}][line_total]" id="item-line-total-${rowId}" value="${itemData ? itemData.line_total : 0}">
+            </div>
+            <div style="padding-top: 4px;">
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeItemRow(${rowId})" title="Remove">🗑️</button>
+            </div>
+        </div>
+        <div class="form-group invoices-item-row-description">
+            <label>Description (Optional)</label>
+            <input type="text" name="items[${rowId}][description]" id="item-desc-${rowId}" 
+                   placeholder="Custom description..."
+                   value="${itemData ? (itemData.description || '') : ''}"
+                   style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px;">
+        </div>
     `;
     
     tbody.appendChild(row);
@@ -358,6 +424,7 @@ function removeItemRow(rowId) {
         row.remove();
         calculateGrandTotal();
     }
+    return false;
 }
 
 // Search items with autocomplete

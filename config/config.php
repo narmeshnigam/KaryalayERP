@@ -10,7 +10,7 @@
 define('DB_HOST', 'localhost');      // Database host (usually localhost)
 define('DB_USER', 'root');           // Database username
 define('DB_PASS', '');               // Database password (empty for XAMPP default)
-define('DB_NAME', 'karyalay');    // Database name
+define('DB_NAME', 'karyalay_db');    // Database name
 define('DB_CHARSET', 'utf8mb4');     // Character set
 
 // Application configuration

@@ -92,15 +92,68 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.contacts-edit-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.contacts-edit-main-grid{display:grid;grid-template-columns:2fr 1fr;gap:24px;}
+
+@media (max-width:768px){
+.contacts-edit-header-flex{flex-direction:column;align-items:stretch;}
+.contacts-edit-header-flex .btn{width:100%;text-align:center;}
+.contacts-edit-main-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.contacts-edit-header-flex h1{font-size:1.5rem;}
+}
+
+/* Form Grid Responsive */
+.contacts-edit-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.contacts-edit-form-grid-full{grid-column:1/-1;}
+
+@media (max-width:768px){
+.contacts-edit-form-grid{grid-template-columns:1fr;gap:12px;}
+.contacts-edit-form-grid-full{grid-column:1/-1;}
+}
+
+@media (max-width:480px){
+.contacts-edit-form-grid{gap:12px;}
+.form-label{font-size:14px;}
+.form-control{font-size:16px;}
+}
+
+/* Alert Responsive */
+.alert{padding:12px;margin-bottom:20px;}
+.alert ul{margin:8px 0 0 20px;padding:0;}
+
+@media (max-width:480px){
+.alert{padding:10px;font-size:13px;}
+.alert ul{margin:6px 0 0 16px;}
+.alert li{margin-bottom:4px;}
+}
+
+/* Textarea Responsive */
+textarea.form-control{resize:vertical;min-height:100px;}
+
+@media (max-width:480px){
+textarea.form-control{min-height:80px;font-size:16px;}
+}
+
+/* Card Buttons Responsive */
+.contacts-edit-card-buttons{display:grid;gap:10px;}
+
+@media (max-width:768px){
+.contacts-edit-card-buttons .btn{width:100%;text-align:center;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="contacts-edit-header-flex">
                 <div style="flex: 1;">
                     <h1>✏️ Edit Contact</h1>
                     <p>Modify contact information</p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div>
                     <a href="view.php?id=<?php echo $contact_id; ?>" class="btn btn-accent">← Back to Contact</a>
                 </div>
             </div>
@@ -122,7 +175,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Edit Contact Form -->
         <form method="POST" action="">
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+            <div class="contacts-edit-main-grid">
                 
                 <!-- Main Form -->
                 <div>
@@ -132,8 +185,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                             👤 Basic Information
                         </h3>
                         
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                            <div style="grid-column: 1 / -1;">
+                        <div class="contacts-edit-form-grid">
+                            <div class="contacts-edit-form-grid-full">
                                 <label class="form-label required">Full Name</label>
                                 <input type="text" name="name" class="form-control" required
                                        value="<?php echo htmlspecialchars($form_data['name'] ?? ''); ?>"
@@ -154,7 +207,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                        placeholder="Job title">
                             </div>
                             
-                            <div style="grid-column: 1 / -1;">
+                            <div class="contacts-edit-form-grid-full">
                                 <label class="form-label required">Contact Type</label>
                                 <select name="contact_type" class="form-control" required>
                                     <option value="Personal" <?php echo ($form_data['contact_type'] ?? 'Personal') === 'Personal' ? 'selected' : ''; ?>>📱 Personal</option>
@@ -177,7 +230,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                             ℹ️ <strong>Note:</strong> At least one contact method (phone, email, or WhatsApp) is required.
                         </div>
                         
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="contacts-edit-form-grid">
                             <div>
                                 <label class="form-label">Primary Phone</label>
                                 <input type="tel" name="phone" class="form-control"
@@ -192,7 +245,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                        placeholder="Secondary number">
                             </div>
                             
-                            <div style="grid-column: 1 / -1;">
+                            <div class="contacts-edit-form-grid-full">
                                 <label class="form-label">Email Address</label>
                                 <input type="email" name="email" class="form-control"
                                        value="<?php echo htmlspecialchars($form_data['email'] ?? ''); ?>"
@@ -213,7 +266,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                        placeholder="https://linkedin.com/in/...">
                             </div>
                             
-                            <div style="grid-column: 1 / -1;">
+                            <div class="contacts-edit-form-grid-full">
                                 <label class="form-label">Address</label>
                                 <textarea name="address" class="form-control" rows="2"
                                           placeholder="Physical address or location"><?php echo htmlspecialchars($form_data['address'] ?? ''); ?></textarea>
@@ -306,11 +359,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     
                     <!-- Actions -->
                     <div class="card">
-                        <div style="display: grid; gap: 10px;">
-                            <button type="submit" class="btn" style="width: 100%;">
+                        <div class="contacts-edit-card-buttons">
+                            <button type="submit" class="btn">
                                 💾 Update Contact
                             </button>
-                            <a href="view.php?id=<?php echo $contact_id; ?>" class="btn btn-accent" style="width: 100%; text-align: center;">
+                            <a href="view.php?id=<?php echo $contact_id; ?>" class="btn btn-accent" style="text-align: center;">
                                 Cancel
                             </a>
                         </div>

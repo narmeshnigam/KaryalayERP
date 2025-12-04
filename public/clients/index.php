@@ -25,7 +25,7 @@ if (!clients_tables_exist($conn)) {
     echo '<div class="alert alert-warning" style="margin:40px auto;max-width:600px;padding:32px 28px;font-size:1.1em;">';
     echo '<h2 style="margin-bottom:16px;color:#b85c00;">Clients Module Not Set Up</h2>';
     echo '<p>The clients module database tables have not been created yet. To use this module, please run the setup for clients.</p>';
-    echo '<a href="/KaryalayERP/scripts/setup_clients_tables.php" class="btn btn-primary" style="margin-top:18px;">Set Up Clients Module</a>';
+    echo '<a href="' . APP_URL . '/scripts/setup_clients_tables.php" class="btn btn-primary" style="margin-top:18px;">Set Up Clients Module</a>';
     echo '</div></div></div>';
     require_once __DIR__ . '/../../includes/footer.php';
     exit;
@@ -75,15 +75,116 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.clients-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.clients-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.clients-header-flex{flex-direction:column;align-items:stretch;}
+.clients-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.clients-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.clients-header-flex h1{font-size:1.5rem;}
+}
+
+/* Statistics Cards Responsive */
+.clients-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:25px;}
+
+@media (max-width:768px){
+.clients-stats-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+}
+
+@media (max-width:480px){
+.clients-stats-grid{grid-template-columns:1fr;gap:12px;}
+.clients-stats-grid .card{padding:16px !important;}
+.clients-stats-grid .card>div:first-child{font-size:28px !important;}
+}
+
+/* Filter Form Responsive */
+.clients-filter-form{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:15px;align-items:end;}
+
+@media (max-width:1024px){
+.clients-filter-form{grid-template-columns:1fr 1fr 1fr auto;gap:12px;}
+}
+
+@media (max-width:768px){
+.clients-filter-form{grid-template-columns:1fr 1fr;gap:12px;}
+.clients-filter-form>div:nth-child(4){grid-column:1/2;}
+.clients-filter-form>div:nth-child(5){grid-column:2/3;}
+}
+
+@media (max-width:480px){
+.clients-filter-form{grid-template-columns:1fr;gap:12px;}
+.clients-filter-form>div:nth-child(4){grid-column:1/-1;}
+.clients-filter-form>div:nth-child(5){grid-column:1/-1;}
+.clients-filter-buttons{grid-column:1/-1 !important;display:flex;gap:8px;}
+.clients-filter-buttons button,.clients-filter-buttons a{flex:1;}
+}
+
+/* Table Responsive */
+.clients-table-container{overflow-x:auto;}
+.clients-table-wrapper{width:100%;}
+
+@media (max-width:768px){
+.clients-table-wrapper{font-size:13px;}
+.clients-table-wrapper th{padding:10px 8px !important;}
+.clients-table-wrapper td{padding:10px 8px !important;}
+.clients-table-wrapper a{padding:4px 8px !important;font-size:11px !important;}
+}
+
+@media (max-width:600px){
+.clients-table-wrapper{display:block;width:100%;}
+.clients-table-wrapper table{display:block;width:100%;}
+.clients-table-wrapper thead{display:none;}
+.clients-table-wrapper tbody{display:block;}
+.clients-table-wrapper tbody tr{display:block;margin-bottom:20px;border:1px solid #dee2e6;border-radius:8px;overflow:hidden;}
+.clients-table-wrapper td{display:block;text-align:left !important;padding:12px !important;border:none;border-bottom:1px solid #dee2e6;}
+.clients-table-wrapper td:last-child{border-bottom:none;}
+.clients-table-wrapper td:before{content:attr(data-label);font-weight:700;color:#003581;margin-bottom:4px;display:block;font-size:12px;}
+}
+
+/* Avatar and Name Stack */
+.clients-card-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg, #003581 0%, #0059b3 100%);color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;flex-shrink:0;}
+
+@media (max-width:480px){
+.clients-card-avatar{width:36px;height:36px;font-size:12px;}
+}
+
+/* Stats Icons Responsive */
+.clients-stats-icons{display:flex;gap:12px;font-size:12px;color:#6c757d;}
+
+@media (max-width:480px){
+.clients-stats-icons{gap:8px;font-size:11px;}
+.clients-stats-icons>div{white-space:nowrap;}
+}
+
+/* Contact Details Responsive */
+.clients-contact-details{display:flex;flex-direction:column;gap:4px;font-size:13px;}
+
+@media (max-width:480px){
+.clients-contact-details{font-size:12px;}
+.clients-contact-details>div{word-break:break-word;}
+}
+
+/* Action Buttons Responsive */
+.clients-actions{display:flex;gap:8px;justify-content:center;}
+
+@media (max-width:480px){
+.clients-actions{flex-direction:column;gap:6px;}
+.clients-actions .btn{font-size:11px;padding:4px 8px;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="clients-header-flex">
                 <div style="flex: 1;">
                     <h1>🏢 Clients Management</h1>
                     <p>Manage your client relationships and information</p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="clients-header-buttons">
                     <a href="my.php" class="btn btn-accent">👤 My Clients</a>
                     <a href="import_export.php" class="btn btn-accent">📤 Import/Export</a>
                     <?php if ($can_create): ?>
@@ -97,7 +198,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 
         <!-- Statistics Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
+        <div class="clients-stats-grid">
             <div class="card" style="text-align: center; background: linear-gradient(135deg, #003581 0%, #004aad 100%); color: white;">
                 <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?= $stats['total'] ?></div>
                 <div style="font-size: 14px; opacity: 0.9;">Total Clients</div>
@@ -122,7 +223,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Filters and Search -->
         <div class="card" style="margin-bottom: 25px;">
-            <form method="GET" action="" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+            <form method="GET" action="" class="clients-filter-form">
                 <div class="form-group" style="margin-bottom: 0;">
                     <label>🔍 Search Clients</label>
                     <input type="text" name="search" class="form-control" 
@@ -165,7 +266,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </select>
                 </div>
                 
-                <div style="display: flex; gap: 10px;">
+                <div class="clients-filter-buttons" style="display: flex; gap: 10px;">
                     <button type="submit" class="btn" style="white-space: nowrap;">Search</button>
                     <a href="index.php" class="btn btn-accent" style="white-space: nowrap; text-decoration: none; display: inline-block; text-align: center;">Clear</a>
                 </div>
@@ -182,7 +283,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <span style="font-size: 14px; color: #6c757d; font-weight: normal;">(<?= count($clients) ?> records)</span>
                     </h3>
                 </div>
-                <div style="overflow-x: auto;">
+                <div class="clients-table-container">
+                <div class="clients-table-wrapper">
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
@@ -198,9 +300,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <tbody>
                         <?php foreach ($clients as $client): ?>
                             <tr style="border-bottom: 1px solid #dee2e6;">
-                                <td style="padding: 12px;">
+                                <td style="padding: 12px;" data-label="Client">
                                     <div style="display: flex; gap: 12px; align-items: center;">
-                                        <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #003581 0%, #0059b3 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;">
+                                        <div class="clients-card-avatar">
                                             <?= get_client_initials($client['name']) ?>
                                         </div>
                                         <div>
@@ -215,25 +317,27 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                         </div>
                                     </div>
                                 </td>
-                                <td style="padding: 12px;">
-                                    <?php if ($client['email']): ?>
-                                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13px;">
-                                            <span>📧</span>
-                                            <a href="mailto:<?= htmlspecialchars($client['email']) ?>" style="color: #003581; text-decoration: none;">
-                                                <?= htmlspecialchars($client['email']) ?>
-                                            </a>
-                                        </div>
-                                    <?php endif; ?>
-                                    <?php if ($client['phone']): ?>
-                                        <div style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
-                                            <span>📞</span>
-                                            <a href="tel:<?= htmlspecialchars($client['phone']) ?>" style="color: #003581; text-decoration: none;">
-                                                <?= htmlspecialchars($client['phone']) ?>
-                                            </a>
-                                        </div>
-                                    <?php endif; ?>
+                                <td style="padding: 12px;" data-label="Contact Details">
+                                    <div class="clients-contact-details">
+                                        <?php if ($client['email']): ?>
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <span>📧</span>
+                                                <a href="mailto:<?= htmlspecialchars($client['email']) ?>" style="color: #003581; text-decoration: none;">
+                                                    <?= htmlspecialchars($client['email']) ?>
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if ($client['phone']): ?>
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <span>📞</span>
+                                                <a href="tel:<?= htmlspecialchars($client['phone']) ?>" style="color: #003581; text-decoration: none;">
+                                                    <?= htmlspecialchars($client['phone']) ?>
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
-                                <td style="padding: 12px;">
+                                <td style="padding: 12px;" data-label="Industry">
                                     <?php if ($client['industry']): ?>
                                         <span style="background: #e3f2fd; color: #003581; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;">
                                             <?= htmlspecialchars($client['industry']) ?>
@@ -242,8 +346,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                         <span style="color: #6c757d;">-</span>
                                     <?php endif; ?>
                                 </td>
-                                <td style="padding: 12px; font-size: 13px;"><?= htmlspecialchars($client['owner_username'] ?? 'N/A') ?></td>
-                                <td style="padding: 12px; text-align: center;">
+                                <td style="padding: 12px; font-size: 13px;" data-label="Owner"><?= htmlspecialchars($client['owner_username'] ?? 'N/A') ?></td>
+                                <td style="padding: 12px; text-align: center;" data-label="Status">
                                     <?php
                                     $status_colors = [
                                         'Active' => 'background: #d4edda; color: #155724;',
@@ -255,15 +359,15 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                         <?= htmlspecialchars($client['status']) ?>
                                     </span>
                                 </td>
-                                <td style="padding: 12px;">
-                                    <div style="display: flex; gap: 12px; font-size: 12px; color: #6c757d;">
+                                <td style="padding: 12px;" data-label="Stats">
+                                    <div class="clients-stats-icons">
                                         <div title="Contacts">👥 <?= $client['contact_count'] ?></div>
                                         <div title="Addresses">📍 <?= $client['address_count'] ?></div>
                                         <div title="Documents">📄 <?= $client['document_count'] ?></div>
                                     </div>
                                 </td>
-                                <td style="padding: 12px; text-align: center;">
-                                    <div style="display: flex; gap: 8px; justify-content: center;">
+                                <td style="padding: 12px; text-align: center;" data-label="Actions">
+                                    <div class="clients-actions">
                                         <a href="view.php?id=<?= $client['id'] ?>" class="btn" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">
                                             👁️ View
                                         </a>
@@ -276,6 +380,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
                 </div>
             </div>
         <?php else: ?>

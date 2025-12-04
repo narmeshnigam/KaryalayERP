@@ -78,15 +78,30 @@ closeConnection($conn);
 ?>
 
 <div class="main-wrapper">
+<style>
+.assets-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;}
+.assets-header-buttons{display:flex;gap:10px;}
+
+@media (max-width:768px){
+.assets-header-flex{flex-direction:column;align-items:stretch;}
+.assets-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.assets-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.assets-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <div class="assets-header-flex">
                 <div>
                     <h1 style="margin: 0;">🧰 Asset & Resource Management</h1>
                     <p style="margin: 5px 0 0 0; color: #666;">Track, allocate, and manage organizational assets</p>
                 </div>
-                <div style="display: flex; gap: 10px;">
+                <div class="assets-header-buttons">
                     <a href="list.php" class="btn btn-accent">
                         📋 View All Assets
                     </a>

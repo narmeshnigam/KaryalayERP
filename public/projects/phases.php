@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
 if (!projects_tables_exist($conn)) {
-    header('Location: /KaryalayERP/scripts/setup_projects_tables.php');
+  header('Location: ' . APP_URL . '/scripts/setup_projects_tables.php');
     exit;
 }
 
@@ -99,15 +99,57 @@ require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
+<style>
+.projects-phases-header-flex{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.projects-phases-add-form-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;}
+.projects-phases-add-form-grid-2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px;}
+.projects-phases-error-alert{background:#f8d7da;border:1px solid #f5c6cb;color:#721c24;padding:16px;border-radius:6px;margin-bottom:16px;}
+.projects-phases-table-wrapper{overflow-x:auto;}
+.projects-phases-edit-details{background:#f8f9fa;border:1px solid #e9ecef;padding:12px;border-radius:6px;margin-top:8px;}
+.projects-phases-edit-details-form{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;}
+
+@media (max-width:1024px){
+.projects-phases-add-form-grid{grid-template-columns:1fr 1fr;}
+.projects-phases-edit-details-form{grid-template-columns:1fr 1fr;}
+}
+
+@media (max-width:768px){
+.projects-phases-header-flex{flex-direction:column;align-items:stretch;}
+.projects-phases-header-flex .btn{width:100%;text-align:center;}
+.projects-phases-add-form-grid{grid-template-columns:1fr;font-size:13px;}
+.projects-phases-add-form-grid-2{grid-template-columns:1fr;font-size:13px;}
+.projects-phases-error-alert{padding:12px;font-size:13px;}
+.projects-phases-edit-details-form{grid-template-columns:1fr;}
+.projects-phases-edit-details{padding:10px;}
+}
+
+@media (max-width:600px){
+.projects-phases-table-wrapper table{display:block;width:100%;}
+.projects-phases-table-wrapper thead{display:none;}
+.projects-phases-table-wrapper tbody tr{display:block;margin-bottom:20px;border:1px solid #ddd;border-radius:6px;overflow:hidden;}
+.projects-phases-table-wrapper tbody td{display:block;width:100%;padding:12px;border-top:1px solid #f0f0f0;text-align:left;position:relative;padding-left:40%;}
+.projects-phases-table-wrapper tbody td:first-child{border-top:none;padding-left:12px;}
+.projects-phases-table-wrapper tbody td::before{content:attr(data-label);position:absolute;left:12px;top:12px;font-weight:600;color:#003581;width:35%;word-wrap:break-word;}
+.projects-phases-table-wrapper tbody td:first-child::before{content:'';}
+}
+
+@media (max-width:480px){
+.projects-phases-header-flex h1{font-size:1.5rem;}
+.projects-phases-add-form-grid input,.projects-phases-add-form-grid select,.projects-phases-add-form-grid textarea{font-size:16px;}
+.projects-phases-add-form-grid-2 input,.projects-phases-add-form-grid-2 select,.projects-phases-add-form-grid-2 textarea{font-size:16px;}
+.projects-phases-edit-details-form input,.projects-phases-edit-details-form select,.projects-phases-edit-details-form textarea{font-size:16px;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="projects-phases-header-flex">
         <div>
           <h1 style="margin:0 0 8px 0;">📋 Project Phases</h1>
           <div style="color:#6c757d;">Manage phases for <strong><?= htmlspecialchars($project['title']) ?></strong> <span style="color:#6c757d;font-family:monospace;">#<?= htmlspecialchars($project['project_code']) ?></span></div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div>
           <a href="view.php?id=<?= $project_id ?>&tab=phases" class="btn btn-secondary">← Back to Project</a>
         </div>
       </div>
@@ -116,7 +158,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <?php require_once __DIR__ . '/../../includes/flash.php'; ?>
 
     <?php if (!empty($errors)): ?>
-      <div style="background:#f8d7da;border:1px solid #f5c6cb;color:#721c24;padding:16px;border-radius:6px;margin-bottom:16px;">
+      <div class="projects-phases-error-alert">
         <strong>Fix the following:</strong>
         <ul style="margin:8px 0 0 20px;">
           <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
@@ -129,7 +171,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
       <h3 style="font-size:18px;font-weight:700;color:#003581;margin-bottom:12px;">➕ Add Phase</h3>
       <form method="post">
         <input type="hidden" name="action" value="add">
-        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;">
+        <div class="projects-phases-add-form-grid">
           <div>
             <label style="display:block;font-weight:600;margin-bottom:6px;">Title *</label>
             <input type="text" name="title" class="form-control" required placeholder="e.g., Planning">
@@ -143,7 +185,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <input type="date" name="end_date" class="form-control">
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px;">
+        <div class="projects-phases-add-form-grid-2">
           <div>
             <label style="display:block;font-weight:600;margin-bottom:6px;">Description</label>
             <textarea name="description" rows="2" class="form-control" placeholder="Short description..."></textarea>
@@ -168,6 +210,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <div class="card">
       <h3 style="font-size:18px;font-weight:700;color:#003581;margin-bottom:12px;">Phases</h3>
       <?php if ($phases): ?>
+        <div class="projects-phases-table-wrapper">
         <table class="table">
           <thead>
             <tr>
@@ -184,34 +227,34 @@ require_once __DIR__ . '/../../includes/sidebar.php';
           <tbody>
             <?php foreach ($phases as $p): ?>
               <tr>
-                <td><?= (int)$p['sequence_order'] ?></td>
-                <td>
+                <td data-label="#"><?= (int)$p['sequence_order'] ?></td>
+                <td data-label="Phase">
                   <div style="font-weight:600;color:#1b2a57;"><?= htmlspecialchars($p['title']) ?></div>
                   <?php if (!empty($p['description'])): ?>
                     <div style="font-size:13px;color:#6c757d;"><?= htmlspecialchars($p['description']) ?></div>
                   <?php endif; ?>
                 </td>
-                <td style="white-space:nowrap;">
+                <td data-label="Dates" style="white-space:nowrap;">
                   <?= $p['start_date'] ? date('M j, Y', strtotime($p['start_date'])) : '-' ?>
                   → <?= $p['end_date'] ? date('M j, Y', strtotime($p['end_date'])) : '-' ?>
                 </td>
-                <td>
+                <td data-label="Tasks">
                   <?= (int)$p['tasks_completed'] ?>/<?= (int)$p['tasks_total'] ?><?php if ((int)$p['tasks_overdue']>0): ?>
                     <span class="badge" style="background:#dc3545;"><?= (int)$p['tasks_overdue'] ?> overdue</span>
                   <?php endif; ?>
                 </td>
-                <td style="min-width:160px;">
+                <td data-label="Progress" style="min-width:160px;">
                   <div style="background:#e9ecef;height:16px;border-radius:8px;overflow:hidden;">
                     <div style="height:100%;width:<?= (float)$p['progress'] ?>%;background:linear-gradient(90deg,#003581,#0056b3);"></div>
                   </div>
                   <div style="font-size:12px;color:#6c757d;margin-top:4px;"><?= number_format((float)$p['progress'],0) ?>%</div>
                 </td>
-                <td>
+                <td data-label="Status">
                   <span class="badge" style="background:<?= $p['status']==='Completed'?'#28a745':($p['status']==='In Progress'?'#003581':'#6c757d') ?>;">
                     <?= htmlspecialchars($p['status']) ?>
                   </span>
                 </td>
-                <td>
+                <td data-label="Order">
                   <form method="post" style="display:inline-block;">
                     <input type="hidden" name="action" value="move_up">
                     <input type="hidden" name="phase_id" value="<?= (int)$p['id'] ?>">
@@ -223,12 +266,12 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <button class="btn btn-sm btn-secondary" title="Move Down">▼</button>
                   </form>
                 </td>
-                <td>
+                <td data-label="Actions">
                   <!-- Edit inline collapsible -->
                   <details>
                     <summary class="btn btn-sm btn-primary" style="display:inline-block;">Edit</summary>
-                    <div style="background:#f8f9fa;border:1px solid #e9ecef;padding:12px;border-radius:6px;margin-top:8px;">
-                      <form method="post" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;">
+                    <div class="projects-phases-edit-details">
+                      <form method="post" class="projects-phases-edit-details-form">
                         <input type="hidden" name="action" value="update">
                         <input type="hidden" name="phase_id" value="<?= (int)$p['id'] ?>">
                         <div>
@@ -272,6 +315,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <?php endforeach; ?>
           </tbody>
         </table>
+        </div>
       <?php else: ?>
         <div style="text-align:center;padding:32px;color:#6c757d;">
           <div style="font-size:40px;">📋</div>

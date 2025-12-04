@@ -53,15 +53,29 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.contacts-my-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.contacts-my-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.contacts-my-header-flex{flex-direction:column;align-items:stretch;}
+.contacts-my-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.contacts-my-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.contacts-my-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="contacts-my-header-flex">
                 <div style="flex: 1;">
                     <h1>👤 My Contacts</h1>
                     <p>Contacts created by you</p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="contacts-my-header-buttons">
                     <a href="index.php" class="btn btn-accent">← All Contacts</a>
                     <?php if ($can_create): ?>
                         <a href="add.php" class="btn">➕ Add Contact</a>

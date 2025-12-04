@@ -210,16 +210,133 @@ require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
 ?>
 
+<style>
+.form-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.form-header-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.form-grid-1 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+.form-section-title {
+  color: #003581;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #003581;
+  padding-bottom: 10px;
+}
+.form-actions {
+  text-align: center;
+  padding: 20px 0;
+}
+.form-actions .btn {
+  padding: 15px 60px;
+  font-size: 16px;
+}
+.form-actions .btn + .btn {
+  margin-left: 15px;
+}
+
+@media (max-width: 1024px) {
+  .form-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-header-flex {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .form-header-flex > div:first-child h1 {
+    font-size: 24px;
+  }
+  .form-header-flex > div:first-child p {
+    font-size: 14px;
+  }
+  .form-header-buttons {
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .form-header-buttons .btn {
+    width: 100%;
+    text-align: center;
+  }
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  .form-section-title {
+    font-size: 18px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+  }
+  .card {
+    padding: 16px !important;
+    margin-bottom: 20px !important;
+  }
+  .form-actions {
+    padding: 15px 0;
+  }
+  .form-actions .btn {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 15px;
+    margin-left: 0 !important;
+  }
+  .form-actions .btn + .btn {
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-header-flex > div:first-child h1 {
+    font-size: 22px;
+  }
+  .form-header-flex > div:first-child p {
+    font-size: 13px;
+  }
+  .form-section-title {
+    font-size: 16px;
+  }
+  .card {
+    padding: 14px !important;
+  }
+  .form-group label {
+    font-size: 14px;
+  }
+  .form-control {
+    font-size: 14px;
+  }
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <!-- Page Header -->
     <div class="page-header">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <div class="form-header-flex">
         <div>
           <h1>➕ Add Lead</h1>
           <p>Capture a new lead, assign ownership, and schedule the next follow-up</p>
         </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div class="form-header-buttons">
           <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
           <a href="index.php" class="btn btn-secondary">← All Leads</a>
         </div>
@@ -240,10 +357,10 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
     <form method="POST" enctype="multipart/form-data">
       <!-- Lead Information -->
       <div class="card" style="margin-bottom: 25px;">
-        <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+        <h3 class="form-section-title">
           📋 Lead Information
         </h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="form-grid-3">
           <div class="form-group">
             <label>Name <span style="color: #dc3545;">*</span></label>
             <input type="text" name="name" class="form-control" required value="<?php echo htmlspecialchars($form['name']); ?>">
@@ -266,10 +383,10 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 
       <!-- Contact Information -->
       <div class="card" style="margin-bottom: 25px;">
-        <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+        <h3 class="form-section-title">
           📞 Contact Information
         </h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="form-grid-3">
           <div class="form-group">
             <label>Phone</label>
             <input type="text" name="phone" class="form-control" value="<?php echo htmlspecialchars($form['phone']); ?>">
@@ -287,10 +404,10 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 
       <!-- Assignment & Tracking -->
       <div class="card" style="margin-bottom: 25px;">
-        <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+        <h3 class="form-section-title">
           👤 Assignment & Tracking
         </h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="form-grid-3">
           <div class="form-group">
             <label>Assign To <span style="color: #dc3545;">*</span></label>
             <select name="assigned_to" class="form-control" required>
@@ -322,10 +439,10 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 
       <!-- Additional Details -->
       <div class="card" style="margin-bottom: 25px;">
-        <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
+        <h3 class="form-section-title">
           📝 Additional Details
         </h3>
-        <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+        <div class="form-grid-1">
           <div class="form-group">
             <label>Notes</label>
             <textarea name="notes" class="form-control" rows="3"><?php echo htmlspecialchars($form['notes']); ?></textarea>
@@ -339,11 +456,11 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
       </div>
 
       <!-- Submit Buttons -->
-      <div style="text-align: center; padding: 20px 0;">
-        <button type="submit" class="btn" style="padding: 15px 60px; font-size: 16px;">
+      <div class="form-actions">
+        <button type="submit" class="btn">
           ✅ Save Lead
         </button>
-        <a href="index.php" class="btn btn-accent" style="padding: 15px 60px; font-size: 16px; margin-left: 15px; text-decoration: none;">
+        <a href="index.php" class="btn btn-accent" style="text-decoration: none;">
           ❌ Cancel
         </a>
       </div>

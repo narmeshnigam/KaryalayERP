@@ -281,15 +281,30 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
 </style>
 
 <div class="main-wrapper">
+<style>
+.catalog-view-header-flex{display:flex;justify-content:space-between;align-items:center;}
+.catalog-view-header-buttons{display:flex;gap:8px;}
+
+@media (max-width:768px){
+.catalog-view-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.catalog-view-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.catalog-view-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.catalog-view-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="catalog-view-header-flex">
                 <div>
                     <h1>🛍️ Catalog Item Details</h1>
                     <p>Comprehensive product and service information</p>
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div class="catalog-view-header-buttons">
                     <a href="index.php" class="btn btn-accent">← Back to Catalog</a>
                     <?php if (!$not_found && $can_edit): ?>
                         <a href="edit.php?id=<?php echo $item_id; ?>" class="btn" style="margin-left: 8px;">✏️ Edit</a>

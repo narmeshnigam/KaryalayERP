@@ -321,7 +321,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="emp-edit-header-flex">
         <div>
           <h1>✏️ Edit Employee</h1>
           <p>Update employee information across all sections</p>
@@ -340,11 +340,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <?php endif; ?>
 
     <form method="POST" enctype="multipart/form-data">
-      <div class="card" style="margin-bottom:20px;">
-        <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">👤 Personal Information</h3>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+      <div class="card emp-card">
+        <h3 class="emp-section-title">👤 Personal Information</h3>
+        <div class="emp-edit-grid-3">
           <div class="form-group">
-            <label>First Name <span style="color:#dc3545;">*</span></label>
+            <label>First Name <span class="emp-required">*</span></label>
             <input type="text" name="first_name" class="form-control" value="<?php echo safe($emp['first_name']); ?>">
           </div>
           <div class="form-group">
@@ -352,7 +352,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <input type="text" name="middle_name" class="form-control" value="<?php echo safe($emp['middle_name']); ?>">
           </div>
           <div class="form-group">
-            <label>Last Name <span style="color:#dc3545;">*</span></label>
+            <label>Last Name <span class="emp-required">*</span></label>
             <input type="text" name="last_name" class="form-control" value="<?php echo safe($emp['last_name']); ?>">
           </div>
           <div class="form-group">
@@ -400,11 +400,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:20px;">
-        <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">📞 Contact Information</h3>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+      <div class="card emp-card">
+        <h3 class="emp-section-title">📞 Contact Information</h3>
+        <div class="emp-edit-grid-3">
           <div class="form-group">
-            <label>Official Email <span style="color:#dc3545;">*</span></label>
+            <label>Official Email <span class="emp-required">*</span></label>
             <input type="email" name="official_email" class="form-control" value="<?php echo safe($emp['official_email']); ?>">
           </div>
           <div class="form-group">
@@ -412,7 +412,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <input type="email" name="personal_email" class="form-control" value="<?php echo safe($emp['personal_email']); ?>">
           </div>
           <div class="form-group">
-            <label>Mobile Number <span style="color:#dc3545;">*</span></label>
+            <label>Mobile Number <span class="emp-required">*</span></label>
             <input type="tel" name="mobile_number" class="form-control" value="<?php echo safe($emp['mobile_number']); ?>">
           </div>
           <div class="form-group">
@@ -427,17 +427,17 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <label>Emergency Contact Number</label>
             <input type="text" name="emergency_contact_number" class="form-control" value="<?php echo safe($emp['emergency_contact_number']); ?>">
           </div>
-          <div class="form-group" style="grid-column:1/-1;">
+          <div class="form-group emp-grid-full">
             <label>Emergency Contact Relation</label>
             <input type="text" name="emergency_contact_relation" class="form-control" value="<?php echo safe($emp['emergency_contact_relation']); ?>">
           </div>
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:20px;">
-        <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">🏠 Address Information</h3>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
-          <div class="form-group" style="grid-column:1/-1;">
+      <div class="card emp-card">
+        <h3 class="emp-section-title">🏠 Address Information</h3>
+        <div class="emp-edit-grid-2">
+          <div class="form-group emp-grid-full">
             <label>Current Address</label>
             <textarea name="current_address" class="form-control" rows="2"><?php echo safe($emp['current_address']); ?></textarea>
           </div>
@@ -453,7 +453,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <label>Pincode</label>
             <input type="text" name="current_pincode" class="form-control" value="<?php echo safe($emp['current_pincode']); ?>">
           </div>
-          <div class="form-group" style="grid-column:1/-1;">
+          <div class="form-group emp-grid-full">
             <label>Permanent Address</label>
             <textarea name="permanent_address" class="form-control" rows="2"><?php echo safe($emp['permanent_address']); ?></textarea>
           </div>
@@ -472,11 +472,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:20px;">
-        <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">💼 Employment Details</h3>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+      <div class="card emp-card">
+        <h3 class="emp-section-title">💼 Employment Details</h3>
+        <div class="emp-edit-grid-3">
           <div class="form-group">
-            <label>Department <span style="color:#dc3545;">*</span></label>
+            <label>Department <span class="emp-required">*</span></label>
             <select name="department" class="form-control">
               <?php foreach ($departments as $department): ?>
                 <option value="<?php echo safe($department); ?>" <?php echo selected($emp['department'], $department); ?>><?php echo safe($department); ?></option>
@@ -484,7 +484,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </select>
           </div>
           <div class="form-group">
-            <label>Designation <span style="color:#dc3545;">*</span></label>
+            <label>Designation <span class="emp-required">*</span></label>
             <select name="designation" class="form-control">
               <?php foreach ($designations as $designation): ?>
                 <option value="<?php echo safe($designation); ?>" <?php echo selected($emp['designation'], $designation); ?>><?php echo safe($designation); ?></option>
@@ -500,7 +500,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </select>
           </div>
           <div class="form-group">
-            <label>Date of Joining <span style="color:#dc3545;">*</span></label>
+            <label>Date of Joining <span class="emp-required">*</span></label>
             <input type="date" name="date_of_joining" class="form-control" value="<?php echo safe($emp['date_of_joining']); ?>">
           </div>
           <div class="form-group">
@@ -543,9 +543,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:20px;">
-        <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">💰 Salary & Allowances</h3>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+      <div class="card emp-card">
+        <h3 class="emp-section-title">💰 Salary & Allowances</h3>
+        <div class="emp-edit-grid-3">
           <div class="form-group">
             <label>Salary Type</label>
             <select name="salary_type" class="form-control">
@@ -574,9 +574,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <label>Special Allowance</label>
             <input type="number" step="0.01" name="special_allowance" class="form-control gross-field" value="<?php echo safe($emp['special_allowance']); ?>">
           </div>
-          <div class="form-group" style="grid-column:1/-1;">
+          <div class="form-group emp-grid-full">
             <label><strong>Gross Salary</strong></label>
-            <input type="text" id="gross_display" class="form-control" readonly style="background:#e9ecef;font-weight:700;font-size:18px;color:#003581;" value="<?php echo safe($gross_display); ?>">
+            <input type="text" id="gross_display" class="form-control emp-gross-display" readonly value="<?php echo safe($gross_display); ?>">
           </div>
           <div class="form-group">
             <label>PF Number</label>
@@ -597,9 +597,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:20px;">
-        <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">🏦 Bank Details</h3>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+      <div class="card emp-card">
+        <h3 class="emp-section-title">🏦 Bank Details</h3>
+        <div class="emp-edit-grid-2">
           <div class="form-group">
             <label>Bank Name</label>
             <input type="text" name="bank_name" class="form-control" value="<?php echo safe($emp['bank_name']); ?>">
@@ -619,9 +619,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:20px;">
-        <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">🪪 Documents & Identification</h3>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+      <div class="card emp-card">
+        <h3 class="emp-section-title">🪪 Documents & Identification</h3>
+        <div class="emp-edit-grid-2">
           <div class="form-group">
             <label>Aadhar Number</label>
             <input type="text" name="aadhar_number" class="form-control" value="<?php echo safe($emp['aadhar_number']); ?>">
@@ -662,9 +662,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:20px;">
-        <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">🎓 Education & Experience</h3>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+      <div class="card emp-card">
+        <h3 class="emp-section-title">🎓 Education & Experience</h3>
+        <div class="emp-edit-grid-2">
           <div class="form-group">
             <label>Highest Qualification</label>
             <input type="text" name="highest_qualification" class="form-control" value="<?php echo safe($emp['highest_qualification']); ?>">
@@ -700,9 +700,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:20px;">
-        <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">ℹ️ Additional Information</h3>
-        <div style="display:grid;gap:16px;">
+      <div class="card emp-card">
+        <h3 class="emp-section-title">ℹ️ Additional Information</h3>
+        <div class="emp-single-column-grid">
           <div class="form-group">
             <label>Skills (comma-separated)</label>
             <textarea name="skills" class="form-control" rows="2"><?php echo safe($emp['skills']); ?></textarea>
@@ -718,14 +718,14 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:20px;">
-        <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">🔐 User Account & Login Access</h3>
+      <div class="card emp-card">
+        <h3 class="emp-section-title">🔐 User Account & Login Access</h3>
         
         <?php if ($linked_user): ?>
           <!-- Already Linked User -->
-          <div style="background:#d4edda;border-left:4px solid #28a745;padding:16px;border-radius:6px;margin-bottom:16px;">
-            <h4 style="margin:0 0 10px 0;color:#155724;">✅ User Account Linked</h4>
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;font-size:14px;color:#155724;">
+          <div class="emp-user-linked-box">
+            <h4>✅ User Account Linked</h4>
+            <div class="emp-user-linked-grid">
               <div><strong>Username:</strong> <?php echo safe($linked_user['username']); ?></div>
               <div><strong>Full Name:</strong> <?php echo safe($linked_user['full_name']); ?></div>
               <div><strong>Email:</strong> <?php echo safe($linked_user['email']); ?></div>
@@ -733,13 +733,13 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
           </div>
           
-          <div style="display:grid;gap:16px;">
+          <div class="emp-user-form-grid">
             <div class="form-group">
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" name="is_user_created" value="1" id="enableUserCheckbox" <?php echo $emp['is_user_created'] ? 'checked' : ''; ?> style="width:18px;height:18px;">
-                <span style="font-weight:600;">Keep User Account Enabled for Login</span>
+              <label class="emp-user-checkbox-label">
+                <input type="checkbox" name="is_user_created" value="1" id="enableUserCheckbox" <?php echo $emp['is_user_created'] ? 'checked' : ''; ?> class="emp-user-checkbox">
+                <span class="emp-user-checkbox-text">Keep User Account Enabled for Login</span>
               </label>
-              <small style="color:#6c757d;display:block;margin-top:4px;">Uncheck to disable login access for this employee</small>
+              <small class="emp-user-small-text">Uncheck to disable login access for this employee</small>
             </div>
 
             <div id="userSelectSection" style="display:<?php echo $emp['is_user_created'] ? 'block' : 'none'; ?>;">
@@ -766,7 +766,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </option>
                   <?php endforeach; ?>
                 </select>
-                <small style="color:#6c757d;display:block;margin-top:4px;">
+                <small class="emp-user-small-text">
                   Search and select a different user account to link. Users already linked to other employees are disabled.
                 </small>
               </div>
@@ -775,24 +775,24 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <?php else: ?>
           <!-- No User Linked Yet -->
-          <div style="background:#fff3cd;border-left:4px solid #faa718;padding:16px;border-radius:6px;margin-bottom:16px;">
-            <h4 style="margin:0 0 8px 0;color:#856404;">⚠️ No User Account Linked</h4>
-            <p style="margin:0;color:#856404;font-size:14px;">This employee doesn't have login access. Enable user account to grant system access.</p>
+          <div class="emp-user-not-linked-box">
+            <h4>⚠️ No User Account Linked</h4>
+            <p>This employee doesn't have login access. Enable user account to grant system access.</p>
           </div>
 
-          <div style="display:grid;gap:16px;">
+          <div class="emp-user-form-grid">
             <div class="form-group">
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" name="is_user_created" value="1" id="enableUserCheckbox" <?php echo $emp['is_user_created'] ? 'checked' : ''; ?> style="width:18px;height:18px;">
-                <span style="font-weight:600;">Enable User Account for Login</span>
+              <label class="emp-user-checkbox-label">
+                <input type="checkbox" name="is_user_created" value="1" id="enableUserCheckbox" <?php echo $emp['is_user_created'] ? 'checked' : ''; ?> class="emp-user-checkbox">
+                <span class="emp-user-checkbox-text">Enable User Account for Login</span>
               </label>
-              <small style="color:#6c757d;display:block;margin-top:4px;">Check this box to grant login access to this employee</small>
+              <small class="emp-user-small-text">Check this box to grant login access to this employee</small>
             </div>
 
             <div id="userSelectSection" style="display:<?php echo $emp['is_user_created'] ? 'block' : 'none'; ?>;">
               <div class="form-group">
-                <label>Search & Select User Account <span style="color:#dc3545;">*</span></label>
-                <input type="text" id="userSearch" class="form-control" placeholder="Type to search by username or name..." style="margin-bottom:8px;">
+                <label>Search & Select User Account <span class="emp-required">*</span></label>
+                <input type="text" id="userSearch" class="form-control emp-user-search-input" placeholder="Type to search by username or name...">
                 <select name="user_id" id="userSelect" class="form-control" size="8">
                   <option value="">-- Select a User Account --</option>
                   <?php foreach ($available_users as $user): ?>
@@ -811,7 +811,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </option>
                   <?php endforeach; ?>
                 </select>
-                <small style="color:#6c757d;display:block;margin-top:4px;">
+                <small class="emp-user-small-text">
                   Select a user account to link with this employee. Only unlinked users are available.
                 </small>
               </div>
@@ -819,9 +819,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
           </div>
         <?php endif; ?>
 
-        <div style="background:#e7f3ff;border-left:4px solid #0066cc;padding:12px;border-radius:6px;margin-top:16px;">
-          <strong style="color:#0066cc;">ℹ️ Note:</strong>
-          <ul style="margin:8px 0 0 20px;color:#004085;font-size:13px;line-height:1.6;">
+        <div class="emp-user-info-box">
+          <strong>ℹ️ Note:</strong>
+          <ul>
             <li>Linking a user account allows the employee to log in to the system</li>
             <li>Each user account can only be linked to one employee at a time</li>
             <li>If you need to create a new user account, go to Settings → User Management (if available)</li>
@@ -830,9 +830,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         </div>
       </div>
 
-      <div style="text-align:center;padding:16px 0;">
-        <button type="submit" class="btn" style="padding:12px 40px;">✅ Save Changes</button>
-        <a href="view_employee.php?id=<?php echo $id; ?>" class="btn btn-accent" style="padding:12px 40px;margin-left:10px;text-decoration:none;">❌ Cancel</a>
+      <div class="emp-edit-button-group">
+        <button type="submit" class="btn emp-edit-btn-large">✅ Save Changes</button>
+        <a href="view_employee.php?id=<?php echo $id; ?>" class="btn btn-accent emp-edit-btn-large emp-edit-cancel-link">❌ Cancel</a>
       </div>
     </form>
   </div>

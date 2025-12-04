@@ -11,7 +11,7 @@ authz_require_permission($conn, 'projects', 'update');
 
 // Check if tables exist
 if (!projects_tables_exist($conn)) {
-    header('Location: /KaryalayERP/scripts/setup_projects_tables.php');
+    header('Location: ' . APP_URL . '/scripts/setup_projects_tables.php');
     exit;
 }
 
@@ -121,15 +121,27 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.projects-edit-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+
+@media (max-width:768px){
+.projects-edit-header-flex{flex-direction:column;align-items:stretch;}
+.projects-edit-header-flex .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.projects-edit-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="projects-edit-header-flex">
                 <div style="flex: 1;">
                     <h1 style="margin: 0 0 8px 0;">✏️ Edit Project</h1>
                     <p style="color: #6c757d; margin: 0;">Update project details and settings</p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div>
                     <a href="view.php?id=<?= $project_id ?>" class="btn btn-accent" style="text-decoration: none;">← Back</a>
                 </div>
             </div>

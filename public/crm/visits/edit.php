@@ -396,16 +396,39 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
 }
 </style>
 
+<style>
+.visit-edit-header-flex{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;}
+.visit-edit-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.visit-edit-form-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.visit-edit-form-grid-1{display:grid;grid-template-columns:1fr;gap:20px;}
+
+@media (max-width:1024px){
+.visit-edit-form-grid-3{grid-template-columns:repeat(2,1fr);}
+}
+
+@media (max-width:768px){
+.visit-edit-header-flex{flex-direction:column;align-items:stretch;}
+.visit-edit-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.visit-edit-header-buttons .btn{width:100%;text-align:center;}
+.visit-edit-form-grid-3{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.visit-edit-header-flex h1{font-size:1.5rem;}
+.visit-edit-form-grid-3{gap:15px;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <!-- Page Header -->
     <div class="page-header">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <div class="visit-edit-header-flex">
         <div>
           <h1>✏️ Edit Visit</h1>
           <p>Update visit details</p>
         </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div class="visit-edit-header-buttons">
           <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
           <a href="index.php" class="btn btn-secondary">← All Visits</a>
         </div>
@@ -429,7 +452,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
             <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                 🚗 Visit Information
             </h3>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+            <div class="visit-edit-form-grid-3">
                 <div class="form-group">
                     <label for="visit_type">Visit Type <span style="color: #dc3545;">*</span></label>
                     <select id="visit_type" name="visit_type" class="form-control" required>
@@ -551,7 +574,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
                     When marking a visit as completed (Logged), you must provide visit proof image and the system will capture your current location.
                 </p>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+            <div class="visit-edit-form-grid-3">
                 <div class="form-group">
                     <label for="visit_proof_image">Visit Proof Image <span id="visit_proof_required" style="color: #dc3545;">*</span></label>
                     <?php 
@@ -592,7 +615,7 @@ if (crm_visit_get($visit, 'status') === 'Planned' || crm_visit_get($visit, 'stat
             <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                 📅 Follow-Up & Additional Details
             </h3>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+            <div class="visit-edit-form-grid-3">
                 <div class="form-group">
                     <label for="follow_up_date">Follow-Up Date</label>
                     <input type="date" id="follow_up_date" name="follow_up_date" class="form-control"

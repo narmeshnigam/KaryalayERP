@@ -183,15 +183,30 @@ require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
 ?>
 
+<style>
+.visits-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.visits-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.visits-header-flex{flex-direction:column;align-items:stretch;}
+.visits-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.visits-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.visits-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="visits-header-flex">
         <div>
           <h1>🚗 All Visits</h1>
           <p>View and manage all field visits</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="visits-header-buttons">
           <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
           <a href="my.php" class="btn btn-accent">🚗 My Visits</a>
           <?php if ($visits_permissions['can_create'] || $IS_SUPER_ADMIN): ?>

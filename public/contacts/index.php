@@ -25,7 +25,7 @@ if (!contacts_tables_exist($conn)) {
     echo '<div class="alert alert-warning" style="margin:40px auto;max-width:600px;padding:32px 28px;font-size:1.1em;">';
     echo '<h2 style="margin-bottom:16px;color:#b85c00;">Contacts Module Not Set Up</h2>';
     echo '<p>The contacts module database tables have not been created yet. To use this module, please run the setup for contacts.</p>';
-    echo '<a href="/KaryalayERP/scripts/setup_contacts_tables.php" class="btn btn-primary" style="margin-top:18px;">Set Up Contacts Module</a>';
+    echo '<a href="' . APP_URL . '/scripts/setup_contacts_tables.php" class="btn btn-primary" style="margin-top:18px;">Set Up Contacts Module</a>';
     echo '</div></div></div>';
     require_once __DIR__ . '/../../includes/footer.php';
     exit;
@@ -66,20 +66,97 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.contacts-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.contacts-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.contacts-header-flex{flex-direction:column;align-items:stretch;}
+.contacts-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.contacts-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.contacts-header-flex h1{font-size:1.5rem;}
+}
+
+/* Statistics Cards Responsive */
+.contacts-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;}
+
+@media (max-width:768px){
+.contacts-stats-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+}
+
+@media (max-width:480px){
+.contacts-stats-grid{grid-template-columns:1fr;gap:12px;}
+.contacts-stats-grid .card{padding:16px !important;}
+.contacts-stats-grid .card>div:first-child{font-size:28px !important;}
+}
+
+/* Filter Form Responsive */
+.contacts-filter-form{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:16px;}
+
+@media (max-width:1024px){
+.contacts-filter-form{grid-template-columns:1fr 1fr 1fr auto;gap:12px;}
+}
+
+@media (max-width:768px){
+.contacts-filter-form{grid-template-columns:1fr 1fr;gap:12px;}
+.contacts-filter-form>div:nth-child(4){grid-column:1/2;}
+.contacts-filter-form>div:nth-child(5){grid-column:2/3;}
+}
+
+@media (max-width:480px){
+.contacts-filter-form{grid-template-columns:1fr;gap:12px;}
+.contacts-filter-form>div:nth-child(4){grid-column:1/-1;}
+.contacts-filter-form>div:nth-child(5){grid-column:1/-1;}
+.contacts-filter-buttons{grid-column:1/-1 !important;display:flex;gap:8px;}
+.contacts-filter-buttons button,.contacts-filter-buttons a{flex:1;}
+}
+
+/* Quick Links Responsive */
+.contacts-quick-links{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.contacts-quick-links .btn{font-size:13px;padding:8px 12px;}
+}
+
+@media (max-width:480px){
+.contacts-quick-links{gap:8px;}
+.contacts-quick-links .btn{font-size:12px;padding:6px 10px;flex:1 1 calc(50% - 4px);}
+}
+
+/* Contact Cards Responsive */
+.contacts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;}
+
+@media (max-width:1024px){
+.contacts-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+}
+
+@media (max-width:768px){
+.contacts-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+}
+
+@media (max-width:480px){
+.contacts-grid{grid-template-columns:1fr;gap:12px;}
+.contacts-card-avatar{width:50px !important;height:50px !important;font-size:18px !important;}
+.contacts-card-name{font-size:16px !important;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="contacts-header-flex">
                 <div style="flex: 1;">
                     <h1>📇 Contacts Management</h1>
                     <p>Manage and organize your business contacts</p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="contacts-header-buttons">
                     <?php if ($can_create): ?>
                         <a href="add.php" class="btn">➕ Add Contact</a>
                     <?php endif; ?>
-                    <a href="groups.php" class="btn btn-accent">� Groups</a>
-                    <a href="import.php" class="btn btn-accent">� Import</a>
+                    <a href="groups.php" class="btn btn-accent">👥 Groups</a>
+                    <a href="import.php" class="btn btn-accent">📥 Import</a>
                     <?php if ($can_export): ?>
                         <a href="export.php?<?php echo http_build_query($filters); ?>" class="btn btn-accent">📤 Export</a>
                     <?php endif; ?>
@@ -90,7 +167,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <?php require_once __DIR__ . '/../../includes/flash.php'; ?>
 
         <!-- Statistics Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="contacts-stats-grid">
             <div class="card" style="background: linear-gradient(135deg, #003581 0%, #004aad 100%); padding: 20px; color: #fff; border: none;">
                 <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px;"><?php echo $stats['total']; ?></div>
                 <div style="font-size: 14px; opacity: 0.95;">📊 Total Contacts</div>
@@ -119,7 +196,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Filters and Search -->
         <div class="card" style="margin-bottom: 24px;">
-            <form method="GET" action="" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 16px;">
+            <form method="GET" action="" class="contacts-filter-form">
                 <div class="form-group">
                     <label>🔍 Search</label>
                     <input type="text" name="search" value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" 
@@ -161,7 +238,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </select>
                 </div>
                 
-                <div style="display: flex; gap: 8px; align-items: flex-end;">
+                <div class="contacts-filter-buttons" style="display: flex; gap: 8px; align-items: flex-end;">
                     <button type="submit" class="btn">Filter</button>
                     <a href="index.php" class="btn btn-accent">Clear</a>
                 </div>
@@ -169,7 +246,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         </div>
 
         <!-- Quick Links -->
-        <div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
+        <div class="contacts-quick-links">
             <a href="index.php" class="btn <?php echo empty($filters) ? '' : 'btn-accent'; ?>" style="font-size: 14px;">
                 📊 All Contacts (<?php echo $stats['total']; ?>)
             </a>
@@ -197,7 +274,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 </div>
             </div>
         <?php else: ?>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px;">
+            <div class="contacts-grid">
                 <?php foreach ($contacts as $contact): ?>
                     <div class="card" style="position: relative; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;"
                          onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)';"
@@ -211,11 +288,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         
                         <!-- Avatar and Name -->
                         <div style="display: flex; align-items: start; gap: 16px; margin-bottom: 16px;">
-                            <div style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #003581 0%, #0066cc 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 20px; flex-shrink: 0;">
+                            <div class="contacts-card-avatar" style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #003581 0%, #0066cc 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 20px; flex-shrink: 0;">
                                 <?php echo get_contact_initials($contact['name']); ?>
                             </div>
                             <div style="flex: 1; min-width: 0;">
-                                <h3 style="margin: 0 0 4px 0; color: #003581; font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <h3 class="contacts-card-name" style="margin: 0 0 4px 0; color: #003581; font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                     <?php echo htmlspecialchars($contact['name']); ?>
                                 </h3>
                                 <?php if (!empty($contact['designation'])): ?>

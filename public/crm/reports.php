@@ -185,15 +185,30 @@ $page_title = 'CRM Reports - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
+<style>
+.reports-header-flex{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.reports-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.reports-header-flex{flex-direction:column;align-items:stretch;}
+.reports-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.reports-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.reports-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="reports-header-flex">
         <div>
           <h1>📊 CRM Reports</h1>
           <p>Team activity and performance metrics for actionable oversight</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="reports-header-buttons">
           <a href="./index.php" class="btn btn-accent">← CRM Dashboard</a>
         </div>
       </div>

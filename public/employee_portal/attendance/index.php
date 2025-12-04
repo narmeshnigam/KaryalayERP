@@ -244,16 +244,119 @@ mysqli_stmt_close($recent_stmt);
 closeConnection($conn);
 ?>
 
+<style>
+.emp-att-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.emp-att-header-btns {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.emp-att-today-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 30px;
+    align-items: center;
+}
+.emp-att-today-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+.emp-att-today-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.emp-att-monthly-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+.emp-att-table-responsive {
+    overflow-x: auto;
+}
+@media (max-width: 1200px) {
+    .emp-att-today-card {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    .emp-att-today-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (max-width: 900px) {
+    .emp-att-table-responsive table {
+        font-size: 12px;
+    }
+    .emp-att-table-responsive th,
+    .emp-att-table-responsive td {
+        padding: 8px !important;
+    }
+}
+@media (max-width: 600px) {
+    .emp-att-header-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .emp-att-header-flex > div {
+        width: 100%;
+    }
+    .emp-att-header-btns {
+        flex-direction: column;
+        width: 100%;
+    }
+    .emp-att-header-btns .btn {
+        width: 100%;
+    }
+    .emp-att-today-card {
+        grid-template-columns: 1fr;
+    }
+    .emp-att-today-stats {
+        grid-template-columns: 1fr;
+    }
+    .emp-att-today-stats > div:nth-child(4) {
+        grid-column: auto;
+    }
+    .emp-att-today-actions {
+        width: 100%;
+    }
+    .emp-att-today-actions .btn {
+        width: 100%;
+        padding: 12px 20px !important;
+        font-size: 14px !important;
+    }
+    .emp-att-monthly-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    .emp-att-monthly-grid .card {
+        padding: 15px !important;
+    }
+    .emp-att-table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <!-- Page Header -->
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="emp-att-header-flex">
         <div>
           <h1>⏰ My Attendance</h1>
           <p>Track your attendance and working hours</p>
         </div>
-        <div style="display:flex;gap:10px;">
+        <div class="emp-att-header-btns">
           <a href="calendar.php" class="btn btn-accent">📅 Calendar View</a>
           <a href="history.php" class="btn">📊 View History</a>
           <a href="request_leave.php" class="btn btn-accent">📝 Request Leave</a>
@@ -271,12 +374,12 @@ closeConnection($conn);
 
     <!-- Today's Status Card -->
     <div class="card" style="margin-bottom:25px;background:linear-gradient(135deg,#003581 0%,#004aad 100%);color:white;">
-      <div style="display:grid;grid-template-columns:1fr auto;gap:30px;align-items:center;">
+      <div class="emp-att-today-card">
         <div>
           <h2 style="margin:0 0 10px 0;font-size:24px;">📅 Today: <?php echo date('l, d M Y'); ?></h2>
           
           <?php if ($today_attendance): ?>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:20px;margin-top:20px;">
+            <div class="emp-att-today-stats">
               <div>
                 <div style="opacity:0.9;font-size:13px;margin-bottom:5px;">Check-In</div>
                 <div style="font-size:20px;font-weight:700;">
@@ -307,7 +410,7 @@ closeConnection($conn);
           <?php endif; ?>
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="emp-att-today-actions">
           <?php if (!$today_attendance): ?>
             <button type="button" class="btn location-action" data-action="check_in" style="background:#28a745;border:none;padding:15px 30px;font-size:16px;white-space:nowrap;">
               ✓ Check In
@@ -326,19 +429,19 @@ closeConnection($conn);
     </div>
 
     <!-- Monthly Statistics -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:25px;">
+    <div class="emp-att-monthly-grid">
       <div class="card" style="text-align:center;background:linear-gradient(135deg,#28a745 0%,#34ce57 100%);color:white;">
-        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo $month_stats['present_days'] ?? 0; ?></div>
+        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo (int)($month_stats['present_days'] ?? 0); ?></div>
         <div style="font-size:14px;opacity:0.95;">Days Present</div>
       </div>
       
       <div class="card" style="text-align:center;background:linear-gradient(135deg,#dc3545 0%,#e85563 100%);color:white;">
-        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo $month_stats['absent_days'] ?? 0; ?></div>
+        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo (int)($month_stats['absent_days'] ?? 0); ?></div>
         <div style="font-size:14px;opacity:0.95;">Days Absent</div>
       </div>
       
       <div class="card" style="text-align:center;background:linear-gradient(135deg,#faa718 0%,#ffc04d 100%);color:white;">
-        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo $month_stats['leave_days'] ?? 0; ?></div>
+        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo (int)($month_stats['leave_days'] ?? 0); ?></div>
         <div style="font-size:14px;opacity:0.95;">Days on Leave</div>
       </div>
       
@@ -358,7 +461,7 @@ closeConnection($conn);
       <h3 style="margin:0 0 20px 0;color:#003581;">📊 Recent Attendance (Last 7 Days)</h3>
       
       <?php if (count($recent_attendance) > 0): ?>
-        <div style="overflow-x:auto;">
+        <div class="emp-att-table-responsive">
           <table style="width:100%;border-collapse:collapse;">
             <thead>
               <tr style="background:#f8f9fa;border-bottom:2px solid #dee2e6;">

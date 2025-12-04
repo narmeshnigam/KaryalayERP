@@ -227,15 +227,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $closeManagedConnection();
 ?>
+<style>
+.salary-upload-header-flex{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;}
+.salary-upload-header-buttons{display:flex;gap:10px;flex-wrap:wrap;}
+.salary-upload-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;}
+
+@media (max-width:1024px){
+.salary-upload-form-grid{grid-template-columns:repeat(2,1fr);}
+}
+
+@media (max-width:768px){
+.salary-upload-header-flex{flex-direction:column;align-items:stretch;}
+.salary-upload-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.salary-upload-header-buttons .btn{width:100%;text-align:center;}
+.salary-upload-form-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.salary-upload-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
     <div class="main-content">
         <div class="page-header">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;">
+            <div class="salary-upload-header-flex">
                 <div>
                     <h1>📤 Upload Salary Record</h1>
                     <p>Record monthly payroll details and optionally attach the payslip PDF.</p>
                 </div>
-                <div>
+                <div class="salary-upload-header-buttons">
                     <a href="admin.php" class="btn btn-secondary">← Back to Salary Manager</a>
                 </div>
             </div>
@@ -252,7 +273,7 @@ $closeManagedConnection();
         <?php endif; ?>
 
         <div class="card" style="max-width:780px;margin:0 auto;">
-            <form method="POST" enctype="multipart/form-data" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;">
+            <form method="POST" enctype="multipart/form-data" class="salary-upload-form-grid">
                 <div class="form-group">
                     <label for="employee_id">Employee</label>
                     <select id="employee_id" name="employee_id" class="form-control" required>

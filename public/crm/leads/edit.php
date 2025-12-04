@@ -212,15 +212,87 @@ $page_title = 'Edit Lead - ' . APP_NAME;
 require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
 ?>
+
+<style>
+.lead-edit-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.lead-edit-header-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lead-edit-form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.lead-edit-form-grid-1 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
+  .lead-edit-form-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .lead-edit-header-flex {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .lead-edit-header-flex > div:first-child h1 {
+    font-size: 24px;
+  }
+  .lead-edit-header-flex > div:first-child p {
+    font-size: 14px;
+  }
+  .lead-edit-header-buttons {
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .lead-edit-header-buttons .btn {
+    width: 100%;
+    text-align: center;
+  }
+  .lead-edit-form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .card {
+    padding: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .lead-edit-header-flex > div:first-child h1 {
+    font-size: 22px;
+  }
+  .lead-edit-header-flex > div:first-child p {
+    font-size: 13px;
+  }
+  .card {
+    padding: 14px !important;
+  }
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div class="lead-edit-header-flex">
         <div>
           <h1>✏️ Edit Lead</h1>
           <p style="margin:6px 0 0;">Adjust lead details, ownership, and progression status.</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="lead-edit-header-buttons">
           <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
           <a href="view.php?id=<?php echo (int)$lead_id; ?>" class="btn btn-secondary">← View Lead</a>
           <a href="index.php" class="btn btn-secondary">All Leads</a>
@@ -243,7 +315,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
       <!-- Lead Information -->
       <div class="card" style="margin-bottom:20px;">
         <h3 style="color: #003581; margin-bottom: 12px; border-bottom: 2px solid #003581; padding-bottom: 8px;">📋 Lead Information</h3>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div class="lead-edit-form-grid-3">
           <div class="form-group">
             <label>Name <span style="color:#dc3545;">*</span></label>
             <input type="text" name="name" class="form-control" required value="<?php echo htmlspecialchars($form['name']); ?>">
@@ -267,7 +339,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
       <!-- Contact Information -->
       <div class="card" style="margin-bottom:20px;">
         <h3 style="color: #003581; margin-bottom: 12px; border-bottom: 2px solid #003581; padding-bottom: 8px;">📞 Contact Information</h3>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div class="lead-edit-form-grid-3">
           <div class="form-group">
             <label>Phone</label>
             <input type="text" name="phone" class="form-control" value="<?php echo htmlspecialchars($form['phone']); ?>">
@@ -286,7 +358,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
       <!-- Assignment & Tracking -->
       <div class="card" style="margin-bottom:20px;">
         <h3 style="color: #003581; margin-bottom: 12px; border-bottom: 2px solid #003581; padding-bottom: 8px;">👤 Assignment & Tracking</h3>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div class="lead-edit-form-grid-3">
           <div class="form-group">
             <label>Assign To <span style="color:#dc3545;">*</span></label>
             <select name="assigned_to" class="form-control" required>
@@ -329,7 +401,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
       <!-- Additional Details -->
       <div class="card" style="margin-bottom:20px;">
         <h3 style="color: #003581; margin-bottom: 12px; border-bottom: 2px solid #003581; padding-bottom: 8px;">📝 Additional Details</h3>
-        <div style="display:grid;grid-template-columns:1fr;gap:16px;">
+        <div class="lead-edit-form-grid-1">
           <div class="form-group">
             <label>Notes</label>
             <textarea name="notes" class="form-control" rows="4"><?php echo htmlspecialchars($form['notes']); ?></textarea>

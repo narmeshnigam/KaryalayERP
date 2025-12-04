@@ -213,15 +213,30 @@ if (empty($payment_modes)) {
 }
 ?>
 
+<style>
+.expenses-header-flex{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;}
+.expenses-header-buttons{display:flex;gap:10px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.expenses-header-flex{flex-direction:column;align-items:stretch;}
+.expenses-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.expenses-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.expenses-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div class="expenses-header-flex">
         <div>
           <h1>💸 Office Expenses</h1>
           <p>Track internal overheads and operational costs.</p>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="expenses-header-buttons">
           <?php if ($can_create_expense): ?>
             <a href="add.php" class="btn" style="background:#28a745;">＋ Add Expense</a>
           <?php endif; ?>

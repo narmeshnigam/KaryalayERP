@@ -10,6 +10,85 @@ $page_title = "Approve Leave Requests - " . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
+?>
+
+<style>
+.leave-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.leave-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 25px;
+}
+.leave-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+.leave-filter-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.leave-action-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+@media (max-width: 1200px) {
+    .leave-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .leave-filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (max-width: 600px) {
+    .leave-header-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .leave-header-flex > div {
+        width: 100%;
+    }
+    .leave-header-flex .btn {
+        width: 100%;
+        text-align: center;
+        display: block;
+    }
+    .leave-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    .leave-filter-grid {
+        grid-template-columns: 1fr;
+    }
+    .leave-filter-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    .leave-filter-buttons .btn {
+        width: 100%;
+    }
+    .leave-action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    .leave-action-buttons button,
+    .leave-action-buttons select {
+        width: 100%;
+    }
+}
+</style>
+
+<?php
+
 $message = '';
 $error = '';
 
@@ -163,7 +242,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
   <div class="main-content">
     <!-- Page Header -->
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="leave-header-flex">
         <div>
           <h1>✈️ Leave Requests</h1>
           <p>Review and approve employee leave applications</p>
@@ -183,24 +262,24 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
     <?php endif; ?>
 
     <!-- Statistics Cards -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:25px;">
+    <div class="leave-stats-grid">
       <div style="padding:20px;background:linear-gradient(135deg,#003581 0%,#0056b3 100%);color:white;border-radius:8px;">
-        <div style="font-size:32px;font-weight:700;margin-bottom:5px;"><?php echo $stats['total_requests']; ?></div>
+        <div style="font-size:32px;font-weight:700;margin-bottom:5px;"><?php echo (int)($stats['total_requests'] ?? 0); ?></div>
         <div style="font-size:14px;opacity:0.9;">Total Requests</div>
       </div>
 
       <div style="padding:20px;background:linear-gradient(135deg,#ffc107 0%,#ff9800 100%);color:white;border-radius:8px;">
-        <div style="font-size:32px;font-weight:700;margin-bottom:5px;"><?php echo $stats['pending']; ?></div>
+        <div style="font-size:32px;font-weight:700;margin-bottom:5px;"><?php echo (int)($stats['pending'] ?? 0); ?></div>
         <div style="font-size:14px;opacity:0.9;">Pending Approval</div>
       </div>
 
       <div style="padding:20px;background:linear-gradient(135deg,#28a745 0%,#20c997 100%);color:white;border-radius:8px;">
-        <div style="font-size:32px;font-weight:700;margin-bottom:5px;"><?php echo $stats['approved']; ?></div>
+        <div style="font-size:32px;font-weight:700;margin-bottom:5px;"><?php echo (int)($stats['approved'] ?? 0); ?></div>
         <div style="font-size:14px;opacity:0.9;">Approved</div>
       </div>
 
       <div style="padding:20px;background:linear-gradient(135deg,#dc3545 0%,#c82333 100%);color:white;border-radius:8px;">
-        <div style="font-size:32px;font-weight:700;margin-bottom:5px;"><?php echo $stats['rejected']; ?></div>
+        <div style="font-size:32px;font-weight:700;margin-bottom:5px;"><?php echo (int)($stats['rejected'] ?? 0); ?></div>
         <div style="font-size:14px;opacity:0.9;">Rejected</div>
       </div>
     </div>
@@ -210,7 +289,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
       <h3 style="margin:0 0 20px 0;color:#003581;">🔍 Filter Leave Requests</h3>
       
       <form method="GET" id="filterForm">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:20px;">
+        <div class="leave-filter-grid">
           <div class="form-group" style="margin:0;">
             <label class="form-label">Approval Status</label>
             <select name="status" class="form-control">
@@ -244,7 +323,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
           </div>
         </div>
 
-        <div style="display:flex;gap:10px;">
+        <div class="leave-filter-buttons">
           <button type="submit" class="btn">Apply Filters</button>
           <a href="approve_leave.php" class="btn btn-accent">Reset Filters</a>
         </div>
@@ -344,8 +423,8 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
 
           <!-- Bulk Actions -->
           <div style="margin-top:20px;padding:20px;background:#f8f9fa;border-radius:8px;">
-            <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:15px;align-items:end;">
-              <div class="form-group" style="margin:0;">
+            <div class="leave-action-buttons">
+              <div class="form-group" style="margin:0;flex:1;">
                 <label class="form-label">Remarks (Optional)</label>
                 <textarea name="remarks" class="form-control" rows="2" placeholder="Add remarks for approval/rejection..."></textarea>
               </div>

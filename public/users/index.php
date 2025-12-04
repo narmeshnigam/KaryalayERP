@@ -200,9 +200,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                 </td>
                                 <td>
                                     <?php if ($user['role_name']): ?>
-                                        <span style="background: #003581; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px;">
-                                            <?php echo htmlspecialchars($user['role_name']); ?>
-                                        </span>
+                                        <?php foreach (explode(',', $user['role_name']) as $role): ?>
+                                            <span style="background: #003581; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; display: inline-block; margin-right: 4px; margin-bottom: 2px;">
+                                                <?php echo htmlspecialchars(trim($role)); ?>
+                                            </span>
+                                        <?php endforeach; ?>
                                     <?php else: ?>
                                         <span style="color: #dc3545;">No Role</span>
                                     <?php endif; ?>

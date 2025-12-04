@@ -71,15 +71,29 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.contacts-groups-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.contacts-groups-main-grid{display:grid;grid-template-columns:350px 1fr;gap:24px;}
+
+@media (max-width:768px){
+.contacts-groups-header-flex{flex-direction:column;align-items:stretch;}
+.contacts-groups-header-flex .btn{width:100%;text-align:center;}
+.contacts-groups-main-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.contacts-groups-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="contacts-groups-header-flex">
                 <div style="flex: 1;">
                     <h1 style="margin: 0 0 8px 0;">👥 Contact Groups</h1>
                     <p style="color: #6c757d; margin: 0;">Organize contacts into groups for easy management</p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div>
                     <a href="index.php" class="btn btn-secondary">← Back to Contacts</a>
                 </div>
             </div>
@@ -99,7 +113,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
         <?php endif; ?>
 
-        <div style="display: grid; grid-template-columns: 350px 1fr; gap: 24px;">
+        <div class="contacts-groups-main-grid">
             
             <!-- Groups List -->
             <div>

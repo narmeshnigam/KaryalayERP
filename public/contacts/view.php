@@ -48,15 +48,84 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.contacts-view-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.contacts-view-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.contacts-view-main-grid{display:grid;grid-template-columns:2fr 1fr;gap:24px;}
+
+@media (max-width:768px){
+.contacts-view-header-flex{flex-direction:column;align-items:stretch;}
+.contacts-view-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.contacts-view-header-buttons .btn,.contacts-view-header-buttons form{width:100%;}
+.contacts-view-header-buttons .btn,.contacts-view-header-buttons button{text-align:center;}
+.contacts-view-main-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.contacts-view-header-flex h1{font-size:1.5rem;}
+}
+
+/* Contact Header Card Responsive */
+.contacts-view-header-card-content{display:flex;align-items:start;gap:24px;}
+.contacts-view-header-card-avatar{width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg, #003581 0%, #0066cc 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:36px;flex-shrink:0;}
+.contacts-view-header-card-info{flex:1;}
+.contacts-view-header-card-title{display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;}
+.contacts-view-header-card-title h2{margin:0;color:#003581;font-size:28px;}
+.contacts-view-header-badge{background:rgba(0,53,129,0.1);color:#003581;padding:6px 12px;border-radius:6px;font-size:13px;font-weight:600;}
+.contacts-view-quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
+
+@media (max-width:768px){
+.contacts-view-header-card-content{gap:16px;}
+.contacts-view-header-card-avatar{width:80px;height:80px;font-size:28px;}
+.contacts-view-header-card-title{flex-direction:column;gap:8px;}
+.contacts-view-header-card-title h2{font-size:24px;}
+.contacts-view-header-badge{display:inline-block;}
+}
+
+@media (max-width:480px){
+.contacts-view-header-card-content{flex-direction:column;align-items:center;text-align:center;}
+.contacts-view-header-card-avatar{width:70px;height:70px;font-size:24px;}
+.contacts-view-header-card-title{width:100%;}
+.contacts-view-header-card-title h2{font-size:20px;}
+.contacts-view-quick-actions{justify-content:center;gap:6px;}
+.contacts-view-quick-actions .btn{font-size:12px;padding:6px 10px;}
+}
+
+/* Contact Information Grid Responsive */
+.contacts-info-grid{display:grid;gap:16px;}
+.contacts-info-row{display:flex;align-items:start;gap:12px;}
+.contacts-info-label{width:140px;color:#6c757d;font-weight:600;flex-shrink:0;}
+.contacts-info-value{color:#1b2a57;word-break:break-word;}
+
+@media (max-width:768px){
+.contacts-info-label{width:120px;font-size:14px;}
+.contacts-info-value{font-size:14px;}
+}
+
+@media (max-width:480px){
+.contacts-info-row{flex-direction:column;gap:6px;}
+.contacts-info-label{width:100%;font-weight:700;margin-bottom:4px;}
+.contacts-info-value{width:100%;}
+}
+
+/* Sidebar Responsive */
+.contacts-view-tags{display:flex;gap:6px;flex-wrap:wrap;}
+.contacts-view-sidebar-card{margin-bottom:24px;}
+
+@media (max-width:480px){
+.contacts-view-tags{gap:4px;}
+.contacts-view-tags a{font-size:12px;padding:4px 8px;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="contacts-view-header-flex">
                 <div style="flex: 1;">
                     <h1>📇 Contact Details</h1>
                     <p>View complete contact information</p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="contacts-view-header-buttons">
                     <a href="index.php" class="btn btn-accent">← Back</a>
                     <?php if ($can_edit): ?>
                         <a href="edit.php?id=<?php echo $contact_id; ?>" class="btn">✏️ Edit</a>
@@ -72,25 +141,25 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <?php require_once __DIR__ . '/../../includes/flash.php'; ?>
 
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+        <div class="contacts-view-main-grid">
             
             <!-- Main Content -->
             <div>
                 <!-- Contact Header Card -->
                 <div class="card" style="margin-bottom: 24px;">
-                    <div style="display: flex; align-items: start; gap: 24px;">
+                    <div class="contacts-view-header-card-content">
                         <!-- Avatar -->
-                        <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #003581 0%, #0066cc 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 36px; flex-shrink: 0;">
+                        <div class="contacts-view-header-card-avatar">
                             <?php echo get_contact_initials($contact['name']); ?>
                         </div>
                         
                         <!-- Header Info -->
-                        <div style="flex: 1;">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                                <h2 style="margin: 0; color: #003581; font-size: 28px;">
+                        <div class="contacts-view-header-card-info">
+                            <div class="contacts-view-header-card-title">
+                                <h2>
                                     <?php echo htmlspecialchars($contact['name']); ?>
                                 </h2>
-                                <span style="background: rgba(0,53,129,0.1); color: #003581; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600;">
+                                <span class="contacts-view-header-badge">
                                     <?php echo get_contact_type_icon($contact['contact_type']); ?> <?php echo $contact['contact_type']; ?>
                                 </span>
                             </div>
@@ -108,7 +177,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                             <?php endif; ?>
                             
                             <!-- Quick Actions -->
-                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;">
+                            <div class="contacts-view-quick-actions">
                                 <?php if (!empty($contact['phone'])): ?>
                                     <a href="tel:<?php echo htmlspecialchars($contact['phone']); ?>" 
                                        class="btn" style="font-size: 14px;">
@@ -147,13 +216,13 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         📞 Contact Information
                     </h3>
                     
-                    <div style="display: grid; gap: 16px;">
+                    <div class="contacts-info-grid">
                         <?php if (!empty($contact['phone'])): ?>
-                            <div style="display: flex; align-items: start; gap: 12px;">
-                                <div style="width: 140px; color: #6c757d; font-weight: 600; flex-shrink: 0;">
+                            <div class="contacts-info-row">
+                                <div class="contacts-info-label">
                                     📞 Primary Phone:
                                 </div>
-                                <div style="color: #1b2a57;">
+                                <div class="contacts-info-value">
                                     <a href="tel:<?php echo htmlspecialchars($contact['phone']); ?>" style="color: #003581; text-decoration: none;">
                                         <?php echo htmlspecialchars($contact['phone']); ?>
                                     </a>
@@ -162,11 +231,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <?php endif; ?>
                         
                         <?php if (!empty($contact['alt_phone'])): ?>
-                            <div style="display: flex; align-items: start; gap: 12px;">
-                                <div style="width: 140px; color: #6c757d; font-weight: 600; flex-shrink: 0;">
+                            <div class="contacts-info-row">
+                                <div class="contacts-info-label">
                                     📱 Alternate Phone:
                                 </div>
-                                <div style="color: #1b2a57;">
+                                <div class="contacts-info-value">
                                     <a href="tel:<?php echo htmlspecialchars($contact['alt_phone']); ?>" style="color: #003581; text-decoration: none;">
                                         <?php echo htmlspecialchars($contact['alt_phone']); ?>
                                     </a>
@@ -175,11 +244,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <?php endif; ?>
                         
                         <?php if (!empty($contact['email'])): ?>
-                            <div style="display: flex; align-items: start; gap: 12px;">
-                                <div style="width: 140px; color: #6c757d; font-weight: 600; flex-shrink: 0;">
+                            <div class="contacts-info-row">
+                                <div class="contacts-info-label">
                                     ✉️ Email:
                                 </div>
-                                <div style="color: #1b2a57;">
+                                <div class="contacts-info-value">
                                     <a href="mailto:<?php echo htmlspecialchars($contact['email']); ?>" style="color: #003581; text-decoration: none;">
                                         <?php echo htmlspecialchars($contact['email']); ?>
                                     </a>
@@ -188,11 +257,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <?php endif; ?>
                         
                         <?php if (!empty($contact['whatsapp'])): ?>
-                            <div style="display: flex; align-items: start; gap: 12px;">
-                                <div style="width: 140px; color: #6c757d; font-weight: 600; flex-shrink: 0;">
+                            <div class="contacts-info-row">
+                                <div class="contacts-info-label">
                                     💬 WhatsApp:
                                 </div>
-                                <div style="color: #1b2a57;">
+                                <div class="contacts-info-value">
                                     <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $contact['whatsapp']); ?>" 
                                        target="_blank" style="color: #25D366; text-decoration: none;">
                                         <?php echo htmlspecialchars($contact['whatsapp']); ?>
@@ -202,11 +271,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <?php endif; ?>
                         
                         <?php if (!empty($contact['linkedin'])): ?>
-                            <div style="display: flex; align-items: start; gap: 12px;">
-                                <div style="width: 140px; color: #6c757d; font-weight: 600; flex-shrink: 0;">
+                            <div class="contacts-info-row">
+                                <div class="contacts-info-label">
                                     🔗 LinkedIn:
                                 </div>
-                                <div style="color: #1b2a57; word-break: break-all;">
+                                <div class="contacts-info-value">
                                     <a href="<?php echo htmlspecialchars($contact['linkedin']); ?>" 
                                        target="_blank" style="color: #0077B5; text-decoration: none;">
                                         <?php echo htmlspecialchars($contact['linkedin']); ?>
@@ -216,11 +285,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <?php endif; ?>
                         
                         <?php if (!empty($contact['address'])): ?>
-                            <div style="display: flex; align-items: start; gap: 12px;">
-                                <div style="width: 140px; color: #6c757d; font-weight: 600; flex-shrink: 0;">
+                            <div class="contacts-info-row">
+                                <div class="contacts-info-label">
                                     📍 Address:
                                 </div>
-                                <div style="color: #1b2a57;">
+                                <div class="contacts-info-value">
                                     <?php echo nl2br(htmlspecialchars($contact['address'])); ?>
                                 </div>
                             </div>
@@ -245,11 +314,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <div>
                 <!-- Tags -->
                 <?php if (!empty($contact['tags'])): ?>
-                    <div class="card" style="margin-bottom: 24px;">
+                    <div class="card contacts-view-sidebar-card">
                         <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                             🏷️ Tags
                         </h3>
-                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <div class="contacts-view-tags">
                             <?php 
                             $tags = array_filter(array_map('trim', explode(',', $contact['tags'])));
                             foreach ($tags as $tag): 
@@ -264,7 +333,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <?php endif; ?>
                 
                 <!-- Visibility & Sharing -->
-                <div class="card" style="margin-bottom: 24px;">
+                <div class="card contacts-view-sidebar-card">
                     <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                         👁️ Visibility
                     </h3>
@@ -291,7 +360,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 
                 <!-- Entity Linking -->
                 <?php if (!empty($contact['linked_entity_type'])): ?>
-                    <div class="card" style="margin-bottom: 24px;">
+                    <div class="card contacts-view-sidebar-card">
                         <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                             🔗 Linked To
                         </h3>
@@ -321,7 +390,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <?php endif; ?>
                 
                 <!-- Metadata -->
-                <div class="card">
+                <div class="card contacts-view-sidebar-card">
                     <h3 style="margin: 0 0 16px 0; color: #003581; font-size: 16px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                         ℹ️ Metadata
                     </h3>

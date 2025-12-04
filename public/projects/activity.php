@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
 if (!projects_tables_exist($conn)) {
-    header('Location: /KaryalayERP/scripts/setup_projects_tables.php');
+  header('Location: ' . APP_URL . '/scripts/setup_projects_tables.php');
     exit;
 }
 
@@ -71,15 +71,51 @@ require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
+<style>
+.projects-activity-header-flex{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.projects-activity-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.projects-activity-filter-form{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 2fr auto;gap:12px;align-items:end;}
+.projects-activity-list{display:flex;flex-direction:column;gap:8px;}
+.projects-activity-item{display:flex;align-items:flex-start;gap:12px;padding:12px;border:1px solid #e9ecef;border-radius:6px;background:#fafbfc;}
+.projects-activity-item-icon{font-size:20px;flex-shrink:0;}
+.projects-activity-item-content{flex:1;}
+.projects-activity-pagination{display:flex;justify-content:center;gap:8px;margin-top:16px;flex-wrap:wrap;}
+
+@media (max-width:1024px){
+.projects-activity-filter-form{grid-template-columns:1fr 1fr 1fr;gap:10px;}
+}
+
+@media (max-width:768px){
+.projects-activity-header-flex{flex-direction:column;align-items:stretch;}
+.projects-activity-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.projects-activity-header-buttons .btn{width:100%;text-align:center;}
+.projects-activity-filter-form{grid-template-columns:1fr;gap:10px;font-size:13px;}
+.projects-activity-filter-form input,.projects-activity-filter-form select{font-size:13px;}
+.projects-activity-item{padding:10px;}
+}
+
+@media (max-width:600px){
+.projects-activity-item{flex-direction:column;gap:8px;}
+.projects-activity-item-icon{font-size:24px;}
+}
+
+@media (max-width:480px){
+.projects-activity-header-flex h1{font-size:1.5rem;}
+.projects-activity-filter-form input,.projects-activity-filter-form select{font-size:16px;}
+.projects-activity-pagination{flex-direction:column;}
+.projects-activity-pagination .btn{width:100%;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="projects-activity-header-flex">
         <div>
           <h1 style="margin:0 0 8px 0;">📝 Project Activity</h1>
           <div style="color:#6c757d;">Audit log for <strong><?= htmlspecialchars($project['title']) ?></strong> <span style="color:#6c757d;font-family:monospace;">#<?= htmlspecialchars($project['project_code']) ?></span></div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="projects-activity-header-buttons">
           <a href="tasks.php?project_id=<?= $project_id ?>" class="btn btn-secondary">✅ Tasks</a>
           <a href="phases.php?project_id=<?= $project_id ?>" class="btn btn-secondary">📋 Phases</a>
           <a href="documents.php?project_id=<?= $project_id ?>" class="btn btn-secondary">📎 Documents</a>
@@ -93,7 +129,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
     <!-- Filters -->
     <div class="card" style="margin-bottom:16px;">
-      <form method="get" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 2fr auto;gap:12px;align-items:end;">
+      <form method="get" class="projects-activity-filter-form">
         <input type="hidden" name="project_id" value="<?= $project_id ?>">
         <div>
           <label style="display:block;font-weight:600;margin-bottom:6px;">Type</label>
@@ -135,11 +171,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <div class="card">
       <h3 style="font-size:18px;font-weight:700;color:#003581;margin-bottom:12px;">Activity (<?= number_format($total) ?>)</h3>
       <?php if ($rows): ?>
-        <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="projects-activity-list">
           <?php foreach ($rows as $activity): ?>
-            <div class="activity-item">
-              <div class="activity-icon"><?= act_icon($activity['activity_type']) ?></div>
-              <div style="flex:1;">
+            <div class="projects-activity-item">
+              <div class="projects-activity-item-icon"><?= act_icon($activity['activity_type']) ?></div>
+              <div class="projects-activity-item-content">
                 <div style="color:#1b2a57;margin-bottom:4px;">
                   <strong><?= htmlspecialchars($activity['username']) ?></strong>
                   <?= htmlspecialchars($activity['description']) ?>
@@ -154,7 +190,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Pagination -->
         <?php if ($last_page > 1): ?>
-          <div style="display:flex;justify-content:center;gap:8px;margin-top:16px;">
+          <div class="projects-activity-pagination">
             <?php for ($p = 1; $p <= $last_page; $p++): ?>
               <?php if ($p == $page): ?>
                 <span class="badge" style="background:#003581;color:white;">Page <?= $p ?></span>

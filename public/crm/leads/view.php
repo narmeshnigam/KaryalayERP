@@ -66,19 +66,88 @@ $page_title = 'View Lead - ' . APP_NAME;
 require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
 ?>
+
+<style>
+.lead-view-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.lead-view-header-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lead-profile-card {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+.lead-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .lead-view-header-flex {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .lead-view-header-flex > div:first-child h1 {
+    font-size: 24px;
+  }
+  .lead-view-header-flex > div:first-child p {
+    font-size: 14px;
+  }
+  .lead-view-header-buttons {
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .lead-view-header-buttons .btn {
+    width: 100%;
+    text-align: center;
+  }
+  .lead-profile-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  .lead-details-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .lead-view-header-flex > div:first-child h1 {
+    font-size: 22px;
+  }
+  .lead-view-header-flex > div:first-child p {
+    font-size: 13px;
+  }
+  .card {
+    padding: 16px !important;
+  }
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div class="lead-view-header-flex">
         <div>
           <h1>👤 Lead Profile</h1>
           <p>Detailed lead information and follow-up tracking</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="lead-view-header-buttons">
           <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
           <a href="index.php" class="btn btn-secondary">← All Leads</a>
           <?php if ($can_manage): ?>
-          <a href="edit.php?id=<?php echo (int)$lead_id; ?>" class="btn" style="margin-left:8px;">✏️ Edit</a>
+          <a href="edit.php?id=<?php echo (int)$lead_id; ?>" class="btn">✏️ Edit</a>
           <?php endif; ?>
         </div>
       </div>
@@ -87,7 +156,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
     <?php echo flash_render(); ?>
 
     <!-- Profile Header Card -->
-    <div class="card" style="display:flex;gap:20px;align-items:center;">
+    <div class="card lead-profile-card">
       <div style="width:84px;height:84px;border-radius:50%;background:#003581;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:32px;">
         <?php echo strtoupper(substr($lead['name'] ?? 'L', 0, 1)); ?>
       </div>
@@ -123,7 +192,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
     </div>
 
     <!-- Details Grid -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin-top:20px;">
+    <div class="lead-details-grid">
       <div class="card">
         <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">📇 Contact Information</h3>
         <div style="display:grid;gap:12px;font-size:14px;">

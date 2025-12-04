@@ -103,15 +103,34 @@ $meeting_time = strtotime($meeting['meeting_date']);
 $is_upcoming = $meeting_time >= time();
 ?>
 
+<style>
+.meeting-view-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.meeting-view-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.meeting-view-profile-card{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+.meeting-view-profile-info{flex:1;min-width:280px;}
+
+@media (max-width:768px){
+.meeting-view-header-flex{flex-direction:column;align-items:stretch;}
+.meeting-view-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.meeting-view-header-buttons .btn{width:100%;text-align:center;}
+.meeting-view-profile-card{flex-direction:column;text-align:center;}
+.meeting-view-profile-info{min-width:100%;}
+}
+
+@media (max-width:480px){
+.meeting-view-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="meeting-view-header-flex">
         <div>
           <h1>🤝 Meeting Details</h1>
           <p>Detailed meeting information and follow-up tracking</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="meeting-view-header-buttons">
           <?php if ($meetings_permissions['can_edit_all'] || $IS_SUPER_ADMIN): ?>
             <a href="edit.php?id=<?php echo $meeting_id; ?>" class="btn">✏️ Edit Meeting</a>
           <?php endif; ?>
@@ -123,11 +142,11 @@ $is_upcoming = $meeting_time >= time();
     <?php echo flash_render(); ?>
 
     <!-- Meeting Header Card -->
-    <div class="card" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+    <div class="card meeting-view-profile-card">
       <div style="width:84px;height:84px;border-radius:50%;background:#003581;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:32px;">
         🤝
       </div>
-      <div style="flex:1;min-width:280px;">
+      <div class="meeting-view-profile-info">
         <div style="font-size:20px;color:#003581;font-weight:700;">
           <?php echo safeValue(crm_meeting_get($meeting, 'title'), 'Untitled Meeting'); ?>
         </div>

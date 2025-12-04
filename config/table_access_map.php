@@ -295,6 +295,21 @@ return [
         ],
     ],
     [
+        'pattern' => 'public/workorders/',
+        'table' => 'work_orders',
+        'default' => 'read',
+        'routes' => [
+            'index.php' => 'read',
+            'create.php' => 'create',
+            'edit.php' => 'update',
+            'view.php' => 'read',
+            'api/create.php' => 'create',
+            'api/update.php' => 'update',
+            'api/delete_file.php' => 'update',
+            'api/export.php' => 'read',
+        ],
+    ],
+    [
         'pattern' => 'public/documents.php',
         'table' => 'documents',
         'default' => 'view_all',

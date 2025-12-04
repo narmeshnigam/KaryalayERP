@@ -87,10 +87,34 @@ $status_colors = [
 $badge_style = $status_colors[$claim['status']] ?? 'background:#e2e3e5;color:#41464b;';
 ?>
 
+<style>
+.reimb-view-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+@media (max-width: 600px) {
+    .reimb-view-header-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .reimb-view-header-flex > div {
+        width: 100%;
+    }
+    .reimb-view-header-flex .btn {
+        width: 100%;
+        text-align: center;
+        display: block;
+    }
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content" style="max-width:820px;">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="reimb-view-header-flex">
         <div>
           <h1>Claim #<?php echo (int) $claim['id']; ?></h1>
           <p>Status summary and submitted details.</p>

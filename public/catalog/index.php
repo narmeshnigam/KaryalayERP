@@ -33,7 +33,7 @@ if (!catalog_tables_exist($conn)) {
                 <p style="color: #6c757d; margin-bottom: 30px; font-size: 16px;">
                     Create the required database tables to start managing products and services
                 </p>
-                <a href="../../scripts/setup_catalog_tables.php" class="btn" style="padding: 15px 40px; font-size: 16px;">
+                <a href="<?php echo APP_URL; ?>/scripts/setup_catalog_tables.php" class="btn" style="padding: 15px 40px; font-size: 16px;">
                     🚀 Setup Catalog Module
                 </a>
             </div>
@@ -136,10 +136,55 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
 ?>
 
 <div class="main-wrapper">
+<style>
+.catalog-header-flex{display:flex;justify-content:space-between;align-items:center;}
+.catalog-stats-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:20px;margin-bottom:25px;}
+.catalog-filter-form{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:15px;align-items:end;}
+.catalog-filter-buttons{display:flex;gap:10px;}
+.catalog-table-wrapper{overflow-x:auto;}
+.catalog-pagination{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:25px;flex-wrap:wrap;}
+
+@media (max-width:1024px){
+.catalog-filter-form{grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.catalog-filter-buttons{width:100%;flex-direction:column;gap:8px;}
+.catalog-filter-buttons .btn{width:100%;}
+}
+
+@media (max-width:768px){
+.catalog-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.catalog-header-flex .btn{width:100%;text-align:center;}
+.catalog-stats-grid{grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px;}
+.catalog-filter-form{grid-template-columns:1fr;gap:10px;font-size:13px;}
+.catalog-filter-form input,.catalog-filter-form select{font-size:13px;}
+.catalog-filter-buttons{flex-direction:column;width:100%;}
+.catalog-filter-buttons .btn{width:100%;font-size:13px;}
+}
+
+@media (max-width:600px){
+.catalog-table-wrapper table{display:block;width:100%;}
+.catalog-table-wrapper thead{display:none;}
+.catalog-table-wrapper tbody tr{display:block;margin-bottom:20px;border:1px solid #ddd;border-radius:6px;overflow:hidden;}
+.catalog-table-wrapper tbody td{display:block;width:100%;padding:12px;border-top:1px solid #f0f0f0;text-align:left;position:relative;padding-left:40%;}
+.catalog-table-wrapper tbody td:first-child{border-top:none;padding-left:12px;}
+.catalog-table-wrapper tbody td::before{content:attr(data-label);position:absolute;left:12px;top:12px;font-weight:600;color:#003581;width:35%;word-wrap:break-word;}
+.catalog-table-wrapper tbody td:first-child::before{content:'';}
+.catalog-pagination{flex-direction:column;width:100%;}
+.catalog-pagination .btn{width:100%;}
+}
+
+@media (max-width:480px){
+.catalog-header-flex h1{font-size:1.5rem;}
+.catalog-stats-grid{grid-template-columns:1fr;gap:12px;}
+.catalog-filter-form input,.catalog-filter-form select{font-size:16px;}
+.catalog-table-wrapper tbody td{padding:10px;padding-left:35%;}
+.catalog-table-wrapper tbody td::before{width:32%;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="catalog-header-flex">
                 <div>
                     <h1>🛍️ Catalog - Products & Services</h1>
                     <p>Manage your products and services inventory</p>
@@ -170,7 +215,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
         <?php endif; ?>
 
         <!-- Statistics Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
+        <div class="catalog-stats-grid">
             <div class="card" style="text-align: center; background: linear-gradient(135deg, #003581 0%, #004aad 100%); color: white;">
                 <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['total_items']; ?></div>
                 <div style="font-size: 14px; opacity: 0.9;">Total Items</div>
@@ -204,7 +249,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
 
         <!-- Search and Filters -->
         <div class="card" style="margin-bottom: 25px;">
-            <form method="GET" action="index.php" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+            <form method="GET" action="index.php" class="catalog-filter-form">
                 <div class="form-group" style="margin-bottom: 0;">
                     <label>🔍 Search Items</label>
                     <input type="text" name="search" class="form-control" placeholder="Name, SKU, Category..." value="<?php echo htmlspecialchars($search); ?>">
@@ -240,7 +285,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
                     </select>
                 </div>
                 
-                <div style="display: flex; gap: 10px;">
+                <div class="catalog-filter-buttons">
                     <button type="submit" class="btn" style="white-space: nowrap;">Search</button>
                     <a href="index.php" class="btn btn-accent" style="white-space: nowrap; text-decoration: none; display: inline-block; text-align: center;">Clear</a>
                 </div>
@@ -369,7 +414,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
 
                 <!-- Pagination -->
                 <?php if ($total_pages > 1): ?>
-                    <div style="margin-top: 25px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                    <div class="catalog-pagination">
                         <?php if ($page > 1): ?>
                             <a href="?page=<?php echo $page-1; ?>&search=<?php echo urlencode($search); ?>&type=<?php echo urlencode($type_filter); ?>&status=<?php echo urlencode($status_filter); ?>&category=<?php echo urlencode($category_filter); ?>&low_stock=<?php echo urlencode($low_stock); ?>" class="btn" style="padding: 8px 16px; text-decoration: none;">
                                 « Previous

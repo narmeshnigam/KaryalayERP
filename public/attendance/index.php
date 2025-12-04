@@ -28,6 +28,67 @@ $page_title = "Attendance Records - " . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
+?>
+
+<style>
+.att-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.att-header-btns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.att-filter-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.5fr 1fr 1fr auto;
+    gap: 15px;
+    align-items: end;
+}
+@media (max-width: 1200px) {
+    .att-filter-form {
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+}
+@media (max-width: 900px) {
+    .att-filter-form {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+@media (max-width: 600px) {
+    .att-header-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .att-header-flex > div {
+        width: 100%;
+    }
+    .att-header-btns {
+        flex-direction: column;
+        width: 100%;
+    }
+    .att-header-btns .btn {
+        width: 100%;
+        margin-left: 0 !important;
+        text-align: center;
+        display: block;
+    }
+    .att-filter-form {
+        grid-template-columns: 1fr;
+    }
+    .att-filter-form button {
+        width: 100%;
+    }
+}
+</style>
+
+<?php
+
 // Filter parameters
 $from_date = isset($_GET['from_date']) ? $_GET['from_date'] : date('Y-m-01');
 $to_date = isset($_GET['to_date']) ? $_GET['to_date'] : date('Y-m-d');
@@ -67,7 +128,7 @@ if (!$hasEmployees || !$hasAttendance) {
               <p>We couldn't find the required database tables to show attendance records.</p>
             </div>
             <div>
-              <a href="../index.php" class="btn btn-accent">← Back to Dashboard</a>
+              <a href="<?php echo APP_URL; ?>/public/index.php" class="btn btn-accent">← Back to Dashboard</a>
             </div>
           </div>
         </div>
@@ -85,14 +146,14 @@ if (!$hasEmployees || !$hasAttendance) {
 
           <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:8px;">
             <?php if (!$hasEmployees): ?>
-              <a href="../../scripts/setup_employees_table.php" class="btn" style="padding:12px 24px;">🚀 Setup Employee Module</a>
+              <a href="<?php echo APP_URL; ?>/scripts/setup_employees_table.php" class="btn" style="padding:12px 24px;">🚀 Setup Employee Module</a>
             <?php endif; ?>
             <?php if ($hasEmployees && !$hasAttendance): ?>
-              <a href="../../scripts/setup_attendance_table.php" class="btn" style="padding:12px 24px;">🚀 Setup Attendance Module</a>
+              <a href="<?php echo APP_URL; ?>/scripts/setup_attendance_table.php" class="btn" style="padding:12px 24px;">🚀 Setup Attendance Module</a>
             <?php endif; ?>
             <?php if (!$hasEmployees && !$hasAttendance): ?>
-              <a href="../../scripts/setup_employees_table.php" class="btn" style="padding:12px 24px;">1) Setup Employee Module</a>
-              <a href="../../scripts/setup_attendance_table.php" class="btn" style="padding:12px 24px;">2) Setup Attendance Module</a>
+              <a href="<?php echo APP_URL; ?>/scripts/setup_employees_table.php" class="btn" style="padding:12px 24px;">1) Setup Employee Module</a>
+              <a href="<?php echo APP_URL; ?>/scripts/setup_attendance_table.php" class="btn" style="padding:12px 24px;">2) Setup Attendance Module</a>
             <?php endif; ?>
           </div>
 
@@ -188,20 +249,20 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="att-header-flex">
         <div>
           <h1>📊 Attendance Records</h1>
           <p>View and manage employee attendance</p>
         </div>
-        <div>
+        <div class="att-header-btns">
           <?php if ($can_manage_leave): ?>
             <a href="approve_leave.php" class="btn" style="background:#28a745;">✈️ Leave Requests</a>
           <?php endif; ?>
           <?php if ($can_mark_attendance): ?>
-            <a href="mark_attendance.php" class="btn btn-accent" style="margin-left:8px;">📋 Mark Attendance</a>
+            <a href="mark_attendance.php" class="btn btn-accent">📋 Mark Attendance</a>
           <?php endif; ?>
           <?php if ($can_export_attendance): ?>
-            <a href="export_attendance.php?<?php echo http_build_query($_GET); ?>" class="btn" style="margin-left:8px;">📥 Export</a>
+            <a href="export_attendance.php?<?php echo http_build_query($_GET); ?>" class="btn">📥 Export</a>
           <?php endif; ?>
         </div>
       </div>
@@ -234,7 +295,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
     <!-- Filters -->
     <div class="card" style="margin-bottom:25px;">
       <h3 style="margin-bottom:20px;color:#003581;font-size:20px;">🔍 Filter Attendance</h3>
-      <form method="GET" style="display:grid;grid-template-columns:1fr 1fr 1.5fr 1fr 1fr auto;gap:15px;align-items:end;">
+      <form method="GET" class="att-filter-form">
         <div class="form-group" style="margin-bottom:0;">
           <label>📅 From Date</label>
           <input type="date" name="from_date" value="<?php echo htmlspecialchars($from_date); ?>" class="form-control">

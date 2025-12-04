@@ -81,15 +81,83 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.clients-edit-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.clients-edit-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.clients-edit-header-flex{flex-direction:column;align-items:stretch;}
+.clients-edit-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.clients-edit-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.clients-edit-header-flex h1{font-size:1.5rem;}
+}
+
+/* Form Grid Responsive */
+.clients-edit-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.clients-edit-form-grid-full{grid-column:1/-1;}
+
+@media (max-width:768px){
+.clients-edit-form-grid{grid-template-columns:1fr;gap:12px;margin-bottom:12px;}
+.clients-edit-form-grid-full{grid-column:1/-1;}
+}
+
+@media (max-width:480px){
+.clients-edit-form-grid{gap:12px;}
+.clients-edit-form-grid label{font-size:14px;}
+.clients-edit-form-grid .form-control{font-size:16px;}
+}
+
+/* Alert Responsive */
+.alert{padding:12px;margin-bottom:20px;}
+.alert ul{margin:8px 0 0 24px;}
+
+@media (max-width:480px){
+.alert{padding:10px;font-size:13px;}
+.alert ul{margin:6px 0 0 16px;padding-left:0;}
+.alert li{margin-bottom:4px;}
+}
+
+/* Card Code Display */
+.clients-code-display{background:#f8f9fa;padding:16px;border-radius:6px;border:1px solid #e9ecef;font-family:monospace;font-size:18px;font-weight:bold;color:#1b2a57;}
+
+@media (max-width:480px){
+.clients-code-display{padding:12px;font-size:16px;}
+}
+
+/* Textarea Responsive */
+textarea.form-control{resize:vertical;min-height:120px;}
+
+@media (max-width:480px){
+textarea.form-control{min-height:100px;font-size:16px;}
+}
+
+/* Form Actions Responsive */
+.clients-edit-actions{display:flex;justify-content:space-between;align-items:center;padding-top:16px;border-top:2px solid #e9ecef;}
+
+@media (max-width:768px){
+.clients-edit-actions{flex-direction:column;gap:12px;}
+.clients-edit-actions .btn{width:100%;text-align:center;}
+}
+
+/* Form Hint Text */
+.form-hint{font-size:13px;color:#6c757d;margin-top:4px;display:block;}
+
+@media (max-width:480px){
+.form-hint{font-size:12px;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="clients-edit-header-flex">
                 <div style="flex: 1;">
                     <h1>✏️ Edit Client</h1>
                     <p>Update client information and details</p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="clients-edit-header-buttons">
                     <a href="view.php?id=<?= $client_id ?>" class="btn btn-accent">👁️ View Profile</a>
                     <a href="index.php" class="btn btn-accent">← Back to Clients</a>
                 </div>
@@ -129,7 +197,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     📋 Basic Information
                 </h3>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div class="clients-edit-form-grid">
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
                             Client Name <span style="color: #dc3545;">*</span>
@@ -146,7 +214,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="clients-edit-form-grid">
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
                             🏭 Industry
@@ -180,7 +248,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     📞 Contact Information
                 </h3>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="clients-edit-form-grid">
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
                             📧 Email
@@ -204,7 +272,24 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     🏢 Business Details
                 </h3>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div class="clients-edit-form-grid">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
+                            💼 Business Owner
+                        </label>
+                        <input type="text" name="business_owner" class="form-control"
+                               value="<?= htmlspecialchars($client['business_owner'] ?? '') ?>">
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
+                            🔢 GSTIN/TAX ID
+                        </label>
+                        <input type="text" name="tax_id" class="form-control"
+                               value="<?= htmlspecialchars($client['tax_id'] ?? '') ?>">
+                    </div>
+                </div>
+
+                <div class="clients-edit-form-grid">
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
                             GSTIN
@@ -228,7 +313,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="clients-edit-form-grid">
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #1b2a57;">
                             📊 Status
@@ -265,7 +350,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Action Buttons -->
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 2px solid #e9ecef;">
+            <div class="clients-edit-actions">
                 <a href="view.php?id=<?= $client_id ?>" class="btn btn-accent">← Cancel</a>
                 <button type="submit" class="btn" style="padding: 12px 32px;">💾 Save Changes</button>
             </div>

@@ -245,20 +245,35 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
     $closeManagedConnection();
 }
 ?>
+<style>
+.salary-header-flex{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;}
+.salary-header-buttons{display:flex;gap:10px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.salary-header-flex{flex-direction:column;align-items:stretch;}
+.salary-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.salary-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.salary-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
     <div class="main-content">
         <div class="page-header">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;">
+            <div class="salary-header-flex">
                 <div>
                     <h1>💼 Salary Manager</h1>
                     <p>Upload salary slips, lock payroll, and manage corrections.</p>
                 </div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <div class="salary-header-buttons">
                     <?php if ($can_create_salary): ?>
                         <a href="upload.php" class="btn" style="background:#003581;color:#fff;">＋ Upload Salary</a>
                     <?php endif; ?>
                     <?php if ($can_edit_salary): ?>
-                        <a href="../../scripts/setup_salary_records_table.php" class="btn btn-secondary">⚙ Module Setup</a>
+                        <a href="<?php echo APP_URL; ?>/scripts/setup_salary_records_table.php" class="btn btn-secondary">⚙ Module Setup</a>
                     <?php endif; ?>
                 </div>
             </div>

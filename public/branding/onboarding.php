@@ -13,7 +13,7 @@ require_once __DIR__ . '/../../config/db_connect.php';
 require_once __DIR__ . '/../../includes/bootstrap.php';
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
+  header('Location: ' . APP_URL . '/public/login.php');
     exit;
 }
 
@@ -54,10 +54,10 @@ closeConnection($conn);
       </div>
 
       <div style="text-align:center;">
-        <a href="../../scripts/setup_branding_table.php" class="btn btn-primary" style="padding:12px 32px;font-size:16px;">
+        <a href="<?php echo APP_URL; ?>/scripts/setup_branding_table.php" class="btn btn-primary" style="padding:12px 32px;font-size:16px;">
           🚀 Setup Branding Module
         </a>
-        <a href="../index.php" class="btn btn-secondary" style="margin-left:12px;padding:12px 32px;font-size:16px;">
+        <a href="<?php echo APP_URL; ?>/public/index.php" class="btn btn-secondary" style="margin-left:12px;padding:12px 32px;font-size:16px;">
           ← Back to Dashboard
         </a>
       </div>

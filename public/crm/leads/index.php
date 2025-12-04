@@ -266,15 +266,61 @@ require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
 ?>
 
+<style>
+.leads-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.leads-header-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .leads-header-flex {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .leads-header-flex > div:first-child h1 {
+    font-size: 24px;
+  }
+  .leads-header-flex > div:first-child p {
+    font-size: 14px;
+  }
+  .leads-header-buttons {
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .leads-header-buttons .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .leads-header-flex > div:first-child h1 {
+    font-size: 22px;
+  }
+  .leads-header-flex > div:first-child p {
+    font-size: 13px;
+  }
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div class="leads-header-flex">
         <div>
           <h1>📇 All Leads</h1>
           <p>Manage lead assignments, status, and follow-ups</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="leads-header-buttons">
           <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
           <a href="my.php" class="btn btn-accent">📌 My Leads</a>
           <?php if ($leads_permissions['can_create']): ?>

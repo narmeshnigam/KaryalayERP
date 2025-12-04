@@ -55,10 +55,66 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
 <div class="main-wrapper">
+<style>
+.clients-import-export-header-flex{display:flex;justify-content:space-between;align-items:center;}
+
+@media (max-width:768px){
+.clients-import-export-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.clients-import-export-header-flex .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.clients-import-export-header-flex h1{font-size:1.5rem;}
+}
+
+/* Alert Responsive */
+.alert{padding:12px;margin-bottom:20px;}
+
+@media (max-width:480px){
+.alert{padding:10px;font-size:13px;}
+.alert strong{display:block;margin-bottom:8px;}
+.alert ul{margin:8px 0 0 16px;padding-left:0;}
+.alert li{font-size:12px;margin-bottom:4px;}
+}
+
+/* Code/CSV Display */
+.clients-csv-display{background:#f8f9fa;padding:16px;border-radius:6px;border:1px solid #dee2e6;font-family:monospace;font-size:12px;overflow-x:auto;}
+
+@media (max-width:480px){
+.clients-csv-display{padding:12px;font-size:11px;}
+}
+
+/* Import/Export Buttons */
+.clients-import-export-buttons{display:flex;gap:12px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.clients-import-export-buttons{flex-direction:column;}
+.clients-import-export-buttons .btn{width:100%;text-align:center;display:block;}
+}
+
+@media (max-width:480px){
+.clients-import-export-buttons{gap:8px;}
+.clients-import-export-buttons .btn{font-size:13px;padding:10px 16px;}
+}
+
+/* Stats Grid */
+.clients-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:20px;}
+
+@media (max-width:768px){
+.clients-stats-grid{grid-template-columns:repeat(2,1fr);gap:16px;}
+}
+
+@media (max-width:480px){
+.clients-stats-grid{grid-template-columns:1fr;gap:12px;}
+.clients-stats-grid>div{padding:16px;font-size:28px;}
+.clients-stats-grid>div .stat-label{font-size:12px;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="clients-import-export-header-flex">
                 <div>
                     <h1>📤 Import/Export Clients</h1>
                     <p>Manage client data in bulk</p>
@@ -118,7 +174,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             
             <h4 style="margin-top: 24px; color: #003581; font-weight: 600;">CSV Format</h4>
             <p style="color: #6c757d; margin-bottom: 12px;">Your CSV file should have the following columns:</p>
-            <div style="background: #f8f9fa; padding: 16px; border-radius: 6px; font-family: monospace; font-size: 13px; overflow-x: auto; border: 1px solid #dee2e6;">
+            <div class="clients-csv-display">
 Name,Legal Name,Industry,Email,Phone,Website,GSTIN,Status,Owner,Tags,Notes<br>
 "Acme Corporation","Acme Corp Ltd","IT Services","info@acme.com","9876543210","https://acme.com","22AAAAA0000A1Z5","Active","admin","VIP,Enterprise","Important client"<br>
 "TechStart Inc","TechStart Private Limited","Software","hello@techstart.com","9876543211","","","Active","admin","Startup",""
@@ -142,7 +198,7 @@ Name,Legal Name,Industry,Email,Phone,Website,GSTIN,Status,Owner,Tags,Notes<br>
             <h3 style="color: #003581; font-size: 18px; font-weight: 700; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #003581;">
                 📊 Current Database
             </h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px;">
+            <div class="clients-stats-grid">
                 <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #003581 0%, #004aad 100%); color: white; border-radius: 8px;">
                     <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">
                         <?= $stats['total'] ?>

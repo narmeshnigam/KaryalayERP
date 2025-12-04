@@ -3,6 +3,8 @@
  * Payments Module - Onboarding
  * Redirect users to setup if module tables don't exist
  */
+
+require_once __DIR__ . '/../../config/config.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -151,7 +153,7 @@
             </ul>
         </div>
 
-        <a href="../../scripts/setup_payments_tables.php" class="btn">
+        <a href="<?php echo APP_URL; ?>/scripts/setup_payments_tables.php" class="btn">
             🚀 Set Up Payments Module
         </a>
     </div>

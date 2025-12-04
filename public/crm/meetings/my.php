@@ -185,15 +185,30 @@ require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
 ?>
 
+<style>
+.meetings-my-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.meetings-my-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.meetings-my-header-flex{flex-direction:column;align-items:stretch;}
+.meetings-my-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.meetings-my-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.meetings-my-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="meetings-my-header-flex">
         <div>
           <h1>🗓️ My Meetings</h1>
           <p>Manage your assigned meetings</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="meetings-my-header-buttons">
           <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
           <a href="index.php" class="btn btn-accent">🗓️ All Meetings</a>
           <a href="add.php" class="btn">➕ Schedule Meeting</a>

@@ -35,9 +35,9 @@ function get_all_notes($conn, $user_id, $filters = []) {
         (n.created_by = ? 
         OR n.share_scope = 'Organization'
         OR (n.share_scope = 'Team' AND EXISTS (
-            SELECT 1 FROM users u1 
-            JOIN users u2 ON u1.role_id = u2.role_id 
-            WHERE u1.id = ? AND u2.id = n.created_by
+            SELECT 1 FROM user_roles ur1 
+            JOIN user_roles ur2 ON ur1.role_id = ur2.role_id 
+            WHERE ur1.user_id = ? AND ur2.user_id = n.created_by
         ))
         OR EXISTS (
             SELECT 1 FROM notebook_shares ns 
@@ -159,9 +159,9 @@ function can_access_note($conn, $note_id, $user_id) {
             n.created_by = ?
             OR n.share_scope = 'Organization'
             OR (n.share_scope = 'Team' AND EXISTS (
-                SELECT 1 FROM users u1 
-                JOIN users u2 ON u1.role_id = u2.role_id 
-                WHERE u1.id = ? AND u2.id = n.created_by
+                SELECT 1 FROM user_roles ur1 
+                JOIN user_roles ur2 ON ur1.role_id = ur2.role_id 
+                WHERE ur1.user_id = ? AND ur2.user_id = n.created_by
             ))
             OR EXISTS (
                 SELECT 1 FROM notebook_shares ns 

@@ -321,16 +321,39 @@ if (crm_meeting_get($meeting, 'status') === 'Scheduled' || crm_meeting_get($meet
 }
 </style>
 
+<style>
+.meeting-edit-header-flex{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;}
+.meeting-edit-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.meeting-edit-form-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.meeting-edit-form-grid-1{display:grid;grid-template-columns:1fr;gap:20px;}
+
+@media (max-width:1024px){
+.meeting-edit-form-grid-3{grid-template-columns:repeat(2,1fr);}
+}
+
+@media (max-width:768px){
+.meeting-edit-header-flex{flex-direction:column;align-items:stretch;}
+.meeting-edit-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.meeting-edit-header-buttons .btn{width:100%;text-align:center;}
+.meeting-edit-form-grid-3{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.meeting-edit-header-flex h1{font-size:1.5rem;}
+.meeting-edit-form-grid-3{gap:15px;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <!-- Page Header -->
     <div class="page-header">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <div class="meeting-edit-header-flex">
         <div>
           <h1>✏️ Edit Meeting</h1>
           <p>Update meeting details</p>
         </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div class="meeting-edit-header-buttons">
           <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
           <a href="index.php" class="btn btn-secondary">← All Meetings</a>
         </div>
@@ -354,7 +377,7 @@ if (crm_meeting_get($meeting, 'status') === 'Scheduled' || crm_meeting_get($meet
             <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                 🤝 Meeting Information
             </h3>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+            <div class="meeting-edit-form-grid-3">
                 <div class="form-group">
                     <label for="meeting_type">Meeting Type <span style="color: #dc3545;">*</span></label>
                     <select id="meeting_type" name="meeting_type" class="form-control" required>
@@ -470,7 +493,7 @@ if (crm_meeting_get($meeting, 'status') === 'Scheduled' || crm_meeting_get($meet
             <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                 📅 Follow-Up & Additional Details
             </h3>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+            <div class="meeting-edit-form-grid-3">
                 <div class="form-group">
                     <label for="follow_up_date">Follow-Up Date</label>
                     <input type="date" id="follow_up_date" name="follow_up_date" class="form-control"

@@ -10,6 +10,143 @@ $page_title = "Mark Attendance - " . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 
+?>
+
+<style>
+.mark-att-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.mark-att-date-filter {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 15px;
+    align-items: end;
+}
+.mark-att-title-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.mark-att-title-btns {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.mark-att-table-responsive {
+    overflow-x: auto;
+}
+@media (max-width: 1200px) {
+    .mark-att-table-responsive table {
+        font-size: 13px;
+    }
+    .mark-att-table-responsive th,
+    .mark-att-table-responsive td {
+        padding: 8px !important;
+    }
+}
+@media (max-width: 900px) {
+    .mark-att-table-responsive table {
+        font-size: 12px;
+    }
+    .mark-att-table-responsive th,
+    .mark-att-table-responsive td {
+        padding: 6px !important;
+    }
+    .mark-att-table-responsive input,
+    .mark-att-table-responsive select {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+}
+@media (max-width: 600px) {
+    .mark-att-header-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .mark-att-header-flex > div {
+        width: 100%;
+    }
+    .mark-att-header-flex .btn {
+        width: 100%;
+        text-align: center;
+        display: block;
+    }
+    .mark-att-date-filter {
+        grid-template-columns: 1fr;
+    }
+    .mark-att-date-filter .btn {
+        width: 100%;
+    }
+    .mark-att-title-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .mark-att-title-flex h3 {
+        font-size: 16px;
+        margin-bottom: 12px !important;
+    }
+    .mark-att-title-btns {
+        flex-direction: row;
+        width: 100%;
+        gap: 8px;
+    }
+    .mark-att-title-btns .btn {
+        flex: 1;
+        padding: 8px 12px !important;
+        font-size: 13px;
+    }
+    .mark-att-table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -15px;
+    }
+    .mark-att-table-responsive table {
+        font-size: 12px;
+        min-width: 900px;
+    }
+    .mark-att-table-responsive thead tr {
+        background: #f8f9fa !important;
+    }
+    .mark-att-table-responsive th {
+        padding: 8px 6px !important;
+        font-weight: 600;
+        color: #003581;
+        white-space: nowrap;
+        border-bottom: 2px solid #dee2e6;
+        font-size: 11px;
+    }
+    .mark-att-table-responsive td {
+        padding: 6px !important;
+        border-bottom: 1px solid #dee2e6;
+        height: auto;
+    }
+    .mark-att-table-responsive input[type="text"],
+    .mark-att-table-responsive input[type="time"],
+    .mark-att-table-responsive select {
+        font-size: 12px;
+        padding: 4px 6px !important;
+        width: 100%;
+        height: 30px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+    .mark-att-table-responsive input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+}
+</style>
+
+<?php
+
 $message = '';
 $error = '';
 $selected_date = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
@@ -138,10 +275,10 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
 }
 ?>
 
-<div class="main-wrapper">
+  <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="mark-att-header-flex">
         <div>
           <h1>📋 Mark Attendance</h1>
           <p>Record daily attendance for employees</p>
@@ -150,9 +287,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
           <a href="index.php" class="btn btn-accent">View All Attendance</a>
         </div>
       </div>
-    </div>
-
-    <?php if ($message): ?>
+    </div>    <?php if ($message): ?>
       <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
     <?php endif; ?>
 
@@ -161,7 +296,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
     <?php endif; ?>
 
     <div class="card" style="margin-bottom:25px;">
-      <form method="GET" style="display:grid;grid-template-columns:1fr auto;gap:15px;align-items:end;">
+      <form method="GET" class="mark-att-date-filter">
         <div class="form-group" style="margin-bottom:0;">
           <label style="font-weight:600;color:#003581;">📅 Attendance Date</label>
           <input type="date" name="date" value="<?php echo htmlspecialchars($selected_date); ?>" class="form-control" required>
@@ -174,12 +309,12 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
       <input type="hidden" name="attendance_date" value="<?php echo htmlspecialchars($selected_date); ?>">
       
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div class="mark-att-title-flex">
           <h3 style="margin:0;color:#003581;">
             📋 Attendance for <?php echo date('d M Y', strtotime($selected_date)); ?> 
             <span style="font-weight:normal;color:#6c757d;font-size:14px;">(<?php echo date('l', strtotime($selected_date)); ?>)</span>
           </h3>
-          <div style="display:flex;gap:10px;">
+          <div class="mark-att-title-btns">
             <button type="button" class="btn btn-accent" onclick="markAllPresent()" style="padding:10px 20px;">
               ✓ Mark All Present
             </button>
@@ -192,7 +327,7 @@ if (!empty($GLOBALS['AUTHZ_CONN_MANAGED'])) {
         <?php if (count($employees) === 0): ?>
           <div class="alert alert-warning">No active employees found.</div>
         <?php else: ?>
-          <div style="overflow-x:auto;">
+          <div class="mark-att-table-responsive">
             <table style="width:100%;border-collapse:collapse;">
               <thead>
                 <tr style="background:#f8f9fa;border-bottom:2px solid #dee2e6;">

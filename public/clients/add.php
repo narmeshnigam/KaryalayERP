@@ -89,10 +89,70 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
 <div class="main-wrapper">
+<style>
+.clients-add-header-flex{display:flex;justify-content:space-between;align-items:center;}
+
+@media (max-width:768px){
+.clients-add-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.clients-add-header-flex .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.clients-add-header-flex h1{font-size:1.5rem;}
+}
+
+/* Form Grid Responsive */
+.clients-add-form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+
+@media (max-width:768px){
+.clients-add-form-grid{grid-template-columns:repeat(2,1fr);gap:16px;}
+}
+
+@media (max-width:480px){
+.clients-add-form-grid{grid-template-columns:1fr;gap:12px;}
+.form-control{font-size:16px;}
+.form-group small{font-size:11px;}
+}
+
+/* Alert Responsive */
+.alert{padding:12px;margin-bottom:20px;}
+
+@media (max-width:480px){
+.alert{padding:10px;font-size:13px;}
+.alert strong{display:block;margin-bottom:8px;}
+}
+
+/* Duplicate Warning */
+.clients-add-duplicate-list{margin-top:10px;}
+
+@media (max-width:480px){
+.clients-add-duplicate-list>div{font-size:12px;padding:10px;}
+}
+
+/* Form Actions */
+.clients-add-actions{display:flex;justify-content:space-between;padding-top:20px;}
+
+@media (max-width:768px){
+.clients-add-actions{flex-direction:column-reverse;gap:12px;}
+.clients-add-actions .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.clients-add-actions .btn{font-size:13px;padding:10px 20px;}
+}
+
+/* Textarea */
+textarea.form-control{resize:vertical;min-height:120px;}
+
+@media (max-width:480px){
+textarea.form-control{min-height:100px;font-size:16px;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="clients-add-header-flex">
                 <div>
                     <h1>➕ Add New Client</h1>
                     <p>Enter client information and business details</p>
@@ -148,7 +208,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                     📋 Basic Information
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div class="clients-add-form-grid">
                     <div class="form-group">
                         <label>Client Name <span style="color: #dc3545;">*</span></label>
                         <input type="text" name="name" class="form-control" required
@@ -208,7 +268,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                     📞 Contact Information
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div class="clients-add-form-grid">
                     <div class="form-group">
                         <label>Email</label>
                         <input type="email" name="email" class="form-control"
@@ -233,7 +293,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                 <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                     📝 Additional Information
                 </h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div class="clients-add-form-grid">
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Tags</label>
                         <input type="text" name="tags" class="form-control" placeholder="VIP, Enterprise, Partner"
@@ -249,7 +309,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
 
             <!-- Submit Buttons -->
-            <div style="display: flex; justify-content: space-between; padding-top: 20px;">
+            <div class="clients-add-actions">
                 <a href="index.php" class="btn btn-accent" style="padding: 12px 30px; text-decoration: none;">Cancel</a>
                 <button type="submit" class="btn" style="padding: 12px 30px;">
                     ✓ Create Client

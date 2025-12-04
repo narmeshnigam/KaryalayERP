@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
 if (!projects_tables_exist($conn)) {
-    header('Location: /KaryalayERP/scripts/setup_projects_tables.php');
+  header('Location: ' . APP_URL . '/scripts/setup_projects_tables.php');
     exit;
 }
 
@@ -129,15 +129,116 @@ require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
+<style>
+.projects-tasks-header-flex{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.projects-tasks-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.projects-tasks-header-flex{flex-direction:column;align-items:stretch;}
+.projects-tasks-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.projects-tasks-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.projects-tasks-header-flex h1{font-size:1.5rem;}
+}
+
+/* Filter Form Responsive */
+.projects-tasks-filter-form{display:grid;grid-template-columns:1fr 1fr 1fr 2fr auto;gap:12px;align-items:end;}
+
+@media (max-width:1024px){
+.projects-tasks-filter-form{grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.projects-tasks-filter-form>div:nth-child(4){grid-column:1/2;}
+.projects-tasks-filter-form>div:nth-child(5){grid-column:2/3;}
+}
+
+@media (max-width:768px){
+.projects-tasks-filter-form{grid-template-columns:repeat(2,1fr);gap:10px;}
+}
+
+@media (max-width:480px){
+.projects-tasks-filter-form{grid-template-columns:1fr;gap:10px;}
+.form-control{font-size:16px;}
+.projects-tasks-filter-form>div:nth-child(5){grid-column:1;}
+}
+
+/* Add Task Form Responsive */
+.projects-tasks-add-form-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;}
+
+@media (max-width:1024px){
+.projects-tasks-add-form-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+}
+
+@media (max-width:768px){
+.projects-tasks-add-form-grid{grid-template-columns:1fr;gap:10px;}
+}
+
+@media (max-width:480px){
+.projects-tasks-add-form-grid{gap:10px;}
+.form-control{font-size:16px;}
+}
+
+.projects-tasks-add-form-grid-2{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-top:12px;}
+
+@media (max-width:1024px){
+.projects-tasks-add-form-grid-2{grid-template-columns:repeat(2,1fr);gap:10px;}
+}
+
+@media (max-width:768px){
+.projects-tasks-add-form-grid-2{grid-template-columns:1fr;gap:10px;}
+}
+
+/* Error Alert Responsive */
+.projects-tasks-error-alert{background:#f8d7da;border:1px solid #f5c6cb;color:#721c24;padding:16px;border-radius:6px;margin-bottom:16px;}
+
+@media (max-width:480px){
+.projects-tasks-error-alert{padding:12px;font-size:13px;}
+.projects-tasks-error-alert ul{margin:8px 0 0 16px;}
+}
+
+/* Table Responsive - Card Style on Mobile */
+.projects-tasks-table-wrapper{overflow-x:auto;}
+
+@media (max-width:600px){
+.projects-tasks-table-wrapper table{display:block;}
+.projects-tasks-table-wrapper thead{display:none;}
+.projects-tasks-table-wrapper tbody{display:block;}
+.projects-tasks-table-wrapper tr{display:block;margin-bottom:16px;border:1px solid #dee2e6;border-radius:6px;overflow:hidden;padding:0;}
+.projects-tasks-table-wrapper td{display:block;padding:12px;border:none;border-bottom:1px solid #e9ecef;text-align:left;}
+.projects-tasks-table-wrapper td:last-child{border-bottom:none;}
+.projects-tasks-table-wrapper td::before{content:attr(data-label);font-weight:600;color:#003581;display:block;font-size:12px;margin-bottom:4px;}
+}
+
+@media (max-width:480px){
+.projects-tasks-table-wrapper tr{margin-bottom:12px;}
+.projects-tasks-table-wrapper td{padding:10px;font-size:13px;}
+.projects-tasks-table-wrapper td::before{font-size:11px;margin-bottom:2px;}
+}
+
+/* Edit Details Responsive */
+.projects-tasks-edit-details{background:#f8f9fa;border:1px solid #e9ecef;padding:12px;border-radius:6px;margin-top:8px;}
+
+@media (max-width:768px){
+.projects-tasks-edit-details{padding:10px;margin-top:6px;}
+.projects-tasks-edit-details .projects-tasks-edit-form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+}
+
+@media (max-width:480px){
+.projects-tasks-edit-details{padding:8px;}
+.projects-tasks-edit-details .projects-tasks-edit-form-grid{grid-template-columns:1fr;gap:10px;}
+.form-control{font-size:16px;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="projects-tasks-header-flex">
         <div>
           <h1 style="margin:0 0 8px 0;">✅ Project Tasks</h1>
           <div style="color:#6c757d;">Manage tasks for <strong><?= htmlspecialchars($project['title']) ?></strong> <span style="color:#6c757d;font-family:monospace;">#<?= htmlspecialchars($project['project_code']) ?></span></div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="projects-tasks-header-buttons">
           <a href="phases.php?project_id=<?= $project_id ?>" class="btn btn-secondary">📋 Manage Phases</a>
           <a href="view.php?id=<?= $project_id ?>&tab=tasks" class="btn btn-secondary">← Back to Project</a>
         </div>
@@ -147,7 +248,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <?php require_once __DIR__ . '/../../includes/flash.php'; ?>
 
     <?php if (!empty($errors)): ?>
-      <div style="background:#f8d7da;border:1px solid #f5c6cb;color:#721c24;padding:16px;border-radius:6px;margin-bottom:16px;">
+      <div class="projects-tasks-error-alert">
         <strong>Fix the following:</strong>
         <ul style="margin:8px 0 0 20px;">
           <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
@@ -157,7 +258,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
     <!-- Filters -->
     <div class="card" style="margin-bottom:16px;">
-      <form method="get" style="display:grid;grid-template-columns:1fr 1fr 1fr 2fr auto;gap:12px;align-items:end;">
+      <form method="get" class="projects-tasks-filter-form">
         <input type="hidden" name="project_id" value="<?= $project_id ?>">
         <div>
           <label style="display:block;font-weight:600;margin-bottom:6px;">Status</label>
@@ -201,7 +302,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
       <h3 style="font-size:18px;font-weight:700;color:#003581;margin-bottom:12px;">➕ Add Task</h3>
       <form method="post">
         <input type="hidden" name="action" value="add">
-        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;">
+        <div class="projects-tasks-add-form-grid">
           <div>
             <label style="display:block;font-weight:600;margin-bottom:6px;">Title *</label>
             <input type="text" name="title" class="form-control" required placeholder="e.g., Draft proposal">
@@ -228,7 +329,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </select>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-top:12px;">
+        <div class="projects-tasks-add-form-grid-2">
           <div>
             <label style="display:block;font-weight:600;margin-bottom:6px;">Description</label>
             <textarea name="description" rows="2" class="form-control" placeholder="Short details..."></textarea>
@@ -261,6 +362,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <div class="card">
       <h3 style="font-size:18px;font-weight:700;color:#003581;margin-bottom:12px;">Tasks</h3>
       <?php if ($tasks): ?>
+        <div class="projects-tasks-table-wrapper">
         <table class="table">
           <thead>
             <tr>
@@ -278,27 +380,27 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <?php foreach ($tasks as $t): ?>
               <?php $assigneeIds = !empty($t['assignee_ids']) ? array_map('intval', explode(',', $t['assignee_ids'])) : []; ?>
               <tr>
-                <td>
+                <td data-label="Task">
                   <div style="font-weight:600;color:#1b2a57;"><?= htmlspecialchars($t['title']) ?></div>
                   <?php if (!empty($t['description'])): ?>
                     <div style="font-size:13px;color:#6c757d;"><?= htmlspecialchars($t['description']) ?></div>
                   <?php endif; ?>
                 </td>
-                <td><?= $t['phase_title'] ? htmlspecialchars($t['phase_title']) : '-' ?></td>
-                <td><?= $t['assignees'] ? htmlspecialchars($t['assignees']) : 'Unassigned' ?></td>
-                <td>
+                <td data-label="Phase"><?= $t['phase_title'] ? htmlspecialchars($t['phase_title']) : '-' ?></td>
+                <td data-label="Assignees"><?= $t['assignees'] ? htmlspecialchars($t['assignees']) : 'Unassigned' ?></td>
+                <td data-label="Priority">
                   <span class="badge" style="background: <?= $t['priority']==='Critical'?'#dc3545':($t['priority']==='High'?'#faa718':($t['priority']==='Medium'?'#ffc107':'#17a2b8')) ?>;">
                     <?= htmlspecialchars($t['priority']) ?>
                   </span>
                 </td>
-                <td><?= $t['due_date'] ? date('M j, Y', strtotime($t['due_date'])) : '-' ?></td>
-                <td><?= number_format((float)$t['progress'], 0) ?>%</td>
-                <td>
+                <td data-label="Due"><?= $t['due_date'] ? date('M j, Y', strtotime($t['due_date'])) : '-' ?></td>
+                <td data-label="Progress"><?= number_format((float)$t['progress'], 0) ?>%</td>
+                <td data-label="Status">
                   <span class="badge" style="background:<?= $t['status']==='Completed'?'#28a745':($t['status']==='In Progress'?'#003581':($t['status']==='Review'?'#17a2b8':'#6c757d')) ?>;">
                     <?= htmlspecialchars($t['status']) ?>
                   </span>
                 </td>
-                <td style="white-space:nowrap;">
+                <td data-label="Actions" style="white-space:nowrap;">
                   <form method="post" style="display:inline-block;">
                     <input type="hidden" name="action" value="mark_status">
                     <input type="hidden" name="task_id" value="<?= (int)$t['id'] ?>">
@@ -372,6 +474,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <?php endforeach; ?>
           </tbody>
         </table>
+        </div>
       <?php else: ?>
         <div style="text-align:center;padding:32px;color:#6c757d;">
           <div style="font-size:40px;">✅</div>

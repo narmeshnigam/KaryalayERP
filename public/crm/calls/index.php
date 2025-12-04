@@ -160,15 +160,76 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 
 
 
+<style>
+.calls-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.calls-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.calls-header-flex{flex-direction:column;align-items:stretch;}
+.calls-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.calls-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.calls-header-flex h1{font-size:1.5rem;}
+}
+
+/* Stats Grid Responsive */
+.calls-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;}
+
+@media (max-width:768px){
+.calls-stats-grid{grid-template-columns:repeat(2,1fr);gap:12px;}
+}
+
+@media (max-width:480px){
+.calls-stats-grid{grid-template-columns:1fr;gap:12px;}
+.calls-stats-grid .card{padding:16px;text-align:center;}
+.calls-stats-grid .card>div:first-child{font-size:28px;}
+}
+
+/* Filter Form Responsive */
+.calls-filter-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;align-items:end;}
+
+@media (max-width:768px){
+.calls-filter-form{grid-template-columns:repeat(2,1fr);gap:12px;}
+}
+
+@media (max-width:480px){
+.calls-filter-form{grid-template-columns:1fr;gap:12px;}
+.form-control{font-size:16px;}
+.form-group{margin:0;}
+}
+
+/* Table Responsive - Card Style on Mobile */
+.calls-table-wrapper{overflow-x:auto;}
+
+@media (max-width:600px){
+.calls-table-wrapper table{display:block;}
+.calls-table-wrapper thead{display:none;}
+.calls-table-wrapper tbody{display:block;}
+.calls-table-wrapper tr{display:block;margin-bottom:16px;border:1px solid #dee2e6;border-radius:6px;overflow:hidden;}
+.calls-table-wrapper td{display:block;padding:12px;border:none;border-bottom:1px solid #e9ecef;text-align:left;}
+.calls-table-wrapper td:last-child{border-bottom:none;}
+.calls-table-wrapper td::before{content:attr(data-label);font-weight:600;color:#003581;display:block;font-size:12px;margin-bottom:4px;}
+.calls-table-wrapper td[style*="text-align: center"]{text-align:left;}
+}
+
+@media (max-width:480px){
+.calls-table-wrapper tr{margin-bottom:12px;padding:0;}
+.calls-table-wrapper td{padding:10px;font-size:13px;}
+.calls-table-wrapper td::before{font-size:11px;margin-bottom:2px;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="calls-header-flex">
         <div>
           <h1>☎️ All Calls</h1>
           <p>View and manage all telephonic interactions</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="calls-header-buttons">
           <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
           <a href="my.php" class="btn btn-accent">☎️ My Calls</a>
           <a href="add.php" class="btn">➕ Log New Call</a>
@@ -179,7 +240,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
     <?php echo flash_render(); ?>
 
     <!-- Statistics Cards -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
+    <div class="calls-stats-grid">
       <div class="card" style="background:linear-gradient(135deg,#003581 0%,#004aad 100%);color:#fff;text-align:center;">
         <div style="font-size:32px;font-weight:700;margin-bottom:6px;"><?php echo number_format($metrics['total']); ?></div>
         <div>Total Calls</div>
@@ -204,7 +265,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
     <!-- Filters -->
     <div class="card" style="margin-bottom:24px;">
       <h3 style="margin-top:0;color:#003581;">🔍 Search & Filter Calls</h3>
-      <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;align-items:end;">
+      <form method="get" class="calls-filter-form">
         <div class="form-group" style="margin:0;">
           <label>Outcome</label>
           <select name="outcome" class="form-control">
@@ -281,7 +342,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
           <p style="margin:0;">Try adjusting your filters or <a href="add.php" style="color:#003581;text-decoration:none;font-weight:600;">log a new call</a>.</p>
         </div>
       <?php else: ?>
-        <div style="overflow-x:auto;">
+        <div class="calls-table-wrapper">
           <table style="width:100%;border-collapse:collapse;">
             <thead>
               <tr style="background:#f8f9fa;border-bottom:2px solid #dee2e6;">
@@ -298,10 +359,10 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
             <tbody>
               <?php foreach ($calls as $call): ?>
                 <tr style="border-bottom:1px solid #e1e8ed;">
-                  <td style="padding:12px;font-size:13px;"><?php echo htmlspecialchars(date('d M Y, h:i A', strtotime($call['call_date']))); ?></td>
-                  <td style="padding:12px;"><strong><?php echo htmlspecialchars($call['title']); ?></strong></td>
+                  <td data-label="Call Date" style="padding:12px;font-size:13px;"><?php echo htmlspecialchars(date('d M Y, h:i A', strtotime($call['call_date']))); ?></td>
+                  <td data-label="Title" style="padding:12px;"><strong><?php echo htmlspecialchars($call['title']); ?></strong></td>
                   <?php if ($has_lead_id): ?>
-                    <td style="padding:12px;">
+                    <td data-label="Lead" style="padding:12px;">
                       <?php if (!empty($call['lead_id'])): ?>
                         <a href="../leads/view.php?id=<?php echo (int)$call['lead_id']; ?>" style="color:#003581;text-decoration:none;font-weight:500;">
                           <?php echo htmlspecialchars($call['lead_name'] ?? 'Lead #' . $call['lead_id']); ?>
@@ -311,21 +372,21 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                       <?php endif; ?>
                     </td>
                   <?php endif; ?>
-                  <td style="padding:12px;">
+                  <td data-label="Outcome" style="padding:12px;">
                     <span class="badge <?php echo crm_call_outcome_badge($call['outcome'] ?? null); ?>">
                       <?php echo htmlspecialchars($call['outcome'] ?? 'N/A'); ?>
                     </span>
                   </td>
-                  <td style="padding:12px;font-size:13px;"><?php echo crm_format_duration($call['duration'] ?? null); ?></td>
+                  <td data-label="Duration" style="padding:12px;font-size:13px;"><?php echo crm_format_duration($call['duration'] ?? null); ?></td>
                   <?php if ($has_assigned_to): ?>
-                    <td style="padding:12px;">
+                    <td data-label="Assigned To" style="padding:12px;">
                       <span style="background:#e3f2fd;color:#003581;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">
                         <?php echo htmlspecialchars(trim(($call['emp_first'] ?? '') . ' ' . ($call['emp_last'] ?? ''))); ?>
                       </span>
                     </td>
                   <?php endif; ?>
                   <?php if ($has_follow_up_date): ?>
-                    <td style="padding:12px;">
+                    <td data-label="Follow-Up" style="padding:12px;">
                       <?php if (!empty($call['follow_up_date'])): ?>
                         <?php echo htmlspecialchars(date('d M Y', strtotime($call['follow_up_date']))); ?>
                         <?php if ($has_follow_up_type && !empty($call['follow_up_type'])): ?>
@@ -336,7 +397,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                       <?php endif; ?>
                     </td>
                   <?php endif; ?>
-                  <td style="padding:12px;text-align:center;white-space:nowrap;">
+                  <td data-label="Actions" style="padding:12px;text-align:center;white-space:nowrap;">
                     <a href="view.php?id=<?php echo (int)$call['id']; ?>" class="btn" style="padding:6px 14px;font-size:13px;text-decoration:none;background:#17a2b8;color:#fff;">View</a>
                     <a href="edit.php?id=<?php echo (int)$call['id']; ?>" class="btn btn-accent" style="padding:6px 14px;font-size:13px;text-decoration:none;">Edit</a>
                   </td>

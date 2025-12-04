@@ -81,10 +81,23 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.notebook-add-header-flex{display:flex;justify-content:space-between;align-items:center;}
+.notebook-add-form-grid{display:grid;gap:20px;}
+
+@media (max-width:768px){
+.notebook-add-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.notebook-add-header-flex .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.notebook-add-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="notebook-add-header-flex">
                 <div>
                     <h1>➕ Create New Note</h1>
                     <p>Add a new note with rich-text content and attachments</p>
@@ -115,7 +128,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     📝 Note Details
                 </h3>
                 
-                <div style="display: grid; gap: 20px;">
+                <div class="notebook-add-form-grid">
                     <!-- Title -->
                     <div class="form-group">
                         <label>Title <span style="color: #dc3545;">*</span></label>

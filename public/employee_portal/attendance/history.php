@@ -83,11 +83,129 @@ $stats = mysqli_fetch_assoc($stats_result);
 closeConnection($conn);
 ?>
 
+<style>
+.hist-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.hist-filter-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 15px;
+    align-items: end;
+}
+.hist-filter-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.hist-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+.hist-table-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.hist-table-responsive {
+    overflow-x: auto;
+}
+@media (max-width: 1200px) {
+    .hist-filter-form {
+        grid-template-columns: 1fr 1fr auto;
+    }
+    .hist-stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .hist-table-responsive table {
+        font-size: 13px;
+    }
+    .hist-table-responsive th,
+    .hist-table-responsive td {
+        padding: 8px !important;
+    }
+}
+@media (max-width: 900px) {
+    .hist-filter-form {
+        grid-template-columns: 1fr 1fr;
+    }
+    .hist-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .hist-table-responsive table {
+        font-size: 12px;
+    }
+    .hist-table-responsive th,
+    .hist-table-responsive td {
+        padding: 6px !important;
+    }
+}
+@media (max-width: 600px) {
+    .hist-header-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .hist-header-flex > div {
+        width: 100%;
+    }
+    .hist-header-flex .btn {
+        width: 100%;
+        text-align: center;
+        display: block;
+    }
+    .hist-filter-form {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .hist-filter-buttons {
+        grid-column: 1;
+        flex-direction: column;
+    }
+    .hist-filter-buttons .btn {
+        width: 100%;
+    }
+    .hist-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .hist-stats-grid .card {
+        padding: 15px !important;
+    }
+    .hist-stats-grid > div > div:first-child {
+        font-size: 28px !important;
+    }
+    .hist-stats-grid > div > div:last-child {
+        font-size: 12px !important;
+    }
+    .hist-table-header-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .hist-table-header-flex h3 {
+        margin-bottom: 8px !important;
+    }
+    .hist-table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <!-- Page Header -->
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="hist-header-flex">
         <div>
           <h1>📊 My Attendance History</h1>
           <p>View your complete attendance records</p>
@@ -101,7 +219,7 @@ closeConnection($conn);
     <!-- Filters -->
     <div class="card" style="margin-bottom:25px;">
       <h3 style="margin-bottom:20px;color:#003581;font-size:20px;">🔍 Filter Records</h3>
-      <form method="GET" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:15px;align-items:end;">
+      <form method="GET" class="hist-filter-form">
         <div class="form-group" style="margin-bottom:0;">
           <label>📅 From Date</label>
           <input type="date" name="from_date" value="<?php echo htmlspecialchars($from_date); ?>" class="form-control">
@@ -122,7 +240,7 @@ closeConnection($conn);
             <option value="Week Off" <?php echo ($status_filter === 'Week Off') ? 'selected' : ''; ?>>Week Off</option>
           </select>
         </div>
-        <div style="display:flex;gap:10px;">
+        <div class="hist-filter-buttons">
           <button type="submit" class="btn" style="padding:10px 20px;white-space:nowrap;">Apply Filters</button>
           <a href="history.php" class="btn btn-accent" style="padding:10px 20px;white-space:nowrap;text-decoration:none;display:inline-block;text-align:center;">Reset</a>
         </div>
@@ -130,24 +248,24 @@ closeConnection($conn);
     </div>
 
     <!-- Summary Statistics -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px;margin-bottom:25px;">
+    <div class="hist-stats-grid">
       <div class="card" style="text-align:center;background:linear-gradient(135deg,#003581 0%,#004aad 100%);color:white;">
-        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo $stats['total_records'] ?? 0; ?></div>
+        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo (int)($stats['total_records'] ?? 0); ?></div>
         <div style="font-size:14px;opacity:0.95;">Total Days</div>
       </div>
       
       <div class="card" style="text-align:center;background:linear-gradient(135deg,#28a745 0%,#34ce57 100%);color:white;">
-        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo $stats['present_count'] ?? 0; ?></div>
+        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo (int)($stats['present_count'] ?? 0); ?></div>
         <div style="font-size:14px;opacity:0.95;">Present</div>
       </div>
       
       <div class="card" style="text-align:center;background:linear-gradient(135deg,#dc3545 0%,#e85563 100%);color:white;">
-        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo $stats['absent_count'] ?? 0; ?></div>
+        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo (int)($stats['absent_count'] ?? 0); ?></div>
         <div style="font-size:14px;opacity:0.95;">Absent</div>
       </div>
       
       <div class="card" style="text-align:center;background:linear-gradient(135deg,#faa718 0%,#ffc04d 100%);color:white;">
-        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo $stats['leave_count'] ?? 0; ?></div>
+        <div style="font-size:36px;font-weight:700;margin-bottom:8px;"><?php echo (int)($stats['leave_count'] ?? 0); ?></div>
         <div style="font-size:14px;opacity:0.95;">On Leave</div>
       </div>
       
@@ -164,7 +282,7 @@ closeConnection($conn);
 
     <!-- Attendance Records Table -->
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="hist-table-header-flex">
         <h3 style="margin:0;color:#003581;">
           📋 Attendance Records 
           <span style="font-size:14px;color:#6c757d;font-weight:normal;">(<?php echo count($attendance_records); ?> records)</span>
@@ -174,7 +292,7 @@ closeConnection($conn);
       <?php if (count($attendance_records) === 0): ?>
         <div class="alert alert-warning">No attendance records found for the selected period.</div>
       <?php else: ?>
-        <div style="overflow-x:auto;">
+        <div class="hist-table-responsive">
           <table style="width:100%;border-collapse:collapse;">
             <thead>
               <tr style="background:#f8f9fa;border-bottom:2px solid #dee2e6;">

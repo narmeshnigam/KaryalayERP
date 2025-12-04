@@ -66,15 +66,31 @@ require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
 ?>
 
+<style>
+.tasks-header-flex {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.tasks-header-buttons {display:flex;gap:8px;flex-wrap:wrap;}
+@media (max-width:768px){
+.tasks-header-flex{flex-direction:column;align-items:stretch;}
+.tasks-header-flex > div:first-child h1{font-size:24px;}
+.tasks-header-flex > div:first-child p{font-size:14px;}
+.tasks-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.tasks-header-buttons .btn{width:100%;text-align:center;}
+}
+@media (max-width:480px){
+.tasks-header-flex > div:first-child h1{font-size:22px;}
+.tasks-header-flex > div:first-child p{font-size:13px;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="tasks-header-flex">
         <div>
           <h1>🧰 All Tasks</h1>
           <p>View and manage all CRM tasks</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="tasks-header-buttons">
           <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
           <a href="my.php" class="btn btn-accent">🧰 My Tasks</a>
           <?php if ($tasks_permissions['can_create'] || $IS_SUPER_ADMIN): ?>

@@ -9,7 +9,7 @@ require_once __DIR__ . '/helpers.php';
 
 // Check if tables exist
 if (!quotations_tables_exist($conn)) {
-    header('Location: ../../scripts/setup_quotations_tables.php');
+    header('Location: ' . APP_URL . '/scripts/setup_quotations_tables.php');
     exit;
 }
 
@@ -63,15 +63,66 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
 <div class="main-wrapper">
+<style>
+.quotations-view-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.quotations-view-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.quotations-view-overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;}
+.quotations-view-info-box{background:#f8f9fa;padding:16px;border-radius:8px;margin-bottom:24px;}
+.quotations-view-info-row{margin-bottom:12px;}
+.quotations-view-breakdown-row{display:flex;justify-content:space-between;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #dee2e6;}
+.quotations-view-tabs{display:flex;gap:16px;border-bottom:2px solid #e0e0e0;margin-bottom:24px;}
+.quotations-view-tab-link{padding:12px 24px;text-decoration:none;border-bottom:3px solid transparent;font-weight:600;}
+.quotations-view-items-table{width:100%;border-collapse:collapse;}
+.quotations-view-activity-container{max-width:800px;}
+.quotations-view-activity-log{border-left:3px solid #0066cc;padding:16px;margin-bottom:16px;background:#f8f9fa;border-radius:4px;}
+
+@media (max-width:1024px){
+.quotations-view-overview-grid{grid-template-columns:1fr;gap:20px;}
+}
+
+@media (max-width:768px){
+.quotations-view-header-flex{flex-direction:column;align-items:stretch;}
+.quotations-view-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.quotations-view-header-buttons .btn{width:100%;text-align:center;}
+.quotations-view-header-flex h1{font-size:1.3rem;}
+.quotations-view-header-flex p{font-size:13px;}
+.quotations-view-overview-grid{gap:15px;}
+.quotations-view-info-box{padding:12px;margin-bottom:15px;font-size:13px;}
+.quotations-view-info-row{margin-bottom:10px;font-size:12px;}
+.quotations-view-breakdown-row{font-size:13px;margin-bottom:10px;padding-bottom:10px;}
+.quotations-view-tabs{gap:8px;margin-bottom:16px;overflow-x:auto;}
+.quotations-view-tab-link{padding:10px 16px;font-size:12px;}
+.quotations-view-items-table thead th{font-size:11px;padding:8px !important;}
+.quotations-view-items-table tbody td{font-size:12px;padding:8px !important;}
+.quotations-view-items-table tfoot td{font-size:12px;padding:8px !important;}
+.quotations-view-activity-log{padding:12px;margin-bottom:12px;font-size:12px;}
+}
+
+@media (max-width:480px){
+.quotations-view-header-flex h1{font-size:1.3rem;}
+.quotations-view-header-buttons .btn{font-size:14px;padding:12px 20px;}
+.quotations-view-info-row strong{display:block;font-size:12px;}
+.quotations-view-info-row a{font-size:12px;}
+.quotations-view-breakdown-row{font-size:12px;flex-direction:column;}
+.quotations-view-breakdown-row span{margin-bottom:4px;}
+.quotations-view-tab-link{padding:10px 12px;font-size:11px;}
+.quotations-view-items-table{font-size:11px;}
+.quotations-view-items-table thead th{font-size:10px;padding:6px 4px !important;}
+.quotations-view-items-table tbody td{font-size:11px;padding:6px 4px !important;}
+.quotations-view-items-table tfoot td{font-size:11px;padding:6px 4px !important;}
+.quotations-view-activity-log{padding:10px;margin-bottom:10px;font-size:11px;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="quotations-view-header-flex">
                 <div>
                     <h1>🧾 <?php echo htmlspecialchars($quotationNo); ?></h1>
                     <p><?php echo htmlspecialchars($title); ?></p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="quotations-view-header-buttons">
                     <?php if ($can_edit): ?>
                         <a href="edit.php?id=<?php echo $quotation_id; ?>" class="btn btn-accent">✏️ Edit</a>
                     <?php endif; ?>
@@ -115,7 +166,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             ];
             $status_style = $status_colors[$status] ?? ['bg' => '#6c757d', 'text' => '#fff'];
             ?>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: <?php echo $status_style['bg']; ?>; color: <?php echo $status_style['text']; ?>; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; padding: 16px; background: <?php echo $status_style['bg']; ?>; color: <?php echo $status_style['text']; ?>; border-radius: 8px;">
                 <div>
                     <h3 style="margin: 0; font-size: 24px;">Status: <?php echo htmlspecialchars($status); ?></h3>
                     <?php if ($validityDate): ?>
@@ -135,17 +186,17 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Tabs -->
         <div class="card" style="margin-bottom: 0;">
-            <div style="display: flex; gap: 16px; border-bottom: 2px solid #e0e0e0; margin-bottom: 24px;">
+            <div class="quotations-view-tabs">
                 <a href="?id=<?php echo $quotation_id; ?>&tab=overview" 
-                   style="padding: 12px 24px; text-decoration: none; color: <?php echo $active_tab === 'overview' ? '#003581' : '#6c757d'; ?>; border-bottom: 3px solid <?php echo $active_tab === 'overview' ? '#003581' : 'transparent'; ?>; font-weight: 600;">
+                   class="quotations-view-tab-link" style="color: <?php echo $active_tab === 'overview' ? '#003581' : '#6c757d'; ?>; border-bottom: 3px solid <?php echo $active_tab === 'overview' ? '#003581' : 'transparent'; ?>;">
                     📋 Overview
                 </a>
                 <a href="?id=<?php echo $quotation_id; ?>&tab=items" 
-                   style="padding: 12px 24px; text-decoration: none; color: <?php echo $active_tab === 'items' ? '#003581' : '#6c757d'; ?>; border-bottom: 3px solid <?php echo $active_tab === 'items' ? '#003581' : 'transparent'; ?>; font-weight: 600;">
+                   class="quotations-view-tab-link" style="color: <?php echo $active_tab === 'items' ? '#003581' : '#6c757d'; ?>; border-bottom: 3px solid <?php echo $active_tab === 'items' ? '#003581' : 'transparent'; ?>;">
                     🛒 Items (<?php echo count($quotation_items); ?>)
                 </a>
                 <a href="?id=<?php echo $quotation_id; ?>&tab=activity" 
-                   style="padding: 12px 24px; text-decoration: none; color: <?php echo $active_tab === 'activity' ? '#003581' : '#6c757d'; ?>; border-bottom: 3px solid <?php echo $active_tab === 'activity' ? '#003581' : 'transparent'; ?>; font-weight: 600;">
+                   class="quotations-view-tab-link" style="color: <?php echo $active_tab === 'activity' ? '#003581' : '#6c757d'; ?>; border-bottom: 3px solid <?php echo $active_tab === 'activity' ? '#003581' : 'transparent'; ?>;">
                     📜 Activity Log
                 </a>
             </div>
@@ -153,16 +204,16 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <!-- Tab Content -->
             <?php if ($active_tab === 'overview'): ?>
                 <!-- Overview Tab -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div class="quotations-view-overview-grid">
                     <!-- Left Column -->
                     <div>
                         <h3 style="color: #003581; margin-bottom: 16px;">Client Information</h3>
-                        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-                            <div style="margin-bottom: 12px;">
+                        <div class="quotations-view-info-box">
+                            <div class="quotations-view-info-row">
                                 <strong>Name:</strong> <?php echo htmlspecialchars($clientName); ?>
                             </div>
                             <?php if ($clientEmail): ?>
-                                <div style="margin-bottom: 12px;">
+                                <div class="quotations-view-info-row">
                                     <strong>Email:</strong> 
                                     <a href="mailto:<?php echo htmlspecialchars($clientEmail); ?>" style="color: #0066cc;">
                                         <?php echo htmlspecialchars($clientEmail); ?>
@@ -170,12 +221,12 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                 </div>
                             <?php endif; ?>
                             <?php if ($clientPhone): ?>
-                                <div style="margin-bottom: 12px;">
+                                <div class="quotations-view-info-row">
                                     <strong>Phone:</strong> <?php echo htmlspecialchars($clientPhone); ?>
                                 </div>
                             <?php endif; ?>
                             <?php if ($clientAddress): ?>
-                                <div>
+                                <div class="quotations-view-info-row">
                                     <strong>Address:</strong><br>
                                     <?php echo nl2br(htmlspecialchars($clientAddress)); ?>
                                 </div>
@@ -183,22 +234,22 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         </div>
 
                         <h3 style="color: #003581; margin-bottom: 16px;">Quotation Details</h3>
-                        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px;">
-                            <div style="margin-bottom: 12px;">
+                        <div class="quotations-view-info-box">
+                            <div class="quotations-view-info-row">
                                 <strong>Quotation No:</strong> <code><?php echo htmlspecialchars($quotationNo); ?></code>
                             </div>
-                            <div style="margin-bottom: 12px;">
+                            <div class="quotations-view-info-row">
                                 <strong>Date:</strong> <?php echo date('d M Y', strtotime($quotationDate)); ?>
                             </div>
                             <?php if ($validityDate): ?>
-                                <div style="margin-bottom: 12px;">
+                                <div class="quotations-view-info-row">
                                     <strong>Valid Until:</strong> <?php echo date('d M Y', strtotime($validityDate)); ?>
                                 </div>
                             <?php endif; ?>
-                            <div style="margin-bottom: 12px;">
+                            <div class="quotations-view-info-row">
                                 <strong>Created By:</strong> <?php echo htmlspecialchars($createdBy); ?>
                             </div>
-                            <div>
+                            <div class="quotations-view-info-row">
                                 <strong>Created At:</strong> <?php echo date('d M Y H:i', strtotime($createdAt)); ?>
                             </div>
                         </div>
@@ -207,20 +258,20 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <!-- Right Column -->
                     <div>
                         <h3 style="color: #003581; margin-bottom: 16px;">Amount Breakdown</h3>
-                        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #dee2e6;">
+                        <div class="quotations-view-info-box">
+                            <div class="quotations-view-breakdown-row">
                                 <span>Subtotal:</span>
                                 <strong><?php echo $currency === 'INR' ? '₹' : '$'; ?><?php echo number_format($subtotal, 2); ?></strong>
                             </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #dee2e6;">
+                            <div class="quotations-view-breakdown-row">
                                 <span>Discount:</span>
                                 <strong style="color: #dc3545;">-<?php echo $currency === 'INR' ? '₹' : '$'; ?><?php echo number_format($discountAmount, 2); ?></strong>
                             </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #dee2e6;">
+                            <div class="quotations-view-breakdown-row">
                                 <span>Tax:</span>
                                 <strong><?php echo $currency === 'INR' ? '₹' : '$'; ?><?php echo number_format($taxAmount, 2); ?></strong>
                             </div>
-                            <div style="display: flex; justify-content: space-between; font-size: 18px; padding-top: 8px;">
+                            <div class="quotations-view-breakdown-row" style="border-bottom: none; padding-top: 8px; font-size: 18px;">
                                 <strong style="color: #003581;">Total Amount:</strong>
                                 <strong style="color: #003581;"><?php echo $currency === 'INR' ? '₹' : '$'; ?><?php echo number_format($totalAmount, 2); ?></strong>
                             </div>
@@ -235,7 +286,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
                         <?php if ($terms): ?>
                             <h3 style="color: #003581; margin-bottom: 16px;">Terms & Conditions</h3>
-                            <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+                            <div class="quotations-view-info-box">
                                 <?php echo nl2br(htmlspecialchars($terms)); ?>
                             </div>
                         <?php endif; ?>
@@ -262,7 +313,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </div>
                 <?php else: ?>
                     <div style="overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse;">
+                        <table class="quotations-view-items-table">
                             <thead>
                                 <tr style="background: #f8f9fa; border-bottom: 2px solid #003581;">
                                     <th style="padding: 12px; text-align: left; font-weight: 600;">#</th>
@@ -326,9 +377,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         <p>No activity recorded yet.</p>
                     </div>
                 <?php else: ?>
-                    <div style="max-width: 800px;">
+                    <div class="quotations-view-activity-container">
                         <?php foreach ($activity_log as $log): ?>
-                            <div style="border-left: 3px solid #0066cc; padding: 16px; margin-bottom: 16px; background: #f8f9fa; border-radius: 4px;">
+                            <div class="quotations-view-activity-log">
                                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                                     <strong style="color: #003581;">
                                         <?php

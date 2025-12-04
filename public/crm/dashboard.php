@@ -101,25 +101,353 @@ $recent = crm_recent_interactions($conn, $filters, 20);
   .chart-container { padding:24px; }
   /* optional: small tweak for subnav filter toggle alignment */
   .filters-toggle { margin-left:auto; }
-  @media (max-width: 1024px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* Layout Alignment & Spacing */
+  .crm-section-full {
+    margin-bottom: 24px;
+  }
+
+  .crm-section-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .crm-section-full .card,
+  .crm-section-grid .card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .crm-table-section {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 1024px) { 
+    .grid-2 { grid-template-columns: 1fr; }
+    .crm-section-grid { grid-template-columns: 1fr; }
+  }
+
+
+  /* Mobile Responsiveness for CRM Dashboard */
+  .crm-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  
+  .crm-header-title h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+  }
+  
+  .crm-header-title p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 14px;
+  }
+  
+  .crm-header-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .crm-subnav-responsive {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .crm-filter-form-responsive {
+    display: grid;
+    gap: 20px;
+  }
+
+  .crm-filter-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 18px;
+    align-items: end;
+  }
+
+  .crm-filter-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .crm-kpi-grid-responsive {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+
+  .crm-matrix-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+  }
+
+  .crm-table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .crm-table-responsive table {
+    min-width: 100%;
+  }
+
+  /* Tablet (600px - 899px) */
+  @media (max-width: 899px) {
+    .crm-header-flex {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .crm-header-buttons {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .crm-header-buttons .btn {
+      flex: 1;
+      min-width: 140px;
+      text-align: center;
+    }
+
+    .crm-subnav-responsive {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    .crm-subnav .sub-links {
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .crm-subnav a {
+      border-radius: 0;
+      padding: 10px 14px;
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .crm-filter-fields {
+      grid-template-columns: 1fr;
+    }
+
+    .crm-kpi-grid-responsive {
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .kpi-tile {
+      padding: 16px;
+      min-height: 100px;
+    }
+
+    .kpi-label {
+      font-size: 12px;
+    }
+
+    .kpi-value {
+      font-size: 24px;
+    }
+
+    .kpi-sub {
+      font-size: 12px;
+    }
+
+    .ring {
+      width: 52px;
+      height: 52px;
+    }
+
+    .ring > span {
+      font-size: 11px;
+    }
+
+    table.table th,
+    table.table td {
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+  }
+
+  /* Mobile (max 600px) */
+  @media (max-width: 599px) {
+    .crm-header-title h1 {
+      font-size: 22px;
+    }
+
+    .crm-header-title p {
+      font-size: 13px;
+    }
+
+    .crm-header-buttons {
+      width: 100%;
+    }
+
+    .crm-header-buttons .btn {
+      flex: 1;
+      font-size: 13px;
+      padding: 10px 8px;
+    }
+
+    .crm-subnav {
+      padding: 6px 10px;
+      gap: 8px;
+      flex-direction: column;
+    }
+
+    .crm-subnav .sub-links {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .crm-subnav a {
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    .filters-toggle {
+      width: 100%;
+      margin-left: 0;
+    }
+
+    .crm-filter-form-responsive {
+      gap: 16px;
+    }
+
+    .crm-filter-fields {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .crm-filter-buttons {
+      gap: 8px;
+    }
+
+    .crm-filter-buttons .btn {
+      flex: 1;
+      font-size: 13px;
+    }
+
+    .crm-kpi-grid-responsive {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .kpi-tile {
+      padding: 14px;
+      min-height: 90px;
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+
+    .kpi-value {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .kpi-sub {
+      font-size: 11px;
+    }
+
+    .kpi-delta {
+      font-size: 11px;
+      padding: 4px 8px;
+      margin-top: 2px;
+    }
+
+    .ring {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+    }
+
+    .ring > span {
+      font-size: 10px;
+    }
+
+    .grid-2 {
+      grid-template-columns: 1fr;
+    }
+
+    .card-header h3 {
+      font-size: 16px;
+    }
+
+    .card-header p {
+      font-size: 12px;
+    }
+
+    table.table th,
+    table.table td {
+      padding: 8px 10px;
+      font-size: 11px;
+    }
+
+    table.table th {
+      background: #f0f0f0;
+    }
+
+    .card {
+      padding: 16px !important;
+    }
+
+    .crm-matrix-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .progress-wrap {
+      height: 8px;
+    }
+
+    .badge {
+      padding: 3px 8px;
+      font-size: 11px;
+    }
+
+    #chartTrend,
+    #chartFunnel,
+    #chartPerf {
+      max-height: 180px !important;
+    }
+  }
 </style>
 
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
-        <div>
+      <div class="crm-header-flex">
+        <div class="crm-header-title">
           <h1>📊 CRM Dashboard</h1>
           <p>KPIs, trends, activity quality, and follow-up compliance.</p>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="crm-header-buttons">
           <a href="./reports.php" class="btn">📈 Reports</a>
           <a href="./calendar.php" class="btn btn-secondary">📆 Calendar</a>
         </div>
       </div>
     </div>
 
-    <nav class="crm-subnav" aria-label="CRM sections">
+    <nav class="crm-subnav crm-subnav-responsive" aria-label="CRM sections">
       <div class="sub-links">
         <a href="./leads/index.php">Leads</a>
         <a href="./calls/index.php">Calls</a>
@@ -130,61 +458,59 @@ $recent = crm_recent_interactions($conn, $filters, 20);
       <button type="button" id="toggleFilters" class="btn btn-secondary btn-sm filters-toggle" aria-expanded="false">Filters</button>
     </nav>
 
-    <form method="get" class="card" id="filterPanel" style="margin-bottom:24px;padding:24px; display:none;">
-      <div style="display:grid;gap:20px;">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;align-items:end;">
-          <div class="form-group" style="margin:0;">
-            <label for="range">Quick Range</label>
-            <?php $range = isset($_GET['range']) ? strtolower(trim($_GET['range'])) : 'custom'; ?>
-            <select name="range" id="range" class="form-control">
-              <option value="custom" <?php echo ($range==='custom')?'selected':''; ?>>Custom</option>
-              <option value="today" <?php echo ($range==='today')?'selected':''; ?>>Today</option>
-              <option value="yesterday" <?php echo ($range==='yesterday')?'selected':''; ?>>Yesterday</option>
-              <option value="last7" <?php echo ($range==='last7')?'selected':''; ?>>Last 7 Days</option>
-              <option value="thisweek" <?php echo ($range==='thisweek')?'selected':''; ?>>This Week</option>
-              <option value="thismonth" <?php echo ($range==='thismonth')?'selected':''; ?>>This Month</option>
-              <option value="lastmonth" <?php echo ($range==='lastmonth')?'selected':''; ?>>Last Month</option>
-              <option value="next7" <?php echo ($range==='next7')?'selected':''; ?>>Next 7 Days</option>
-              <option value="next30" <?php echo ($range==='next30')?'selected':''; ?>>Next 30 Days</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin:0;">
-            <label for="start">Start Date</label>
-            <input type="date" name="start" id="start" class="form-control" value="<?php echo htmlspecialchars($filters['start']); ?>" />
-          </div>
-          <div class="form-group" style="margin:0;">
-            <label for="end">End Date</label>
-            <input type="date" name="end" id="end" class="form-control" value="<?php echo htmlspecialchars($filters['end']); ?>" />
-          </div>
-          <div class="form-group" style="margin:0;">
-            <label for="employee_id">Employee</label>
-            <select name="employee_id" id="employee_id" class="form-control">
-              <option value="0">All Employees</option>
-              <?php foreach ($opts['employees'] as $emp): $val=(int)$emp['id']; ?>
-                <option value="<?php echo $val; ?>" <?php echo ($filters['employee_id']===$val)?'selected':''; ?>><?php 
-                  echo htmlspecialchars(($emp['employee_code']?($emp['employee_code'].' - '):'').$emp['first_name'].' '.$emp['last_name']); ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <div class="form-group" style="margin:0;">
-            <label for="lead_source">Lead Source</label>
-            <select name="lead_source" id="lead_source" class="form-control">
-              <option value="">All Sources</option>
-              <?php foreach ($opts['sources'] as $s): ?>
-                <option value="<?php echo htmlspecialchars($s); ?>" <?php echo ($filters['lead_source']===$s)?'selected':''; ?>><?php echo htmlspecialchars($s); ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <div class="form-group" style="margin:0;display:flex;gap:10px;align-items:end;">
-            <button type="submit" class="btn btn-primary">Apply Filters</button>
-            <a href="dashboard.php" class="btn btn-secondary">Reset</a>
-          </div>
+    <form method="get" class="card crm-filter-form-responsive" id="filterPanel" style="margin-bottom:24px;padding:24px; display:none;">
+      <div class="crm-filter-fields">
+        <div class="form-group" style="margin:0;">
+          <label for="range">Quick Range</label>
+          <?php $range = isset($_GET['range']) ? strtolower(trim($_GET['range'])) : 'custom'; ?>
+          <select name="range" id="range" class="form-control">
+            <option value="custom" <?php echo ($range==='custom')?'selected':''; ?>>Custom</option>
+            <option value="today" <?php echo ($range==='today')?'selected':''; ?>>Today</option>
+            <option value="yesterday" <?php echo ($range==='yesterday')?'selected':''; ?>>Yesterday</option>
+            <option value="last7" <?php echo ($range==='last7')?'selected':''; ?>>Last 7 Days</option>
+            <option value="thisweek" <?php echo ($range==='thisweek')?'selected':''; ?>>This Week</option>
+            <option value="thismonth" <?php echo ($range==='thismonth')?'selected':''; ?>>This Month</option>
+            <option value="lastmonth" <?php echo ($range==='lastmonth')?'selected':''; ?>>Last Month</option>
+            <option value="next7" <?php echo ($range==='next7')?'selected':''; ?>>Next 7 Days</option>
+            <option value="next30" <?php echo ($range==='next30')?'selected':''; ?>>Next 30 Days</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label for="start">Start Date</label>
+          <input type="date" name="start" id="start" class="form-control" value="<?php echo htmlspecialchars($filters['start']); ?>" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label for="end">End Date</label>
+          <input type="date" name="end" id="end" class="form-control" value="<?php echo htmlspecialchars($filters['end']); ?>" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label for="employee_id">Employee</label>
+          <select name="employee_id" id="employee_id" class="form-control">
+            <option value="0">All Employees</option>
+            <?php foreach ($opts['employees'] as $emp): $val=(int)$emp['id']; ?>
+              <option value="<?php echo $val; ?>" <?php echo ($filters['employee_id']===$val)?'selected':''; ?>><?php 
+                echo htmlspecialchars(($emp['employee_code']?($emp['employee_code'].' - '):'').$emp['first_name'].' '.$emp['last_name']); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label for="lead_source">Lead Source</label>
+          <select name="lead_source" id="lead_source" class="form-control">
+            <option value="">All Sources</option>
+            <?php foreach ($opts['sources'] as $s): ?>
+              <option value="<?php echo htmlspecialchars($s); ?>" <?php echo ($filters['lead_source']===$s)?'selected':''; ?>><?php echo htmlspecialchars($s); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div style="display:flex;gap:10px;align-items:end;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Apply Filters</button>
+          <a href="dashboard.php" class="btn btn-secondary" style="flex:1;text-align:center;text-decoration:none;">Reset</a>
         </div>
       </div>
     </form>
 
     <!-- KPI CARDS -->
-    <div class="kpi-grid">
+    <div class="crm-kpi-grid-responsive">
       <div class="kpi-tile blue" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
         <div class="kpi-label">Total Leads</div>
         <div class="kpi-value"><?php echo (int)$kpis['total_leads']; ?></div>
@@ -243,7 +569,8 @@ $recent = crm_recent_interactions($conn, $filters, 20);
       </div>
     </div>
 
-    <div class="card chart-container">
+    <!-- Activity Volume - Full Width -->
+    <div class="card chart-container crm-section-full">
       <div class="card-header">
         <div>
           <h3>Activity Volume – Selected Period</h3>
@@ -253,117 +580,118 @@ $recent = crm_recent_interactions($conn, $filters, 20);
       <canvas id="chartTrend" style="max-height:220px;"></canvas>
     </div>
 
-    <div class="grid-2">
-      <div class="card chart-container">
-        <div class="card-header">
-          <div>
-            <h3>Lead Flow (Funnel)</h3>
-            <p>Current lead statuses in selected period</p>
-          </div>
+    <!-- Lead Flow (Funnel) - Full Width -->
+    <div class="card chart-container crm-section-full">
+      <div class="card-header">
+        <div>
+          <h3>Lead Flow (Funnel)</h3>
+          <p>Current lead statuses in selected period</p>
         </div>
-        <canvas id="chartFunnel" style="max-height:280px;"></canvas>
       </div>
-      
-      <div class="card chart-container">
-        <div class="card-header">
-          <div>
-            <h3>Employee Performance</h3>
-            <p>Leads, conversion & follow-up comparison</p>
-          </div>
-        </div>
-        <canvas id="chartPerf" style="max-height:280px;"></canvas>
-      </div>
+      <canvas id="chartFunnel" style="max-height:280px;"></canvas>
     </div>
 
-    <div class="grid-2">
-      <div class="card" style="padding:32px;">
-        <div class="card-header">
-          <div>
-            <h3>Activity Quality (By Employee)</h3>
-            <p>Performance metrics per employee</p>
-          </div>
+    <!-- Employee Performance - Full Width -->
+    <div class="card chart-container crm-section-full">
+      <div class="card-header">
+        <div>
+          <h3>Employee Performance</h3>
+          <p>Leads, conversion & follow-up comparison</p>
         </div>
-        <div style="overflow:auto;">
-          <table class="table">
-            <thead>
+      </div>
+      <canvas id="chartPerf" style="max-height:280px;"></canvas>
+    </div>
+
+    <!-- Activity Quality (By Employee) - Full Width -->
+    <div class="card crm-section-full" style="padding:32px;">
+      <div class="card-header">
+        <div>
+          <h3>Activity Quality (By Employee)</h3>
+          <p>Performance metrics per employee</p>
+        </div>
+      </div>
+      <div class="crm-table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Leads</th><th>Calls</th><th>Meetings</th><th>Visits</th><th>Tasks</th>
+              <th>Conv %</th><th>Follow %</th><th>Avg Resp (d)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if (empty($perf['rows'])): ?>
+              <tr><td colspan="9" class="muted">No data for selected filters.</td></tr>
+            <?php else: foreach ($perf['rows'] as $row): ?>
               <tr>
-                <th>Employee</th>
-                <th>Leads</th><th>Calls</th><th>Meetings</th><th>Visits</th><th>Tasks</th>
-                <th>Conv %</th><th>Follow %</th><th>Avg Resp (d)</th>
+                <td style="font-weight:600;"><?php echo htmlspecialchars($row['employee']); ?></td>
+                <td><?php echo (int)$row['leads']; ?></td>
+                <td><?php echo (int)$row['calls']; ?></td>
+                <td><?php echo (int)$row['meetings']; ?></td>
+                <td><?php echo (int)$row['visits']; ?></td>
+                <td><?php echo (int)$row['tasks_completed']; ?></td>
+                <td>
+                  <?php $cp = (float)$row['conv_pct']; $ccls = $cp>85?'badge-success':($cp>=60?'badge-warning':'badge-danger'); ?>
+                  <span class="badge <?php echo $ccls; ?>"><?php echo number_format($cp, 1); ?>%</span>
+                </td>
+                <td>
+                  <?php $fp = (float)$row['followup_pct']; $cls = $fp>85?'badge-success':($fp>=60?'badge-warning':'badge-danger'); ?>
+                  <span class="badge <?php echo $cls; ?>"><?php echo number_format($fp, 1); ?>%</span>
+                </td>
+                <td><?php echo number_format((float)$row['avg_response_days'], 1); ?></td>
               </tr>
-            </thead>
-            <tbody>
-              <?php if (empty($perf['rows'])): ?>
-                <tr><td colspan="9" class="muted">No data for selected filters.</td></tr>
-              <?php else: foreach ($perf['rows'] as $row): ?>
-                <tr>
-                  <td style="font-weight:600;"><?php echo htmlspecialchars($row['employee']); ?></td>
-                  <td><?php echo (int)$row['leads']; ?></td>
-                  <td><?php echo (int)$row['calls']; ?></td>
-                  <td><?php echo (int)$row['meetings']; ?></td>
-                  <td><?php echo (int)$row['visits']; ?></td>
-                  <td><?php echo (int)$row['tasks_completed']; ?></td>
-                  <td>
-                    <?php $cp = (float)$row['conv_pct']; $ccls = $cp>85?'badge-success':($cp>=60?'badge-warning':'badge-danger'); ?>
-                    <span class="badge <?php echo $ccls; ?>"><?php echo number_format($cp, 1); ?>%</span>
-                  </td>
-                  <td>
-                    <?php $fp = (float)$row['followup_pct']; $cls = $fp>85?'badge-success':($fp>=60?'badge-warning':'badge-danger'); ?>
-                    <span class="badge <?php echo $cls; ?>"><?php echo number_format($fp, 1); ?>%</span>
-                  </td>
-                  <td><?php echo number_format((float)$row['avg_response_days'], 1); ?></td>
-                </tr>
-              <?php endforeach; endif; ?>
-            </tbody>
-          </table>
+            <?php endforeach; endif; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Follow-up Compliance Matrix - Full Width -->
+    <div class="card crm-section-full" style="padding:32px;">
+      <div class="card-header">
+        <div>
+          <h3>Follow-up Compliance Matrix</h3>
+          <p>On-time completion & scheduling metrics</p>
         </div>
       </div>
-
-      <div class="card" style="padding:32px;">
-        <div class="card-header">
-          <div>
-            <h3>Follow-up Compliance Matrix</h3>
-            <p>On-time completion & scheduling metrics</p>
-          </div>
+      <div class="crm-matrix-grid">
+        <div>
+          <div class="kpi-label">Total Follow-ups</div>
+          <div class="kpi-value" style="font-size:24px;"><?php echo (int)$matrix['total_scheduled']; ?></div>
+          <div class="kpi-sub">All modules</div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;">
-          <div>
-            <div class="kpi-label">Total Follow-ups</div>
-            <div class="kpi-value" style="font-size:24px;"><?php echo (int)$matrix['total_scheduled']; ?></div>
-            <div class="kpi-sub">All modules</div>
-          </div>
-          <div>
-            <div class="kpi-label">On-Time</div>
-            <div class="kpi-value green" style="font-size:24px;"><?php echo $matrix['completed_on_time_pct']; ?>%</div>
-            <div class="progress-wrap" style="margin-top:4px;"><div class="progress-bar" style="width:<?php echo (float)$matrix['completed_on_time_pct']; ?>%;background:#28a745;"></div></div>
-          </div>
-          <div>
-            <div class="kpi-label">Delayed</div>
-            <div class="kpi-value red" style="font-size:24px;"><?php echo $matrix['delayed_pct']; ?>%</div>
-            <div class="progress-wrap" style="margin-top:4px;"><div class="progress-bar" style="width:<?php echo (float)$matrix['delayed_pct']; ?>%;background:#dc3545;"></div></div>
-          </div>
-          <div>
-            <div class="kpi-label">Auto-generated</div>
-            <div class="kpi-value" style="font-size:24px;"><?php echo $matrix['auto_from_leads_pct']; ?>%</div>
-            <div class="kpi-sub">From leads</div>
-          </div>
-          <div>
-            <div class="kpi-label">Avg Gap</div>
-            <div class="kpi-value" style="font-size:24px;"><?php echo $matrix['avg_followup_gap_days']; ?> d</div>
-            <div class="kpi-sub">Follow-up spacing</div>
-          </div>
+        <div>
+          <div class="kpi-label">On-Time</div>
+          <div class="kpi-value green" style="font-size:24px;"><?php echo $matrix['completed_on_time_pct']; ?>%</div>
+          <div class="progress-wrap" style="margin-top:4px;"><div class="progress-bar" style="width:<?php echo (float)$matrix['completed_on_time_pct']; ?>%;background:#28a745;"></div></div>
+        </div>
+        <div>
+          <div class="kpi-label">Delayed</div>
+          <div class="kpi-value red" style="font-size:24px;"><?php echo $matrix['delayed_pct']; ?>%</div>
+          <div class="progress-wrap" style="margin-top:4px;"><div class="progress-bar" style="width:<?php echo (float)$matrix['delayed_pct']; ?>%;background:#dc3545;"></div></div>
+        </div>
+        <div>
+          <div class="kpi-label">Auto-generated</div>
+          <div class="kpi-value" style="font-size:24px;"><?php echo $matrix['auto_from_leads_pct']; ?>%</div>
+          <div class="kpi-sub">From leads</div>
+        </div>
+        <div>
+          <div class="kpi-label">Avg Gap</div>
+          <div class="kpi-value" style="font-size:24px;"><?php echo $matrix['avg_followup_gap_days']; ?> d</div>
+          <div class="kpi-sub">Follow-up spacing</div>
         </div>
       </div>
     </div>
 
-    <div class="card" style="padding:32px;margin-top:24px;">
+    <!-- Recent Interactions - Full Width -->
+    <div class="card crm-section-full crm-table-section" style="padding:32px;">
       <div class="card-header">
         <div>
           <h3>Recent Interactions</h3>
           <p>Latest activity across all CRM modules</p>
         </div>
       </div>
-      <div style="overflow:auto;">
+      <div class="crm-table-responsive">
         <table class="table">
           <thead>
             <tr>

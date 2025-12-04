@@ -33,7 +33,7 @@ if (!quotations_tables_exist($conn)) {
                 <p style="color: #6c757d; margin-bottom: 30px; font-size: 16px;">
                     Create the required database tables to start managing quotations
                 </p>
-                <a href="../../scripts/setup_quotations_tables.php" class="btn" style="padding: 15px 40px; font-size: 16px;">
+                <a href="<?php echo APP_URL; ?>/scripts/setup_quotations_tables.php" class="btn" style="padding: 15px 40px; font-size: 16px;">
                     🚀 Setup Quotations Module
                 </a>
             </div>
@@ -84,10 +84,49 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
 <div class="main-wrapper">
+<style>
+.quotations-header-flex{display:flex;justify-content:space-between;align-items:center;}
+.quotations-stats-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:20px;margin-bottom:25px;}
+.quotations-filter-form{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;gap:15px;align-items:end;}
+.quotations-filter-buttons{display:flex;gap:10px;}
+.quotations-table-wrapper{overflow-x:auto;}
+
+@media (max-width:1024px){
+.quotations-filter-form{grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.quotations-filter-buttons{width:100%;flex-direction:column;}
+.quotations-filter-buttons .btn{width:100%;font-size:13px;}
+}
+
+@media (max-width:768px){
+.quotations-header-flex{flex-direction:column;align-items:stretch;gap:16px;}
+.quotations-header-flex .btn{width:100%;text-align:center;}
+.quotations-stats-grid{grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px;}
+.quotations-filter-form{grid-template-columns:1fr;gap:10px;font-size:13px;}
+.quotations-filter-form input,.quotations-filter-form select{font-size:13px;}
+.quotations-filter-buttons{flex-direction:column;width:100%;}
+}
+
+@media (max-width:600px){
+.quotations-table-wrapper table{display:block;width:100%;}
+.quotations-table-wrapper thead{display:none;}
+.quotations-table-wrapper tbody tr{display:block;margin-bottom:20px;border:1px solid #ddd;border-radius:6px;overflow:hidden;}
+.quotations-table-wrapper tbody td{display:block;width:100%;padding:12px;border-top:1px solid #f0f0f0;text-align:left;position:relative;padding-left:40%;}
+.quotations-table-wrapper tbody td:first-child{border-top:none;padding-left:12px;}
+.quotations-table-wrapper tbody td::before{content:attr(data-label);position:absolute;left:12px;top:12px;font-weight:600;color:#003581;width:35%;word-wrap:break-word;}
+.quotations-table-wrapper tbody td:first-child::before{content:'';}
+}
+
+@media (max-width:480px){
+.quotations-header-flex h1{font-size:1.5rem;}
+.quotations-stats-grid{grid-template-columns:1fr;gap:12px;}
+.quotations-filter-form input,.quotations-filter-form select{font-size:16px;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="quotations-header-flex">
                 <div>
                     <h1>🧾 Quotations</h1>
                     <p>Manage professional quotations for clients and leads</p>
@@ -122,7 +161,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <?php endif; ?>
 
         <!-- Statistics Cards (Employee-style gradients) -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;">
+        <div class="quotations-stats-grid">
             <div class="card" style="text-align: center; background: linear-gradient(135deg, #003581 0%, #004aad 100%); color: white;">
                 <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['total']; ?></div>
                 <div style="font-size: 14px; opacity: 0.9;">Total Quotations</div>
@@ -151,7 +190,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Filters Card (Employee-style layout) -->
         <div class="card" style="margin-bottom: 25px;">
-            <form method="GET" action="index.php" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+            <form method="GET" action="index.php" class="quotations-filter-form">
                 <div class="form-group" style="margin-bottom: 0;">
                     <label>🔍 Search</label>
                     <input type="text" name="search" class="form-control" placeholder="Quotation No, Title, Client..." value="<?php echo htmlspecialchars($filters['search']); ?>">
@@ -188,7 +227,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <label>Expiring In (Days)</label>
                     <input type="number" name="expiring_days" class="form-control" placeholder="e.g., 7" min="1" value="<?php echo htmlspecialchars($filters['expiring_days']); ?>">
                 </div>
-                <div style="display: flex; gap: 10px;">
+                <div class="quotations-filter-buttons">
                     <button type="submit" class="btn" style="white-space: nowrap;">Apply</button>
                     <a href="index.php" class="btn btn-accent" style="white-space: nowrap; text-decoration: none; display: inline-block; text-align: center;">Clear</a>
                     <?php if ($can_export): ?>
@@ -271,6 +310,21 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                     <td style="padding: 12px; text-align: center;">
                                         <span class="badge badge-info">
                                             <?php echo $quotation['item_count']; ?> items
+                                        </span>
+                                    </td>
+                                    <td style="padding: 12px; text-align: center;">
+                                        <?php
+                                        $status_colors = [
+                                            'Draft' => 'background: #6c757d;',
+                                            'Sent' => 'background: #0066cc;',
+                                            'Accepted' => 'background: #28a745;',
+                                            'Rejected' => 'background: #dc3545;',
+                                            'Expired' => 'background: #ffc107; color: #000;'
+                                        ];
+                                        $status_style = $status_colors[$quotation['status']] ?? 'background: #6c757d;';
+                                        ?>
+                                        <span class="badge" style="<?php echo $status_style; ?>">
+                                            <?php echo htmlspecialchars($quotation['status']); ?>
                                         </span>
                                     </td>
                                     <td style="padding: 12px; text-align: center;">

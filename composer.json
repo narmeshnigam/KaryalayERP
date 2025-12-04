@@ -1,0 +1,12 @@
+{
+    "name": "karyalay/erp",
+    "description": "Karyalay ERP core application",
+    "type": "project",
+    "require": {
+        "phpmailer/phpmailer": "^7.0"
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true
+    }
+}

@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
 if (!projects_tables_exist($conn)) {
-    header('Location: /KaryalayERP/scripts/setup_projects_tables.php');
+  header('Location: ' . APP_URL . '/scripts/setup_projects_tables.php');
     exit;
 }
 
@@ -92,15 +92,72 @@ require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
+<style>
+.projects-members-header-flex{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.projects-members-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.projects-members-header-flex{flex-direction:column;align-items:stretch;}
+.projects-members-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.projects-members-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.projects-members-header-flex h1{font-size:1.5rem;}
+}
+
+/* Add Member Form Responsive */
+.projects-members-add-form{display:grid;grid-template-columns:2fr 1fr auto;gap:12px;align-items:end;}
+
+@media (max-width:768px){
+.projects-members-add-form{grid-template-columns:1fr 1fr auto;gap:10px;}
+}
+
+@media (max-width:480px){
+.projects-members-add-form{grid-template-columns:1fr;gap:10px;}
+.form-control{font-size:16px;}
+.projects-members-add-form button{width:100%;text-align:center;}
+}
+
+/* Error Alert Responsive */
+.projects-members-error-alert{background:#f8d7da;border:1px solid #f5c6cb;color:#721c24;padding:16px;border-radius:6px;margin-bottom:16px;}
+
+@media (max-width:480px){
+.projects-members-error-alert{padding:12px;font-size:13px;}
+.projects-members-error-alert ul{margin:8px 0 0 16px;}
+}
+
+/* Table Responsive - Card Style on Mobile */
+.projects-members-table-wrapper{overflow-x:auto;}
+
+@media (max-width:600px){
+.projects-members-table-wrapper table{display:block;}
+.projects-members-table-wrapper thead{display:none;}
+.projects-members-table-wrapper tbody{display:block;}
+.projects-members-table-wrapper tr{display:block;margin-bottom:16px;border:1px solid #dee2e6;border-radius:6px;overflow:hidden;padding:0;}
+.projects-members-table-wrapper td{display:block;padding:12px;border:none;border-bottom:1px solid #e9ecef;text-align:left;}
+.projects-members-table-wrapper td:last-child{border-bottom:none;}
+.projects-members-table-wrapper td::before{content:attr(data-label);font-weight:600;color:#003581;display:block;font-size:12px;margin-bottom:4px;}
+.projects-members-table-wrapper .form-control{width:100%;}
+}
+
+@media (max-width:480px){
+.projects-members-table-wrapper tr{margin-bottom:12px;}
+.projects-members-table-wrapper td{padding:10px;font-size:13px;}
+.projects-members-table-wrapper td::before{font-size:11px;margin-bottom:2px;}
+.projects-members-table-wrapper .btn{font-size:12px;padding:8px 12px;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="projects-members-header-flex">
         <div>
           <h1 style="margin:0 0 8px 0;">👥 Project Members</h1>
           <div style="color:#6c757d;">Manage team for <strong><?= htmlspecialchars($project['title']) ?></strong> <span style="color:#6c757d;font-family:monospace;">#<?= htmlspecialchars($project['project_code']) ?></span></div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="projects-members-header-buttons">
           <a href="tasks.php?project_id=<?= $project_id ?>" class="btn btn-secondary">✅ Manage Tasks</a>
           <a href="phases.php?project_id=<?= $project_id ?>" class="btn btn-secondary">📋 Manage Phases</a>
           <a href="view.php?id=<?= $project_id ?>&tab=members" class="btn btn-secondary">← Back to Project</a>
@@ -111,7 +168,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <?php require_once __DIR__ . '/../../includes/flash.php'; ?>
 
     <?php if (!empty($errors)): ?>
-      <div style="background:#f8d7da;border:1px solid #f5c6cb;color:#721c24;padding:16px;border-radius:6px;margin-bottom:16px;">
+      <div class="projects-members-error-alert">
         <strong>Fix the following:</strong>
         <ul style="margin:8px 0 0 20px;">
           <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
@@ -122,7 +179,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <!-- Add Member -->
     <div class="card" style="margin-bottom:24px;">
       <h3 style="font-size:18px;font-weight:700;color:#003581;margin-bottom:12px;">➕ Add Member</h3>
-      <form method="post" style="display:grid;grid-template-columns:2fr 1fr auto;gap:12px;align-items:end;">
+      <form method="post" class="projects-members-add-form">
         <input type="hidden" name="action" value="add">
         <div>
           <label style="display:block;font-weight:600;margin-bottom:6px;">User *</label>
@@ -154,6 +211,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <div class="card" style="margin-bottom:24px;">
       <h3 style="font-size:18px;font-weight:700;color:#003581;margin-bottom:12px;">Active Members</h3>
       <?php if ($members): ?>
+        <div class="projects-members-table-wrapper">
         <table class="table">
           <thead>
             <tr>
@@ -167,9 +225,9 @@ require_once __DIR__ . '/../../includes/sidebar.php';
           <tbody>
             <?php foreach ($members as $m): ?>
               <tr>
-                <td style="font-weight:600;color:#1b2a57;"><?= htmlspecialchars($m['username']) ?></td>
-                <td><?= htmlspecialchars($m['email']) ?></td>
-                <td>
+                <td data-label="User" style="font-weight:600;color:#1b2a57;"><?= htmlspecialchars($m['username']) ?></td>
+                <td data-label="Email"><?= htmlspecialchars($m['email']) ?></td>
+                <td data-label="Role">
                   <form method="post" style="display:flex;gap:8px;align-items:center;">
                     <input type="hidden" name="action" value="update_role">
                     <input type="hidden" name="user_id" value="<?= (int)$m['user_id'] ?>">
@@ -181,8 +239,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     <button class="btn btn-primary btn-sm">Save</button>
                   </form>
                 </td>
-                <td><?= date('M j, Y', strtotime($m['joined_at'])) ?></td>
-                <td>
+                <td data-label="Joined"><?= date('M j, Y', strtotime($m['joined_at'])) ?></td>
+                <td data-label="Actions">
                   <form method="post" onsubmit="return confirm('Remove this member?');" style="display:inline-block;">
                     <input type="hidden" name="action" value="remove">
                     <input type="hidden" name="user_id" value="<?= (int)$m['user_id'] ?>">
@@ -193,6 +251,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <?php endforeach; ?>
           </tbody>
         </table>
+        </div>
       <?php else: ?>
         <div style="text-align:center;padding:32px;color:#6c757d;">
           <div style="font-size:40px;">👥</div>
@@ -205,6 +264,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <div class="card">
       <h3 style="font-size:18px;font-weight:700;color:#003581;margin-bottom:12px;">Removed Members</h3>
       <?php if ($removed_members): ?>
+        <div class="projects-members-table-wrapper">
         <table class="table">
           <thead>
             <tr>
@@ -218,11 +278,11 @@ require_once __DIR__ . '/../../includes/sidebar.php';
           <tbody>
             <?php foreach ($removed_members as $m): ?>
               <tr>
-                <td style="font-weight:600;color:#1b2a57;"><?= htmlspecialchars($m['username']) ?></td>
-                <td><?= htmlspecialchars($m['email']) ?></td>
-                <td><?= htmlspecialchars($m['role']) ?></td>
-                <td><?= date('M j, Y g:i A', strtotime($m['removed_at'])) ?></td>
-                <td>
+                <td data-label="User" style="font-weight:600;color:#1b2a57;"><?= htmlspecialchars($m['username']) ?></td>
+                <td data-label="Email"><?= htmlspecialchars($m['email']) ?></td>
+                <td data-label="Role (at removal)"><?= htmlspecialchars($m['role']) ?></td>
+                <td data-label="Removed At"><?= date('M j, Y g:i A', strtotime($m['removed_at'])) ?></td>
+                <td data-label="Actions">
                   <form method="post" style="display:inline-block;">
                     <input type="hidden" name="action" value="restore">
                     <input type="hidden" name="user_id" value="<?= (int)$m['user_id'] ?>">
@@ -234,6 +294,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <?php endforeach; ?>
           </tbody>
         </table>
+        </div>
       <?php else: ?>
         <div style="color:#6c757d;">No removed members.</div>
       <?php endif; ?>

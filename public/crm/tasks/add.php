@@ -13,6 +13,9 @@ if (!$current_employee_id && !$IS_SUPER_ADMIN) {
     die('Unable to identify your employee record.');
 }
 
+// Get permissions
+$tasks_permissions = authz_get_permission_set($conn, 'crm_tasks');
+
 $employees = crm_fetch_employees($conn);
 $leads = [];
 $res = mysqli_query($conn, "SELECT id, name, company_name FROM crm_leads WHERE deleted_at IS NULL ORDER BY name");
@@ -350,17 +353,39 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 }
 </style>
 
+<style>
+.task-add-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.task-add-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.task-add-form-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.task-add-form-grid-1{display:grid;grid-template-columns:1fr;gap:20px;}
+@media (max-width:1024px){.task-add-form-grid-3{grid-template-columns:repeat(2,1fr);gap:16px;}}
+@media (max-width:768px){
+.task-add-header-flex{flex-direction:column;align-items:stretch;}
+.task-add-header-flex > div:first-child h1{font-size:24px;}
+.task-add-header-flex > div:first-child p{font-size:14px;}
+.task-add-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.task-add-header-buttons .btn{width:100%;text-align:center;}
+.task-add-form-grid-3{grid-template-columns:1fr;gap:15px;}
+.card{padding:16px !important;}
+}
+@media (max-width:480px){
+.task-add-header-flex > div:first-child h1{font-size:22px;}
+.task-add-header-flex > div:first-child p{font-size:13px;}
+.card{padding:14px !important;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="task-add-header-flex">
         <div>
           <h1>🧰 Add Task</h1>
           <p>Log a completed task or schedule a future task</p>
         </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div class="task-add-header-buttons">
           <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
-          <a href="<?php echo crm_role_can_manage($user_role) ? 'index.php' : 'my.php'; ?>" class="btn btn-secondary">← All Tasks</a>
+          <a href="<?php echo ($tasks_permissions['can_view_all'] || $IS_SUPER_ADMIN) ? 'index.php' : 'my.php'; ?>" class="btn btn-secondary">← All Tasks</a>
         </div>
       </div>
     </div>
@@ -382,7 +407,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
           🧰 Task Information
         </h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="task-add-form-grid-3">
           <div class="form-group">
             <label for="task_type">Task Type <span style="color: #dc3545;">*</span></label>
             <select id="task_type" name="task_type" class="form-control" required>
@@ -515,7 +540,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
             When marking a task as completed, you must provide task proof image and the system will capture your current location.
           </p>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="task-add-form-grid-3">
           <div class="form-group">
             <label for="task_proof_image">Task Proof Image <span style="color: #dc3545;">*</span></label>
             <input type="file" id="task_proof_image" name="task_proof_image" class="form-control" accept="image/jpeg,image/png,image/jpg">
@@ -547,7 +572,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
           📅 Follow-Up & Additional Details
         </h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="task-add-form-grid-3">
           <div class="form-group">
             <label for="follow_up_date">Follow-Up Date</label>
             <input type="date" id="follow_up_date" name="follow_up_date" class="form-control" value="<?php echo htmlspecialchars($_POST['follow_up_date'] ?? ''); ?>">

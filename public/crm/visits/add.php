@@ -310,15 +310,38 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
 }
 </style>
 
+<style>
+.visit-add-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.visit-add-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.visit-add-form-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.visit-add-form-grid-1{display:grid;grid-template-columns:1fr;gap:20px;}
+
+@media (max-width:1024px){
+.visit-add-form-grid-3{grid-template-columns:repeat(2,1fr);}
+}
+
+@media (max-width:768px){
+.visit-add-header-flex{flex-direction:column;align-items:stretch;}
+.visit-add-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.visit-add-header-buttons .btn{width:100%;text-align:center;}
+.visit-add-form-grid-3{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.visit-add-header-flex h1{font-size:1.5rem;}
+.visit-add-form-grid-3{gap:15px;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="visit-add-header-flex">
         <div>
           <h1>🚗 Add Visit</h1>
           <p>Log a past visit or schedule a future visit</p>
         </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <div class="visit-add-header-buttons">
           <a href="../index.php" class="btn btn-accent">← CRM Dashboard</a>
           <a href="index.php" class="btn btn-secondary">← All Visits</a>
         </div>
@@ -342,7 +365,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
           🚗 Visit Information
         </h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="visit-add-form-grid-3">
           <div class="form-group">
             <label for="visit_type">Visit Type <span style="color: #dc3545;">*</span></label>
             <select id="visit_type" name="visit_type" class="form-control" required>
@@ -460,7 +483,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
             When marking a visit as completed (Logged), you must provide visit proof image and the system will capture your current location.
           </p>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="visit-add-form-grid-3">
           <div class="form-group">
             <label for="visit_proof_image">Visit Proof Image <span style="color: #dc3545;">*</span></label>
             <input type="file" id="visit_proof_image" name="visit_proof_image" class="form-control" accept="image/jpeg,image/png,image/jpg">
@@ -486,7 +509,7 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
           📅 Follow-Up & Additional Details
         </h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <div class="visit-add-form-grid-3">
           <div class="form-group">
             <label for="follow_up_date">Follow-Up Date</label>
             <input type="date" id="follow_up_date" name="follow_up_date" class="form-control" value="<?php echo htmlspecialchars($_POST['follow_up_date'] ?? ''); ?>">

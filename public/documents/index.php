@@ -283,15 +283,30 @@ $page_title = 'Document Vault - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
+<style>
+.docs-header-flex{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;}
+.docs-header-buttons{display:flex;gap:10px;flex-wrap:wrap;}
+
+@media (max-width:768px){
+.docs-header-flex{flex-direction:column;align-items:stretch;}
+.docs-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.docs-header-buttons .btn{width:100%;text-align:center;}
+}
+
+@media (max-width:480px){
+.docs-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;">
+      <div class="docs-header-flex">
         <div>
           <h1>📁 Document Vault</h1>
           <p>Store and share official records with visibility controls.</p>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="docs-header-buttons">
           <?php if ($can_create_document): ?>
             <a href="upload.php" class="btn" style="text-decoration: none;">＋ Upload Document</a>
           <?php endif; ?>

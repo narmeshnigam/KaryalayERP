@@ -45,10 +45,62 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
 <div class="main-wrapper">
+<style>
+.invoices-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.invoices-stats-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:20px;margin-bottom:25px;}
+.invoices-stats-card{text-align:center;color:white;padding:20px;border-radius:8px;}
+.invoices-filter-form{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:15px;align-items:end;}
+.invoices-filter-buttons{display:flex;gap:10px;}
+.invoices-list-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.invoices-table{width:100%;border-collapse:collapse;}
+.invoices-action-buttons{display:flex;gap:8px;justify-content:center;}
+
+@media (max-width:1024px){
+.invoices-stats-grid{grid-template-columns:repeat(3, 1fr);gap:15px;}
+}
+
+@media (max-width:768px){
+.invoices-header-flex{flex-direction:column;align-items:stretch;}
+.invoices-header-flex .btn{width:100%;text-align:center;}
+.invoices-header-flex h1{font-size:1.3rem;}
+.invoices-header-flex p{font-size:13px;}
+.invoices-stats-grid{grid-template-columns:repeat(2, 1fr);gap:12px;margin-bottom:15px;}
+.invoices-stats-card{padding:12px;font-size:12px;}
+.invoices-stats-card div:first-child{font-size:1.8rem;}
+.invoices-filter-form{grid-template-columns:1fr;gap:10px;}
+.invoices-filter-buttons{flex-direction:column;}
+.invoices-filter-buttons button,.invoices-filter-buttons a{width:100%;}
+.invoices-list-header{flex-direction:column;align-items:stretch;gap:10px;margin-bottom:15px;}
+.invoices-list-header h3{margin:0;font-size:1rem;}
+.invoices-table thead th{padding:8px !important;font-size:11px;}
+.invoices-table tbody td{padding:8px !important;font-size:12px;}
+.invoices-action-buttons{flex-wrap:wrap;}
+.invoices-action-buttons .btn{padding:4px 8px;font-size:10px;}
+}
+
+@media (max-width:480px){
+.invoices-header-flex h1{font-size:1.3rem;}
+.invoices-header-flex .btn{padding:10px 16px;font-size:13px;}
+.invoices-stats-grid{grid-template-columns:1fr;gap:10px;}
+.invoices-stats-card{padding:10px;font-size:11px;}
+.invoices-stats-card div:first-child{font-size:1.5rem;}
+.invoices-filter-form{grid-template-columns:1fr;gap:8px;}
+.invoices-filter-form input,.invoices-filter-form select{font-size:16px;}
+.invoices-filter-buttons button,.invoices-filter-buttons a{width:100%;font-size:13px;padding:10px;}
+.invoices-list-header{gap:8px;}
+.invoices-list-header h3{font-size:0.9rem;}
+.invoices-table{font-size:10px;}
+.invoices-table thead th{padding:6px 4px !important;font-size:9px;}
+.invoices-table tbody td{padding:6px 4px !important;font-size:10px;}
+.invoices-action-buttons{flex-direction:column;gap:4px;}
+.invoices-action-buttons .btn{width:100%;padding:6px 8px;font-size:9px;}
+}
+</style>
+
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="invoices-header-flex">
                 <div>
                     <h1>🧾 Invoices</h1>
                     <p>Create, track, and manage client invoices with payments</p>
@@ -83,28 +135,28 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <?php endif; ?>
 
         <!-- Statistics Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 25px;">
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #003581 0%, #004aad 100%); color: white;">
+        <div class="invoices-stats-grid">
+            <div class="invoices-stats-card card" style="background: linear-gradient(135deg, #003581 0%, #004aad 100%);">
                 <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['total_invoices']; ?></div>
                 <div style="font-size: 14px; opacity: 0.9;">Total Invoices</div>
             </div>
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #6c757d 0%, #868e96 100%); color: white;">
+            <div class="invoices-stats-card card" style="background: linear-gradient(135deg, #6c757d 0%, #868e96 100%);">
                 <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['draft_invoices']; ?></div>
                 <div style="font-size: 14px; opacity: 0.9;">Draft</div>
             </div>
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #0066cc 0%, #33aaff 100%); color: white;">
+            <div class="invoices-stats-card card" style="background: linear-gradient(135deg, #0066cc 0%, #33aaff 100%);">
                 <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['issued_invoices']; ?></div>
                 <div style="font-size: 14px; opacity: 0.9;">Issued</div>
             </div>
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #dc3545 0%, #ff6f91 100%); color: white;">
+            <div class="invoices-stats-card card" style="background: linear-gradient(135deg, #dc3545 0%, #ff6f91 100%); color: white;">
                 <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['overdue_invoices']; ?></div>
                 <div style="font-size: 14px; opacity: 0.9;">Overdue</div>
             </div>
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); color: white;">
+            <div class="invoices-stats-card card" style="background: linear-gradient(135deg, #28a745 0%, #34ce57 100%);">
                 <div style="font-size: 32px; font-weight: 700; margin-bottom: 5px;"><?php echo $stats['paid_invoices']; ?></div>
                 <div style="font-size: 14px; opacity: 0.9;">Paid</div>
             </div>
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #ffc107 0%, #ffdb4d 100%); color: #000;">
+            <div class="invoices-stats-card card" style="background: linear-gradient(135deg, #ffc107 0%, #ffdb4d 100%); color: #000;">
                 <div style="font-size: 28px; font-weight: 700; margin-bottom: 5px;">₹<?php echo number_format((float)($stats['outstanding_amount'] ?? 0), 2); ?></div>
                 <div style="font-size: 14px; opacity: 0.8;">Outstanding</div>
             </div>
@@ -112,7 +164,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Search and Filters -->
         <div class="card" style="margin-bottom: 25px;">
-            <form method="GET" action="index.php" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: end;">
+            <form method="GET" action="index.php" class="invoices-filter-form">
                 <div class="form-group" style="margin-bottom: 0;">
                     <label>🔍 Search Invoices</label>
                     <input type="text" name="search" class="form-control" placeholder="Invoice No, Client Name..." value="<?php echo htmlspecialchars($filters['search']); ?>">
@@ -143,7 +195,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </select>
                 </div>
                 
-                <div style="display: flex; gap: 10px;">
+                <div class="invoices-filter-buttons">
                     <button type="submit" class="btn" style="white-space: nowrap;">Search</button>
                     <a href="index.php" class="btn btn-accent" style="white-space: nowrap; text-decoration: none; display: inline-block; text-align: center;">Clear</a>
                 </div>
@@ -152,8 +204,8 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <!-- Invoice List -->
         <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="margin: 0; color: #003581;">
+            <div class="invoices-list-header">
+                <h3 style="color: #003581;">
                     📋 Invoice List 
                     <span style="font-size: 14px; color: #6c757d; font-weight: normal;">(<?php echo count($invoices); ?> records)</span>
                 </h3>
@@ -168,7 +220,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
             <?php if (count($invoices) > 0): ?>
                 <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse;">
+                    <table class="invoices-table">
                         <thead>
                             <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
                                 <th style="padding: 12px; text-align: left; font-weight: 600; color: #003581;">Invoice No</th>
@@ -236,7 +288,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                                         </span>
                                     </td>
                                     <td style="padding: 12px; text-align: center;">
-                                        <div style="display: flex; gap: 8px; justify-content: center;">
+                                        <div class="invoices-action-buttons">
                                             <a href="view.php?id=<?php echo $invoice['id']; ?>" class="btn" style="padding: 6px 12px; font-size: 12px; text-decoration: none;">
                                                 👁️ View
                                             </a>

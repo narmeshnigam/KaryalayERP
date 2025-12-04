@@ -61,10 +61,26 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <div class="main-wrapper">
     <div class="main-content">
-        
+<style>
+.notebook-versions-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.notebook-versions-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.notebook-versions-main-grid{display:grid;grid-template-columns:400px 1fr;gap:24px;}
+
+@media (max-width:768px){
+.notebook-versions-header-flex{flex-direction:column;align-items:stretch;}
+.notebook-versions-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.notebook-versions-header-buttons .btn{width:100%;text-align:center;}
+.notebook-versions-main-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.notebook-versions-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
         <!-- Page Header -->
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div class="notebook-versions-header-flex">
                 <div style="flex: 1;">
                     <h1>📚 Version History</h1>
                     <p>
@@ -72,7 +88,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                         (Current: v<?php echo $note['version']; ?>)
                     </p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="notebook-versions-header-buttons">
                     <a href="index.php" class="btn btn-accent">← Back to Notes</a>
                     <a href="view.php?id=<?php echo $note_id; ?>" class="btn btn-accent">👁️ View Note</a>
                     <?php if (can_edit_note($conn, $note_id, $CURRENT_USER_ID)): ?>
@@ -82,7 +98,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 400px 1fr; gap: 24px;">
+        <div class="notebook-versions-main-grid">
             <!-- Version Timeline -->
             <div>
                 <div class="card">

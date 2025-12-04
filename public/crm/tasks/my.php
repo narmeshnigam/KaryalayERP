@@ -56,15 +56,31 @@ require_once __DIR__ . '/../../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../../includes/sidebar.php';
 ?>
 
+<style>
+.tasks-my-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.tasks-my-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+@media (max-width:768px){
+.tasks-my-header-flex{flex-direction:column;align-items:stretch;}
+.tasks-my-header-flex > div:first-child h1{font-size:24px;}
+.tasks-my-header-flex > div:first-child p{font-size:14px;}
+.tasks-my-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.tasks-my-header-buttons .btn{width:100%;text-align:center;}
+}
+@media (max-width:480px){
+.tasks-my-header-flex > div:first-child h1{font-size:22px;}
+.tasks-my-header-flex > div:first-child p{font-size:13px;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="tasks-my-header-flex">
         <div>
           <h1>🧰 My Tasks</h1>
           <p>Tasks assigned to you</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="tasks-my-header-buttons">
           <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
           <a href="index.php" class="btn btn-accent">🧰 All Tasks</a>
           <a href="add.php" class="btn">➕ New Task</a>

@@ -7,6 +7,7 @@
  */
 
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/../config/db_connect.php';
 // Include config for APP_NAME
 require_once __DIR__ . '/../config/config.php';
 
@@ -44,6 +45,9 @@ if ($conn_favicon) {
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="<?php echo $favicon_url; ?>">
     <link rel="shortcut icon" href="<?php echo $favicon_url; ?>">
+    
+    <!-- Global Stylesheet -->
+    <link rel="stylesheet" href="<?php echo APP_URL; ?>/assets/css/style.css">
     
     <style>
         /* Global Styles */

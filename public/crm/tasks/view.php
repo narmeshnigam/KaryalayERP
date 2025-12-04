@@ -46,15 +46,36 @@ $due = $task['due_date'] ?? null;
 $overdue = ($due && strtotime($due) < strtotime('today') && ($task['status'] ?? '') !== 'Completed');
 ?>
 
+<style>
+.task-view-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.task-view-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.task-view-profile-card{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+.task-view-profile-info{flex:1;min-width:280px;}
+.task-view-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin-top:20px;}
+
+@media (max-width:768px){
+.task-view-header-flex{flex-direction:column;align-items:stretch;}
+.task-view-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.task-view-header-buttons .btn{width:100%;text-align:center;}
+.task-view-profile-card{flex-direction:column;text-align:center;}
+.task-view-profile-info{min-width:100%;}
+.task-view-info-grid{grid-template-columns:1fr;gap:15px;}
+}
+
+@media (max-width:480px){
+.task-view-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+      <div class="task-view-header-flex">
         <div>
           <h1>🧰 Task Details</h1>
           <p>Full task information and timeline</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="task-view-header-buttons">
           <?php if ($tasks_permissions['can_edit_all'] || $IS_SUPER_ADMIN): ?><a href="edit.php?id=<?php echo $task_id; ?>" class="btn">✏️ Edit Task</a><?php endif; ?>
           <a href="<?php echo ($tasks_permissions['can_view_all'] || $IS_SUPER_ADMIN) ? 'index.php' : 'my.php'; ?>" class="btn btn-accent">← Back to List</a>
         </div>
@@ -63,9 +84,9 @@ $overdue = ($due && strtotime($due) < strtotime('today') && ($task['status'] ?? 
 
     <?php echo flash_render(); ?>
 
-    <div class="card" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+    <div class="card task-view-profile-card">
       <div style="width:84px;height:84px;border-radius:50%;background:#003581;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:32px;">🧰</div>
-      <div style="flex:1;min-width:280px;">
+      <div class="task-view-profile-info">
         <div style="font-size:20px;color:#003581;font-weight:700;"><?php echo v($task['title'] ?? 'Untitled Task'); ?></div>
         <div style="color:#6c757d;font-size:13px;margin-top:4px;">Due: <?php echo $due ? htmlspecialchars(date('d M Y', strtotime($due))) : '—'; ?></div>
         <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -76,7 +97,7 @@ $overdue = ($due && strtotime($due) < strtotime('today') && ($task['status'] ?? 
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin-top:20px;">
+    <div class="task-view-info-grid">
       <div class="card">
         <h3 style="color:#003581;margin:0 0 12px;border-bottom:2px solid #003581;padding-bottom:8px;">📝 Task Information</h3>
         <div style="display:grid;gap:12px;font-size:14px;">

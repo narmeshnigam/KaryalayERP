@@ -212,15 +212,36 @@ $page_title = 'Edit Expense - ' . APP_NAME;
 require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
+<style>
+.expense-edit-header-flex{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.expense-edit-header-buttons{display:flex;gap:10px;flex-wrap:wrap;}
+.expense-edit-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;}
+
+@media (max-width:1024px){
+.expense-edit-form-grid{grid-template-columns:repeat(2,1fr);}
+}
+
+@media (max-width:768px){
+.expense-edit-header-flex{flex-direction:column;align-items:stretch;}
+.expense-edit-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.expense-edit-header-buttons .btn{width:100%;text-align:center;}
+.expense-edit-form-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:480px){
+.expense-edit-header-flex h1{font-size:1.5rem;}
+}
+</style>
+
 <div class="main-wrapper">
     <div class="main-content">
         <div class="page-header">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+            <div class="expense-edit-header-flex">
                 <div>
                     <h1>✏️ Update Expense</h1>
                     <p>Edit entry recorded on <?php echo htmlspecialchars(date('d M Y', strtotime($expense['date'])), ENT_QUOTES); ?> by <?php echo $employee_label; ?>.</p>
                 </div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <div class="expense-edit-header-buttons">
                     <a class="btn" style="background:#17a2b8;" href="view.php?id=<?php echo (int) $expense['id']; ?>">👁 View</a>
                     <a class="btn btn-secondary" href="index.php">← Back to Expenses</a>
                 </div>
@@ -241,7 +262,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
         <div class="card" style="padding:24px;">
             <h3 style="margin-top:0;color:#003581;">Expense Details</h3>
-            <form method="post" enctype="multipart/form-data" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;">
+            <form method="post" enctype="multipart/form-data" class="expense-edit-form-grid">
                 <div class="form-group" style="margin:0;">
                     <label for="date">Expense Date <span style="color:#dc3545;">*</span></label>
                     <input type="date" class="form-control" name="date" id="date" value="<?php echo htmlspecialchars($date, ENT_QUOTES); ?>" required>

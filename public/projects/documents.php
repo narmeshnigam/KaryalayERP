@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../includes/auth_check.php';
 require_once __DIR__ . '/helpers.php';
 
 if (!projects_tables_exist($conn)) {
-    header('Location: /KaryalayERP/scripts/setup_projects_tables.php');
+  header('Location: ' . APP_URL . '/scripts/setup_projects_tables.php');
     exit;
 }
 
@@ -94,15 +94,56 @@ require_once __DIR__ . '/../../includes/header_sidebar.php';
 require_once __DIR__ . '/../../includes/sidebar.php';
 ?>
 
+<style>
+.projects-documents-header-flex{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.projects-documents-header-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.projects-documents-filter-form{display:grid;grid-template-columns:1fr 1fr 2fr auto;gap:12px;align-items:end;}
+.projects-documents-upload-form{display:grid;grid-template-columns:2fr 1fr auto;gap:12px;align-items:end;}
+.projects-documents-error-alert{background:#f8d7da;border:1px solid #f5c6cb;color:#721c24;padding:16px;border-radius:6px;margin-bottom:16px;}
+.projects-documents-table-wrapper{overflow-x:auto;}
+
+@media (max-width:1024px){
+.projects-documents-filter-form{grid-template-columns:1fr 1fr;gap:12px;}
+.projects-documents-upload-form{grid-template-columns:1fr 1fr;gap:12px;}
+}
+
+@media (max-width:768px){
+.projects-documents-header-flex{flex-direction:column;align-items:stretch;}
+.projects-documents-header-buttons{width:100%;flex-direction:column;gap:10px;}
+.projects-documents-header-buttons .btn{width:100%;text-align:center;}
+.projects-documents-filter-form{grid-template-columns:1fr;font-size:13px;}
+.projects-documents-filter-form .btn{width:100%;}
+.projects-documents-upload-form{grid-template-columns:1fr;font-size:13px;}
+.projects-documents-upload-form .btn{width:100%;}
+.projects-documents-error-alert{padding:12px;font-size:13px;}
+}
+
+@media (max-width:600px){
+.projects-documents-table-wrapper table{display:block;width:100%;}
+.projects-documents-table-wrapper thead{display:none;}
+.projects-documents-table-wrapper tbody tr{display:block;margin-bottom:20px;border:1px solid #ddd;border-radius:6px;overflow:hidden;}
+.projects-documents-table-wrapper tbody td{display:block;width:100%;padding:12px;border-top:1px solid #f0f0f0;text-align:left;position:relative;padding-left:40%;}
+.projects-documents-table-wrapper tbody td:first-child{border-top:none;padding-left:12px;}
+.projects-documents-table-wrapper tbody td::before{content:attr(data-label);position:absolute;left:12px;top:12px;font-weight:600;color:#003581;width:35%;word-wrap:break-word;}
+.projects-documents-table-wrapper tbody td:first-child::before{content:'';}
+}
+
+@media (max-width:480px){
+.projects-documents-header-flex h1{font-size:1.5rem;}
+.projects-documents-filter-form input,.projects-documents-filter-form select{font-size:16px;}
+.projects-documents-upload-form input,.projects-documents-upload-form select{font-size:16px;}
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="projects-documents-header-flex">
         <div>
           <h1 style="margin:0 0 8px 0;">📎 Project Documents</h1>
           <div style="color:#6c757d;">Manage documents for <strong><?= htmlspecialchars($project['title']) ?></strong> <span style="color:#6c757d;font-family:monospace;">#<?= htmlspecialchars($project['project_code']) ?></span></div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="projects-documents-header-buttons">
           <a href="tasks.php?project_id=<?= $project_id ?>" class="btn btn-secondary">✅ Manage Tasks</a>
           <a href="phases.php?project_id=<?= $project_id ?>" class="btn btn-secondary">📋 Manage Phases</a>
           <a href="members.php?project_id=<?= $project_id ?>" class="btn btn-secondary">👥 Manage Members</a>
@@ -114,7 +155,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <?php require_once __DIR__ . '/../../includes/flash.php'; ?>
 
     <?php if (!empty($errors)): ?>
-      <div style="background:#f8d7da;border:1px solid #f5c6cb;color:#721c24;padding:16px;border-radius:6px;margin-bottom:16px;">
+      <div class="projects-documents-error-alert">
         <strong>Fix the following:</strong>
         <ul style="margin:8px 0 0 20px;">
           <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
@@ -124,7 +165,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
     <!-- Filters -->
     <div class="card" style="margin-bottom:16px;">
-      <form method="get" style="display:grid;grid-template-columns:1fr 1fr 2fr auto;gap:12px;align-items:end;">
+      <form method="get" class="projects-documents-filter-form">
         <input type="hidden" name="project_id" value="<?= $project_id ?>">
         <div>
           <label style="display:block;font-weight:600;margin-bottom:6px;">Status</label>
@@ -156,7 +197,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <!-- Upload -->
     <div class="card" style="margin-bottom:24px;">
       <h3 style="font-size:18px;font-weight:700;color:#003581;margin-bottom:12px;">⬆️ Upload Document</h3>
-      <form method="post" enctype="multipart/form-data" style="display:grid;grid-template-columns:2fr 1fr auto;gap:12px;align-items:end;">
+      <form method="post" enctype="multipart/form-data" class="projects-documents-upload-form">
         <input type="hidden" name="action" value="upload">
         <div>
           <label style="display:block;font-weight:600;margin-bottom:6px;">Choose File *</label>
@@ -177,6 +218,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
     <div class="card">
       <h3 style="font-size:18px;font-weight:700;color:#003581;margin-bottom:12px;">Documents</h3>
       <?php if ($documents): ?>
+        <div class="projects-documents-table-wrapper">
         <table class="table">
           <thead>
             <tr>
@@ -192,7 +234,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
           <tbody>
             <?php foreach ($documents as $d): ?>
               <tr>
-                <td>
+                <td data-label="Document">
                   <div style="display:flex;align-items:center;gap:8px;">
                     <span style="font-size:22px;">📄</span>
                     <div>
@@ -201,16 +243,16 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </div>
                   </div>
                 </td>
-                <td><?= htmlspecialchars((string)$d['doc_type']) ?></td>
-                <td>v<?= (int)$d['version'] ?></td>
-                <td>
+                <td data-label="Type"><?= htmlspecialchars((string)$d['doc_type']) ?></td>
+                <td data-label="Version">v<?= (int)$d['version'] ?></td>
+                <td data-label="Status">
                   <span class="badge" style="background:<?= $d['is_active']?'#28a745':'#6c757d' ?>;">
                     <?= $d['is_active'] ? 'Active' : 'Inactive' ?>
                   </span>
                 </td>
-                <td><?= htmlspecialchars($d['uploaded_by_name']) ?></td>
-                <td><?= date('M j, Y g:i A', strtotime($d['uploaded_at'])) ?></td>
-                <td style="white-space:nowrap;">
+                <td data-label="Uploaded By"><?= htmlspecialchars($d['uploaded_by_name']) ?></td>
+                <td data-label="Date"><?= date('M j, Y g:i A', strtotime($d['uploaded_at'])) ?></td>
+                <td data-label="Actions" style="white-space:nowrap;">
                   <a href="<?= htmlspecialchars($d['file_path']) ?>" class="btn btn-sm btn-primary" download>⬇️ Download</a>
                   <?php if ($d['is_active']): ?>
                     <form method="post" style="display:inline-block;margin-left:6px;" onsubmit="return confirm('Deactivate this document?');">
@@ -230,6 +272,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
             <?php endforeach; ?>
           </tbody>
         </table>
+        </div>
       <?php else: ?>
         <div style="text-align:center;padding:32px;color:#6c757d;">
           <div style="font-size:40px;">📎</div>

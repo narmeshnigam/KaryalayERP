@@ -305,16 +305,63 @@ foreach ($all_my_leads as $lead) {
 
 $statuses = crm_lead_statuses();
 ?>
+
+<style>
+.my-leads-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.my-leads-header-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .my-leads-header-flex {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .my-leads-header-flex > div:first-child h1 {
+    font-size: 24px;
+  }
+  .my-leads-header-flex > div:first-child p {
+    font-size: 14px;
+  }
+  .my-leads-header-buttons {
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .my-leads-header-buttons .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .my-leads-header-flex > div:first-child h1 {
+    font-size: 22px;
+  }
+  .my-leads-header-flex > div:first-child p {
+    font-size: 13px;
+  }
+}
+</style>
+
 <div class="main-wrapper">
   <div class="main-content">
     <!-- Page Header -->
     <div class="page-header">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div class="my-leads-header-flex">
         <div>
           <h1>📌 My Leads</h1>
           <p>Review assigned leads, progress them, and plan follow-ups</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="my-leads-header-buttons">
           <a href="../index.php" class="btn btn-secondary">← CRM Dashboard</a>
           <a href="index.php" class="btn btn-accent">📇 All Leads</a>
           <a href="add.php" class="btn">➕ Add Lead</a>

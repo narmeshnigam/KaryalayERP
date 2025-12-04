@@ -9,7 +9,7 @@ require_once __DIR__ . '/helpers.php';
 
 // Check if tables exist
 if (!quotations_tables_exist($conn)) {
-    header('Location: ../../scripts/setup_quotations_tables.php');
+    header('Location: ' . APP_URL . '/scripts/setup_quotations_tables.php');
     exit;
 }
 
