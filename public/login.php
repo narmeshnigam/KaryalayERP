@@ -208,7 +208,7 @@ include __DIR__ . '/../includes/header.php';
                 // Use branding logo if available, otherwise fall back to default
                 $logo_url = !empty($branding_logo) ? $branding_logo : APP_URL . '/assets/logo/logo_white_bg.png';
             ?>
-            <img src="<?php echo $logo_url; ?>" alt="<?php echo APP_NAME; ?>" class="login-logo">
+            <img src="<?php echo $logo_url; ?>" alt="<?php echo APP_NAME; ?>" class="login-logo" style="max-width:220px; max-height:80px; width:auto; height:auto; display:block; margin:0 auto; object-fit:contain;">
             <p class="login-subtitle">Please login to continue</p>
         </div>
         
