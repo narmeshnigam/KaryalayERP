@@ -39,6 +39,7 @@ if ($conn->query($sql_master) === TRUE) {
 // Table 2: payroll_items
 $sql_items = "CREATE TABLE IF NOT EXISTS payroll_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    transaction_number VARCHAR(32) NOT NULL UNIQUE,
     payroll_id INT NOT NULL,
     employee_id INT NOT NULL,
     item_type ENUM('Salary','Reimbursement') NOT NULL,

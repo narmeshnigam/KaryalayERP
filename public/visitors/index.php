@@ -85,7 +85,8 @@ $stats_stmt = mysqli_prepare($conn, $stats_sql);
 $total_visitors = 0;
 $checked_out_count = 0;
 if ($stats_stmt) {
-  visitor_logs_stmt_bind($stats_stmt, $stats_types, $stats_params);
+  $stats_params_ref = $stats_params;
+  visitor_logs_stmt_bind($stats_stmt, $stats_types, $stats_params_ref);
   mysqli_stmt_execute($stats_stmt);
   $stats_res = mysqli_stmt_get_result($stats_stmt);
   if ($stats_row = mysqli_fetch_assoc($stats_res)) {
@@ -110,7 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($checkout_id > 0) {
       $stmt = mysqli_prepare($conn, 'SELECT check_in_time, check_out_time, added_by FROM visitor_logs WHERE id = ? AND deleted_at IS NULL LIMIT 1');
       if ($stmt) {
-        visitor_logs_stmt_bind($stmt, 'i', [$checkout_id]);
+        $checkout_params = [$checkout_id];
+        visitor_logs_stmt_bind($stmt, 'i', $checkout_params);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
         $log = mysqli_fetch_assoc($result);
@@ -129,7 +131,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
               $update = mysqli_prepare($conn, 'UPDATE visitor_logs SET check_out_time = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
               if ($update) {
-                visitor_logs_stmt_bind($update, 'si', [$now, $checkout_id]);
+                $update_params = [$now, $checkout_id];
+                visitor_logs_stmt_bind($update, 'si', $update_params);
                 if (mysqli_stmt_execute($update)) {
                   flash_add('success', 'Visitor checked out successfully.', 'visitors');
                 } else {
@@ -155,7 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($delete_id > 0 && $can_archive) {
       $check_stmt = mysqli_prepare($conn, 'SELECT added_by FROM visitor_logs WHERE id = ? AND deleted_at IS NULL LIMIT 1');
       if ($check_stmt) {
-        visitor_logs_stmt_bind($check_stmt, 'i', [$delete_id]);
+        $check_params = [$delete_id];
+        visitor_logs_stmt_bind($check_stmt, 'i', $check_params);
         mysqli_stmt_execute($check_stmt);
         $check_result = mysqli_stmt_get_result($check_stmt);
         $record = mysqli_fetch_assoc($check_result);
@@ -165,7 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($record && ($IS_SUPER_ADMIN || $can_edit_all || ($can_edit_own && $is_owner))) {
           $delete_stmt = mysqli_prepare($conn, 'UPDATE visitor_logs SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL');
           if ($delete_stmt) {
-            visitor_logs_stmt_bind($delete_stmt, 'i', [$delete_id]);
+            $delete_params = [$delete_id];
+            visitor_logs_stmt_bind($delete_stmt, 'i', $delete_params);
             if (mysqli_stmt_execute($delete_stmt) && mysqli_stmt_affected_rows($delete_stmt) > 0) {
               flash_add('success', 'Visitor entry archived successfully.', 'visitors');
             } else {
@@ -225,7 +230,8 @@ $sql = "SELECT vl.id, vl.visitor_name, vl.phone, vl.purpose, vl.check_in_time, v
 $stmt = mysqli_prepare($conn, $sql);
 $visitor_rows = [];
 if ($stmt) {
-  visitor_logs_stmt_bind($stmt, $types, $params);
+  $params_ref = $params;
+  visitor_logs_stmt_bind($stmt, $types, $params_ref);
   mysqli_stmt_execute($stmt);
   $result = mysqli_stmt_get_result($stmt);
   while ($row = mysqli_fetch_assoc($result)) {

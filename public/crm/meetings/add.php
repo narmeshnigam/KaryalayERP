@@ -171,7 +171,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (in_array('created_by', $existing_cols, true)) {
-            $data['created_by'] = $current_employee_id > 0 ? $current_employee_id : null;
+            if ($current_employee_id > 0) {
+                $data['created_by'] = $current_employee_id;
+            } elseif (isset($CURRENT_USER_ID) && $CURRENT_USER_ID > 0) {
+                $data['created_by'] = $CURRENT_USER_ID;
+            } else {
+                $errors[] = 'Unable to determine the user for created_by. Please re-login.';
+            }
         }
 
         if (in_array('location', $existing_cols, true)) {

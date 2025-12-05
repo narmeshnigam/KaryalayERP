@@ -1,4 +1,5 @@
 <?php
+ob_start();
 /**
  * Salary Viewer - Upload form for admins/accountants.
  */

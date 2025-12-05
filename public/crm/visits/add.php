@@ -183,8 +183,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = [
             'title' => $title,
             'visit_date' => $visit_date,
-            'created_by' => $current_employee_id
+            'created_by' => ($current_employee_id > 0) ? $current_employee_id : ((isset($CURRENT_USER_ID) && $CURRENT_USER_ID > 0) ? $CURRENT_USER_ID : null)
         ];
+
+          if ($data['created_by'] === null) {
+            $errors[] = 'Unable to determine the user for created_by. Please re-login.';
+          }
 
         // Add optional columns if they exist
         if (in_array('description', $existing_cols)) $data['description'] = $description !== '' ? $description : null;
