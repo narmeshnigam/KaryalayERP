@@ -2,27 +2,26 @@
 /**
  * Employee Module Database Setup
  * Creates employees table with comprehensive fields
+ * 
+ * This script can be:
+ * 1. Called directly via browser for interactive setup
+ * 2. Invoked programmatically via setup_employees_module() function
  */
 
-session_start();
-require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../config/db_connect.php';
-
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../public/login.php');
-    exit;
-}
-
-// Page title for header
-$page_title = "Employee Module - Database Setup";
-
-// Include header with sidebar
-require_once __DIR__ . '/../includes/header_sidebar.php';
-require_once __DIR__ . '/../includes/sidebar.php';
-
-function setupEmployeesTable() {
-    $conn = createConnection(true);
+/**
+ * Setup the employees module tables
+ * 
+ * @param mysqli|null $conn Optional database connection. If null, creates one.
+ * @return array Result with 'success' (bool) and 'message' (string)
+ */
+function setup_employees_module(?mysqli $conn = null): array {
+    $should_close = false;
+    
+    if ($conn === null) {
+        require_once __DIR__ . '/../config/db_connect.php';
+        $conn = createConnection(true);
+        $should_close = true;
+    }
     
     if (!$conn) {
         return ['success' => false, 'message' => 'Database connection failed'];
@@ -34,7 +33,8 @@ function setupEmployeesTable() {
         $result = mysqli_query($conn, $check_query);
         
         if (mysqli_num_rows($result) > 0) {
-            return ['success' => false, 'message' => 'Employees table already exists!'];
+            if ($should_close) closeConnection($conn);
+            return ['success' => true, 'message' => 'Employees table already exists.', 'already_exists' => true];
         }
         
         // Create employees table with comprehensive fields
@@ -153,157 +153,180 @@ function setupEmployeesTable() {
             INDEX idx_date_of_joining (date_of_joining)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Employee Master Table'";
         
-        if (mysqli_query($conn, $create_table)) {
-            // Create departments table
-            $create_departments = "CREATE TABLE IF NOT EXISTS departments (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                department_name VARCHAR(100) UNIQUE NOT NULL,
-                department_code VARCHAR(20) UNIQUE NOT NULL,
-                head_of_department INT DEFAULT NULL,
-                description TEXT DEFAULT NULL,
-                status ENUM('Active', 'Inactive') DEFAULT 'Active',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_status (status)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-            
-            mysqli_query($conn, $create_departments);
-            
-            // Create designations table
-            $create_designations = "CREATE TABLE IF NOT EXISTS designations (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                designation_name VARCHAR(100) UNIQUE NOT NULL,
-                designation_code VARCHAR(20) UNIQUE NOT NULL,
-                department_id INT DEFAULT NULL,
-                level VARCHAR(50) DEFAULT NULL,
-                description TEXT DEFAULT NULL,
-                status ENUM('Active', 'Inactive') DEFAULT 'Active',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_status (status)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-            
-            mysqli_query($conn, $create_designations);
-            
-            // Insert sample departments
-            $sample_departments = [
-                ['IT', 'IT001', 'Information Technology'],
-                ['HR', 'HR001', 'Human Resources'],
-                ['Finance', 'FIN001', 'Finance & Accounts'],
-                ['Sales', 'SAL001', 'Sales & Marketing'],
-                ['Operations', 'OPS001', 'Operations'],
-                ['Admin', 'ADM001', 'Administration']
-            ];
-            
-            foreach ($sample_departments as $dept) {
-                $stmt = mysqli_prepare($conn, "INSERT INTO departments (department_name, department_code, description) VALUES (?, ?, ?)");
-                mysqli_stmt_bind_param($stmt, 'sss', $dept[0], $dept[1], $dept[2]);
-                mysqli_stmt_execute($stmt);
-                mysqli_stmt_close($stmt);
-            }
-            
-            // Insert sample designations
-            $sample_designations = [
-                ['Manager', 'MGR', 'Manager'],
-                ['Senior Executive', 'SREX', 'Senior Executive'],
-                ['Executive', 'EXE', 'Executive'],
-                ['Team Leader', 'TL', 'Team Leader'],
-                ['Developer', 'DEV', 'Developer'],
-                ['HR Executive', 'HREX', 'HR Executive'],
-                ['Accountant', 'ACC', 'Accountant'],
-                ['Sales Executive', 'SALEX', 'Sales Executive']
-            ];
-            
-            foreach ($sample_designations as $desig) {
-                $stmt = mysqli_prepare($conn, "INSERT INTO designations (designation_name, designation_code, level) VALUES (?, ?, ?)");
-                mysqli_stmt_bind_param($stmt, 'sss', $desig[0], $desig[1], $desig[2]);
-                mysqli_stmt_execute($stmt);
-                mysqli_stmt_close($stmt);
-            }
-            
-            closeConnection($conn);
-            return [
-                'success' => true, 
-                'message' => 'Employee module database setup completed successfully! Created tables: employees, departments, designations with sample data.'
-            ];
-        } else {
-            closeConnection($conn);
-            return ['success' => false, 'message' => 'Error creating employees table: ' . mysqli_error($conn)];
+        if (!mysqli_query($conn, $create_table)) {
+            $error = mysqli_error($conn);
+            if ($should_close) closeConnection($conn);
+            return ['success' => false, 'message' => 'Error creating employees table: ' . $error];
         }
         
+        // Create departments table
+        $create_departments = "CREATE TABLE IF NOT EXISTS departments (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            department_name VARCHAR(100) UNIQUE NOT NULL,
+            department_code VARCHAR(20) UNIQUE NOT NULL,
+            head_of_department INT DEFAULT NULL,
+            description TEXT DEFAULT NULL,
+            status ENUM('Active', 'Inactive') DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_status (status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        
+        mysqli_query($conn, $create_departments);
+        
+        // Create designations table
+        $create_designations = "CREATE TABLE IF NOT EXISTS designations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            designation_name VARCHAR(100) UNIQUE NOT NULL,
+            designation_code VARCHAR(20) UNIQUE NOT NULL,
+            department_id INT DEFAULT NULL,
+            level VARCHAR(50) DEFAULT NULL,
+            description TEXT DEFAULT NULL,
+            status ENUM('Active', 'Inactive') DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_status (status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        
+        mysqli_query($conn, $create_designations);
+        
+        // Insert sample departments
+        $sample_departments = [
+            ['IT', 'IT001', 'Information Technology'],
+            ['HR', 'HR001', 'Human Resources'],
+            ['Finance', 'FIN001', 'Finance & Accounts'],
+            ['Sales', 'SAL001', 'Sales & Marketing'],
+            ['Operations', 'OPS001', 'Operations'],
+            ['Admin', 'ADM001', 'Administration']
+        ];
+        
+        foreach ($sample_departments as $dept) {
+            $stmt = mysqli_prepare($conn, "INSERT IGNORE INTO departments (department_name, department_code, description) VALUES (?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, 'sss', $dept[0], $dept[1], $dept[2]);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        }
+        
+        // Insert sample designations
+        $sample_designations = [
+            ['Manager', 'MGR', 'Manager'],
+            ['Senior Executive', 'SREX', 'Senior Executive'],
+            ['Executive', 'EXE', 'Executive'],
+            ['Team Leader', 'TL', 'Team Leader'],
+            ['Developer', 'DEV', 'Developer'],
+            ['HR Executive', 'HREX', 'HR Executive'],
+            ['Accountant', 'ACC', 'Accountant'],
+            ['Sales Executive', 'SALEX', 'Sales Executive']
+        ];
+        
+        foreach ($sample_designations as $desig) {
+            $stmt = mysqli_prepare($conn, "INSERT IGNORE INTO designations (designation_name, designation_code, level) VALUES (?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, 'sss', $desig[0], $desig[1], $desig[2]);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        }
+        
+        if ($should_close) closeConnection($conn);
+        return [
+            'success' => true, 
+            'message' => 'Employee module database setup completed successfully! Created tables: employees, departments, designations with sample data.',
+            'tables_created' => ['employees', 'departments', 'designations']
+        ];
+        
     } catch (Exception $e) {
-        closeConnection($conn);
+        if ($should_close) closeConnection($conn);
         return ['success' => false, 'message' => 'Exception: ' . $e->getMessage()];
     }
 }
 
-// Run setup if form submitted
-$result = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $result = setupEmployeesTable();
-}
-?>
+// Only run interactive UI when accessed directly via browser
+if (!defined('AJAX_MODULE_INSTALL') && basename($_SERVER['SCRIPT_FILENAME'] ?? '') === basename(__FILE__)) {
+    session_start();
+    require_once __DIR__ . '/../config/config.php';
+    require_once __DIR__ . '/../config/db_connect.php';
 
-<div class="main-wrapper">
-    <div class="main-content">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1>👥 Employee Module Setup</h1>
-                    <p>Create database tables for Employee Management</p>
+    // Check if user is logged in
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: ../public/login.php');
+        exit;
+    }
+
+    // Page title for header
+    $page_title = "Employee Module - Database Setup";
+
+    // Include header with sidebar
+    require_once __DIR__ . '/../includes/header_sidebar.php';
+    require_once __DIR__ . '/../includes/sidebar.php';
+
+    // Run setup if form submitted
+    $result = null;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $result = setup_employees_module();
+    }
+    ?>
+
+    <div class="main-wrapper">
+        <div class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>👥 Employee Module Setup</h1>
+                        <p>Create database tables for Employee Management</p>
+                    </div>
+                    <div>
+                        <a href="../public/index.php" class="btn btn-accent">
+                            ← Back to Dashboard
+                        </a>
+                    </div>
                 </div>
-                <div>
-                    <a href="../public/index.php" class="btn btn-accent">
-                        ← Back to Dashboard
+            </div>
+
+    <div class="card" style="max-width: 800px; margin: 0 auto;">
+        <?php if ($result): ?>
+            <div class="alert <?php echo $result['success'] ? 'alert-success' : 'alert-error'; ?>">
+                <?php echo htmlspecialchars($result['message']); ?>
+            </div>
+            
+            <?php if ($result['success']): ?>
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="../public/employee/index.php" class="btn" style="padding: 15px 40px; font-size: 16px;">
+                        Go to Employee Module
                     </a>
                 </div>
-            </div>
-        </div>
-
-<div class="card" style="max-width: 800px; margin: 0 auto;">
-    <?php if ($result): ?>
-        <div class="alert <?php echo $result['success'] ? 'alert-success' : 'alert-error'; ?>">
-            <?php echo htmlspecialchars($result['message']); ?>
-        </div>
-        
-        <?php if ($result['success']): ?>
-            <div style="text-align: center; margin-top: 30px;">
-                <a href="../public/employee/index.php" class="btn" style="padding: 15px 40px; font-size: 16px;">
-                    Go to Employee Module
-                </a>
-            </div>
+            <?php else: ?>
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="../public/index.php" class="btn btn-accent">Back to Dashboard</a>
+                </div>
+            <?php endif; ?>
         <?php else: ?>
-            <div style="text-align: center; margin-top: 30px;">
-                <a href="../public/index.php" class="btn btn-accent">Back to Dashboard</a>
+            <div class="alert alert-info">
+                <strong>ℹ️ Setup Information</strong><br>
+                This will create the following database tables:<br><br>
+                <strong>1. employees</strong> - Main employee master table with 70+ fields<br>
+                <strong>2. departments</strong> - Department master with sample data<br>
+                <strong>3. designations</strong> - Designation master with sample data<br><br>
+                Click below to create these tables.
             </div>
+
+            <form method="POST" style="text-align: center; margin-top: 30px;">
+                <button type="submit" class="btn" style="padding: 15px 40px; font-size: 16px;">
+                    🚀 Create Employee Module Tables
+                </button>
+            </form>
         <?php endif; ?>
-    <?php else: ?>
-        <div class="alert alert-info">
-            <strong>ℹ️ Setup Information</strong><br>
-            This will create the following database tables:<br><br>
-            <strong>1. employees</strong> - Main employee master table with 70+ fields<br>
-            <strong>2. departments</strong> - Department master with sample data<br>
-            <strong>3. designations</strong> - Designation master with sample data<br><br>
-            Click below to create these tables.
+        
+        <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px; font-size: 13px; color: #6c757d;">
+            <strong>📋 Tables to be created:</strong><br>
+            • <strong>employees:</strong> Personal, Contact, Employment, Salary, Bank, Documents, Education, Experience<br>
+            • <strong>departments:</strong> IT, HR, Finance, Sales, Operations, Admin<br>
+            • <strong>designations:</strong> Manager, Executive, Team Leader, Developer, etc.
         </div>
-
-        <form method="POST" style="text-align: center; margin-top: 30px;">
-            <button type="submit" class="btn" style="padding: 15px 40px; font-size: 16px;">
-                🚀 Create Employee Module Tables
-            </button>
-        </form>
-    <?php endif; ?>
-    
-    <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px; font-size: 13px; color: #6c757d;">
-        <strong>📋 Tables to be created:</strong><br>
-        • <strong>employees:</strong> Personal, Contact, Employment, Salary, Bank, Documents, Education, Experience<br>
-        • <strong>departments:</strong> IT, HR, Finance, Sales, Operations, Admin<br>
-        • <strong>designations:</strong> Manager, Executive, Team Leader, Developer, etc.
     </div>
-</div>
 
+        </div>
     </div>
-</div>
 
-<?php require_once __DIR__ . '/../includes/footer_sidebar.php'; ?>
+    <?php 
+    require_once __DIR__ . '/../includes/footer_sidebar.php';
+}

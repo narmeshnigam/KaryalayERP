@@ -5,24 +5,54 @@
  */
 
 /**
+ * Define mandatory base modules that must always be installed
+ * These modules are required for the system to function properly
+ */
+function get_mandatory_modules(): array {
+    return ['employees', 'catalog'];
+}
+
+/**
  * Define module dependencies
- * Format: 'module_name' => ['prerequisite_table1', 'prerequisite_table2']
+ * Format: 'module_name' => ['prerequisite_module1', 'prerequisite_module2']
  */
 function get_module_dependencies(): array {
     return [
-        'employees' => [],  // No dependencies - base module
-        'users' => [],      // No dependencies - base module
-        'clients' => [],    // No dependencies - base module
+        // Base modules - no dependencies
+        'employees' => [],
+        'users' => [],
+        'clients' => [],
+        'catalog' => [],
+        'branding' => [],
+        
+        // HR modules - depend on employees
         'attendance' => ['employees'],
         'salary' => ['employees'],
-        'documents' => ['employees'],
         'reimbursements' => ['employees'],
-        'office_expenses' => ['employees'],
+        'payroll' => ['employees', 'salary'],
+        
+        // Document & utility modules
+        'documents' => ['employees'],
         'visitors' => ['employees'],
+        'notebook' => [],
+        'assets' => ['employees'],
+        'data-transfer' => [],
+        
+        // Finance modules - depend on catalog and clients
+        'invoices' => ['catalog', 'clients'],
+        'quotations' => ['catalog', 'clients'],
+        'payments' => ['invoices', 'clients'],
+        'expenses' => ['employees'],
+        
+        // CRM modules
         'crm' => ['employees'],
-        'branding' => [],  // Optional dependency on employees for created_by FK
-        'projects' => ['clients'],  // Requires clients module
-        'workorders' => ['employees', 'clients']  // Requires employees and clients
+        'contacts' => [],
+        
+        // Operations modules
+        'projects' => ['clients'],
+        'workorders' => ['employees', 'clients'],
+        'deliverables' => [],
+        'delivery' => ['clients']
     ];
 }
 
@@ -70,14 +100,16 @@ function get_module_setup_paths(): array {
 /**
  * Check if a table exists in the database
  */
-function table_exists(mysqli $conn, string $table_name): bool {
-    $table_esc = mysqli_real_escape_string($conn, $table_name);
-    $result = @mysqli_query($conn, "SHOW TABLES LIKE '$table_esc'");
-    $exists = ($result && mysqli_num_rows($result) > 0);
-    if ($result) {
-        mysqli_free_result($result);
+if (!function_exists('table_exists')) {
+    function table_exists(mysqli $conn, string $table_name): bool {
+        $table_esc = mysqli_real_escape_string($conn, $table_name);
+        $result = @mysqli_query($conn, "SHOW TABLES LIKE '$table_esc'");
+        $exists = ($result && mysqli_num_rows($result) > 0);
+        if ($result) {
+            mysqli_free_result($result);
+        }
+        return $exists;
     }
-    return $exists;
 }
 
 /**

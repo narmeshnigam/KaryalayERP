@@ -47,6 +47,9 @@ The Payroll Module streamlines salary and reimbursement processing with integrat
 <a href="<?php echo APP_URL; ?>/scripts/setup_payroll_tables.php" style="display:inline-block;padding:16px 32px;background:#003581;color:white;text-decoration:none;border-radius:8px;font-size:16px;font-weight:600"> Run Setup Now</a>
 <a href="<?php echo APP_URL; ?>/public/index.php" style="display:inline-block;padding:16px 32px;background:#6c757d;color:white;text-decoration:none;border-radius:8px;font-size:16px;font-weight:600;margin-left:10px"> Back to Dashboard</a>
 </div>
+<div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb;font-size:13px;color:#6c757d;text-align:center">
+<p style="margin:0"><strong>Tip:</strong> You can also install multiple modules at once using the <a href="<?php echo APP_URL; ?>/setup/module_installer.php?from=settings" style="color:#003581;text-decoration:underline">Unified Module Installer</a></p>
+</div>
 <div style="background:#fff3cd;padding:20px;border-radius:8px;border-left:4px solid #ffc107;margin-top:40px">
 <h4 style="color:#856404;margin:0 0 10px 0"> Prerequisites:</h4>
 <p style="color:#856404;margin:0;font-size:14px">

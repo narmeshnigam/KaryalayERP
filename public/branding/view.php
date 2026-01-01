@@ -9,7 +9,88 @@ require_once __DIR__ . '/helpers.php';
 
 // Check if module is set up
 if (!branding_table_exists($conn)) {
-    echo '<div class="main-wrapper"><div class="main-content"><div class="alert alert-warning">Branding module is not configured yet.</div></div></div>';
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Branding Module Not Installed - <?php echo APP_NAME; ?></title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+            .container {
+                background: white;
+                border-radius: 16px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                max-width: 600px;
+                width: 100%;
+                padding: 40px;
+                text-align: center;
+            }
+            h1 {
+                color: #2d3748;
+                margin-bottom: 10px;
+                font-size: 28px;
+            }
+            .icon {
+                font-size: 64px;
+                margin-bottom: 20px;
+            }
+            .message {
+                color: #4a5568;
+                margin-bottom: 30px;
+                font-size: 16px;
+                line-height: 1.6;
+            }
+            .btn {
+                padding: 12px 24px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 500;
+                display: inline-block;
+                transition: all 0.3s;
+                margin: 5px;
+            }
+            .btn-primary {
+                background: #667eea;
+                color: white;
+            }
+            .btn-primary:hover {
+                background: #5568d3;
+                transform: translateY(-2px);
+            }
+            .btn-secondary {
+                background: #e2e8f0;
+                color: #2d3748;
+            }
+            .btn-secondary:hover {
+                background: #cbd5e0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="icon">🎨</div>
+            <h1>Branding Module Not Installed</h1>
+            <p class="message">
+                The branding settings table has not been created yet.<br>
+                Please install the Branding module to customize your organization's branding.
+            </p>
+            <a href="<?php echo APP_URL; ?>/scripts/setup_branding_table.php" class="btn btn-primary">Install Branding Module</a>
+            <a href="<?php echo APP_URL; ?>/public/index.php" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </body>
+    </html>
+    <?php
     exit;
 }
 

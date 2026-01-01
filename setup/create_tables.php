@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_tables'])) {
             id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             user_id INT NOT NULL,
             ip_address VARCHAR(45) NULL,
-            device VARCHAR(100) NULL,
+            device VARCHAR(255) NULL COMMENT 'User agent string - truncated if needed',
             login_time DATETIME NOT NULL,
             status ENUM('Success','Failed') NOT NULL DEFAULT 'Success',
             failure_reason VARCHAR(255) NULL,

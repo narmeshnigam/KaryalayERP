@@ -198,7 +198,21 @@ $nav_items = [
         'label' => 'Work Orders',
         'link' => APP_URL . '/public/workorders/index.php',
         'active' => (strpos($current_path, '/workorders/') !== false),
-        'requires' => ['table' => 'work_orders', 'permission' => 'read']
+        'requires' => ['table' => 'work_orders', 'permission' => 'view_all']
+    ],
+    [
+        'icon' => 'documents.png',
+        'label' => 'Deliverables',
+        'link' => APP_URL . '/public/deliverables/index.php',
+        'active' => (strpos($current_path, '/deliverables/') !== false),
+        'requires' => ['table' => 'deliverables', 'permission' => 'view']
+    ],
+    [
+        'icon' => 'documents.png',
+        'label' => 'Delivery',
+        'link' => APP_URL . '/public/delivery/index.php',
+        'active' => (strpos($current_path, '/delivery/') !== false),
+        'requires' => ['table' => 'deliveries', 'permission' => 'view']
     ],
     [
         'icon' => 'catalog.png',
@@ -229,13 +243,6 @@ $nav_items = [
         'requires' => ['table' => 'payments', 'permission' => 'view_all']
     ],
     [
-        'icon' => 'payroll.png',
-        'label' => 'Payroll',
-        'link' => APP_URL . '/public/payroll/index.php',
-        'active' => (strpos($current_path, '/payroll/') !== false),
-        'requires' => ['table' => 'payroll_master', 'permission' => 'view_all']
-    ],
-    [
         'icon' => 'data transfer.png',
         'label' => 'Data Transfer',
         'link' => APP_URL . '/public/data-transfer/index.php',
@@ -255,6 +262,18 @@ $nav_items = [
         'link' => APP_URL . '/public/branding/view.php',
         'active' => (strpos($current_path, '/branding/') !== false),
         'requires' => ['table' => 'branding_settings', 'permission' => 'view_all']
+    ],
+    [
+        'icon' => 'roles_permissions.png',
+        'label' => 'Settings',
+        'link' => APP_URL . '/public/settings/index.php',
+        'active' => (strpos($current_path, '/settings/index.php') !== false),
+        'requires_any' => [
+            ['table' => 'roles', 'permission' => 'view_all'],
+            ['table' => 'permissions', 'permission' => 'view_all'],
+            ['table' => 'users', 'permission' => 'view_all'],
+            ['table' => 'branding_settings', 'permission' => 'view_all']
+        ]
     ],
     [
         'icon' => 'roles_permissions.png',

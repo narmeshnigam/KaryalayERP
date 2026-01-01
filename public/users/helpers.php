@@ -245,6 +245,21 @@ function email_exists($conn, $email, $exclude_user_id = null) {
  * @return int|false User ID on success, false on failure
  */
 function create_user($conn, $data) {
+    // Convert empty entity_type to NULL for ENUM compatibility
+    if (empty($data['entity_type'])) {
+        $data['entity_type'] = null;
+    }
+    
+    // Convert empty entity_id to NULL
+    if (empty($data['entity_id'])) {
+        $data['entity_id'] = null;
+    }
+    
+    // Ensure status has a valid value
+    if (empty($data['status']) || !in_array($data['status'], ['Active', 'Inactive', 'Suspended'])) {
+        $data['status'] = 'Active';
+    }
+    
     // Insert into users table (note: role is managed via user_roles table)
     $sql = "
         INSERT INTO users (
@@ -258,7 +273,7 @@ function create_user($conn, $data) {
     if ($stmt) {
         mysqli_stmt_bind_param(
             $stmt,
-            'issssssii',
+            'isssssssi',
             $data['entity_id'],
             $data['entity_type'],
             $data['username'],
@@ -317,6 +332,23 @@ function assign_role_to_user($conn, $user_id, $role_id, $assigned_by = null) {
  * @return bool True on success
  */
 function update_user($conn, $user_id, $data) {
+    // Convert empty entity_type to NULL for ENUM compatibility
+    if (array_key_exists('entity_type', $data) && empty($data['entity_type'])) {
+        $data['entity_type'] = null;
+    }
+    
+    // Convert empty entity_id to NULL
+    if (array_key_exists('entity_id', $data) && empty($data['entity_id'])) {
+        $data['entity_id'] = null;
+    }
+    
+    // Ensure status has a valid value if provided
+    if (array_key_exists('status', $data)) {
+        if (empty($data['status']) || !in_array($data['status'], ['Active', 'Inactive', 'Suspended'])) {
+            $data['status'] = 'Active';
+        }
+    }
+    
     $set_clauses = [];
     $params = [];
     $types = '';
@@ -435,6 +467,28 @@ function update_last_login($conn, $user_id) {
  * @return int|false Activity log ID on success, false on failure
  */
 function log_user_activity($conn, $data) {
+    // Check the actual column size from the database
+    static $max_device_length = null;
+    
+    if ($max_device_length === null) {
+        $result = mysqli_query($conn, "SHOW COLUMNS FROM user_activity_log LIKE 'device'");
+        if ($result && $row = mysqli_fetch_assoc($result)) {
+            // Extract the number from VARCHAR(n)
+            if (preg_match('/varchar\((\d+)\)/i', $row['Type'], $matches)) {
+                $max_device_length = (int)$matches[1];
+            } else {
+                $max_device_length = 100; // Default fallback
+            }
+        } else {
+            $max_device_length = 100; // Default fallback
+        }
+    }
+    
+    // Truncate device string to fit the actual column size
+    if (!empty($data['device']) && strlen($data['device']) > $max_device_length) {
+        $data['device'] = substr($data['device'], 0, $max_device_length - 3) . '...';
+    }
+    
     $sql = "
         INSERT INTO user_activity_log (
             user_id, ip_address, device, login_time, status, failure_reason

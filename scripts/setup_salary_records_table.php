@@ -3,21 +3,9 @@
  * Salary Viewer Module - Database Setup
  */
 
-session_start();
-require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/db_connect.php';
-require_once __DIR__ . '/../includes/bootstrap.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../public/login.php');
-    exit;
-}
-
-$page_title = 'Salary Viewer - Module Setup';
-require_once __DIR__ . '/../includes/header_sidebar.php';
-require_once __DIR__ . '/../includes/sidebar.php';
-
-function salary_setup_table_exists(mysqli $conn, string $table): bool
+function salary_setup_table_exists($conn, $table)
 {
     $table = mysqli_real_escape_string($conn, $table);
     $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
@@ -28,16 +16,16 @@ function salary_setup_table_exists(mysqli $conn, string $table): bool
     return $exists;
 }
 
-function salary_setup_ensure_upload_dir(): bool
+function salary_setup_ensure_upload_dir()
 {
     $dir = __DIR__ . '/../uploads/salary_slips';
     if (!is_dir($dir)) {
-        return mkdir($dir, 0755, true);
+        return @mkdir($dir, 0755, true);
     }
     return is_writable($dir);
 }
 
-function salary_setup_create(): array
+function salary_setup_create()
 {
     $conn = createConnection(true);
     if (!$conn) {
@@ -51,7 +39,7 @@ function salary_setup_create(): array
 
     if (salary_setup_table_exists($conn, 'salary_records')) {
         closeConnection($conn);
-        return ['success' => false, 'message' => 'salary_records table already exists.'];
+        return ['success' => true, 'message' => 'salary_records table already exists.'];
     }
 
     $sql = "CREATE TABLE salary_records (
@@ -65,11 +53,9 @@ function salary_setup_create(): array
         slip_path TEXT DEFAULT NULL,
         is_locked TINYINT(1) NOT NULL DEFAULT 0,
         uploaded_by INT DEFAULT NULL,
-        -- Employee snapshot for the month (denormalized for history)
         snapshot_department VARCHAR(100) DEFAULT NULL,
         snapshot_designation VARCHAR(100) DEFAULT NULL,
         snapshot_salary_type ENUM('Monthly','Hourly','Daily') DEFAULT NULL,
-        -- Attendance summary for the month
         working_days_total INT DEFAULT NULL,
         days_worked DECIMAL(5,2) DEFAULT NULL,
         leave_days DECIMAL(5,2) DEFAULT NULL,
@@ -83,7 +69,7 @@ function salary_setup_create(): array
         KEY idx_salary_locked (is_locked),
         CONSTRAINT fk_salary_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
         CONSTRAINT fk_salary_uploaded FOREIGN KEY (uploaded_by) REFERENCES employees(id) ON DELETE SET NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Salary Viewer module records';";
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     if (!mysqli_query($conn, $sql)) {
         $error = mysqli_error($conn);
@@ -100,20 +86,35 @@ function salary_setup_create(): array
     return ['success' => true, 'message' => 'Salary Viewer table created successfully.'];
 }
 
-$result = null;
-$auto_redirect = false;
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $result = salary_setup_create();
-    if ($result['success']) {
-        $auto_redirect = true;
-    }
-}
+// Only run HTML output if called directly
+if (!defined('AJAX_MODULE_INSTALL') && basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'] ?? '')) {
+    session_start();
+    require_once __DIR__ . '/../config/config.php';
+    require_once __DIR__ . '/../includes/bootstrap.php';
 
-$conn_check = createConnection(true);
-$has_table = $conn_check ? salary_setup_table_exists($conn_check, 'salary_records') : false;
-if ($conn_check) {
-    closeConnection($conn_check);
-}
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: ../public/login.php');
+        exit;
+    }
+
+    $page_title = 'Salary Viewer - Module Setup';
+    require_once __DIR__ . '/../includes/header_sidebar.php';
+    require_once __DIR__ . '/../includes/sidebar.php';
+
+    $result = null;
+    $auto_redirect = false;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $result = salary_setup_create();
+        if ($result['success']) {
+            $auto_redirect = true;
+        }
+    }
+
+    $conn_check = createConnection(true);
+    $has_table = $conn_check ? salary_setup_table_exists($conn_check, 'salary_records') : false;
+    if ($conn_check) {
+        closeConnection($conn_check);
+    }
 ?>
 
 <div class="main-wrapper">
@@ -135,14 +136,8 @@ if ($conn_check) {
                 <?php echo htmlspecialchars($result['message']); ?>
             </div>
             <?php if ($auto_redirect): ?>
-                <script>
-                    setTimeout(function() {
-                        window.location.href = '../public/salary/admin.php';
-                    }, 2000);
-                </script>
-                <div class="alert alert-info" style="margin-top:16px;">
-                    Redirecting to Salary Manager in 2 seconds...
-                </div>
+                <script>setTimeout(function() { window.location.href = '../public/salary/admin.php'; }, 2000);</script>
+                <div class="alert alert-info" style="margin-top:16px;">Redirecting to Salary Manager in 2 seconds...</div>
             <?php endif; ?>
         <?php endif; ?>
 
@@ -156,9 +151,7 @@ if ($conn_check) {
 
             <div style="margin:24px 0;">
                 <?php if ($has_table): ?>
-                    <div class="alert alert-info" style="margin-bottom:16px;">
-                        The salary_records table already exists. You can start using the module.
-                    </div>
+                    <div class="alert alert-info" style="margin-bottom:16px;">The salary_records table already exists. You can start using the module.</div>
                     <a href="../public/salary/admin.php" class="btn" style="padding:12px 28px;">📊 Open Salary Manager</a>
                 <?php else: ?>
                     <form method="POST">
@@ -166,12 +159,10 @@ if ($conn_check) {
                     </form>
                 <?php endif; ?>
             </div>
-
-            <div style="padding:16px;background:#f8f9fa;border-radius:8px;color:#6c757d;">
-                After setup, admins and accountants can upload monthly salary slips and employees can view their net pay history.
-            </div>
         </div>
     </div>
 </div>
 
-<?php require_once __DIR__ . '/../includes/footer_sidebar.php'; ?>
+<?php 
+    require_once __DIR__ . '/../includes/footer_sidebar.php';
+} // End of direct execution block

@@ -42,8 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'full_name' => trim($_POST['full_name']),
         'email' => trim($_POST['email']),
         'phone' => trim($_POST['phone']),
-        'role_id' => (int)$_POST['role_id'],
-        'status' => $_POST['status']
+        'role_id' => isset($_POST['role_id']) ? (int)$_POST['role_id'] : null,
+        'status' => $_POST['status'] ?? 'Active'
     ];
     
     // Validate data

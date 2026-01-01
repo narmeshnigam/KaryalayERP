@@ -19,9 +19,9 @@ if (!$status['database_exists'] || !$status['users_table_exists']) {
     exit;
 }
 
-// If admin already exists, redirect to completion
+// If admin already exists, redirect to module installer
 if ($status['admin_exists']) {
-    header('Location: ../public/branding/onboarding.php');
+    header('Location: module_installer.php');
     exit;
 }
 
@@ -113,7 +113,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             authz_refresh_context($conn);
             $conn->close();
 
-            header('Location: ../public/branding/onboarding.php');
+            // Redirect to install tables page to set up module tables
+            header('Location: install_tables.php');
             exit;
         } catch (Throwable $e) {
             if (isset($conn) && $conn instanceof mysqli) {
@@ -360,7 +361,7 @@ $page_title = 'Create Admin Account - Setup';
             </div>
             <br>
             <div>
-                <button type="submit" class="btn">Create Account & Complete Setup →</button>
+                <button type="submit" class="btn">Create Account & Install Tables →</button>
             </div>
             
         </form>

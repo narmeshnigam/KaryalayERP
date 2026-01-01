@@ -214,6 +214,10 @@ require_once __DIR__ . '/../../includes/header_sidebar.php';
             🔧 Run Setup Now
         </a>
         <p style="margin-top: 20px; color: #6c757d;">You will be redirected to the setup page</p>
+        
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 2px solid #e0e0e0; font-size: 13px; color: #6c757d;">
+            <p style="margin: 0;"><strong>Tip:</strong> You can also install multiple modules at once using the <a href="<?php echo APP_URL; ?>/setup/module_installer.php?from=settings" style="color: #003581; text-decoration: underline;">Unified Module Installer</a></p>
+        </div>
     </div>
 </div>
 

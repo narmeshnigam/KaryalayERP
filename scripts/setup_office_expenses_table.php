@@ -4,20 +4,9 @@
  * Creates the office_expenses table used by the Expense Tracker module
  */
 
-session_start();
-require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/db_connect.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../public/login.php');
-    exit;
-}
-
-$page_title = 'Expense Tracker Module - Database Setup';
-require_once __DIR__ . '/../includes/header_sidebar.php';
-require_once __DIR__ . '/../includes/sidebar.php';
-
-function tableExists($conn, $table)
+function tableExists_expenses($conn, $table)
 {
     $table = mysqli_real_escape_string($conn, $table);
     $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
@@ -32,7 +21,7 @@ function ensureExpenseUploadDirectory()
 {
     $dir = __DIR__ . '/../uploads/office_expenses';
     if (!is_dir($dir)) {
-        return mkdir($dir, 0755, true);
+        return @mkdir($dir, 0755, true);
     }
     return true;
 }
@@ -44,14 +33,14 @@ function setupExpenseTracker()
         return ['success' => false, 'message' => 'Database connection failed.'];
     }
 
-    if (!tableExists($conn, 'employees')) {
+    if (!tableExists_expenses($conn, 'employees')) {
         closeConnection($conn);
         return ['success' => false, 'message' => 'Employees table not found. Please set up the Employee module first.'];
     }
 
-    if (tableExists($conn, 'office_expenses')) {
+    if (tableExists_expenses($conn, 'office_expenses')) {
         closeConnection($conn);
-        return ['success' => false, 'message' => 'office_expenses table already exists.'];
+        return ['success' => true, 'message' => 'office_expenses table already exists.'];
     }
 
     $sql = "CREATE TABLE office_expenses (
@@ -88,16 +77,30 @@ function setupExpenseTracker()
     return ['success' => true, 'message' => 'Expense Tracker database objects created successfully!'];
 }
 
-$result = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $result = setupExpenseTracker();
-}
+// Only run HTML output if called directly (not included)
+if (!defined('AJAX_MODULE_INSTALL') && basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'] ?? '')) {
+    session_start();
+    require_once __DIR__ . '/../config/config.php';
 
-$conn = createConnection(true);
-$has_expenses = $conn ? tableExists($conn, 'office_expenses') : false;
-if ($conn) {
-    closeConnection($conn);
-}
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: ../public/login.php');
+        exit;
+    }
+
+    $page_title = 'Expense Tracker Module - Database Setup';
+    require_once __DIR__ . '/../includes/header_sidebar.php';
+    require_once __DIR__ . '/../includes/sidebar.php';
+
+    $result = null;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $result = setupExpenseTracker();
+    }
+
+    $conn = createConnection(true);
+    $has_expenses = $conn ? tableExists_expenses($conn, 'office_expenses') : false;
+    if ($conn) {
+        closeConnection($conn);
+    }
 ?>
 
 <div class="main-wrapper">
@@ -147,4 +150,6 @@ if ($conn) {
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../includes/footer_sidebar.php'; ?>
+<?php 
+    require_once __DIR__ . '/../includes/footer_sidebar.php';
+} // End of direct execution block

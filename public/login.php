@@ -262,7 +262,7 @@ include __DIR__ . '/../includes/header.php';
         <div class="text-center mt-20">
             <p class="login-help-text">
                 Need help? Feel free to connect with us. <br>
-                <strong>Email:</strong> hi@karyalay.in | <strong>Call:</strong> +919608138365
+                <strong>Email:</strong> support@karyalay.in | <strong>Call:</strong> +917322005500
             </p>
         </div>
     </div>

@@ -156,6 +156,10 @@ require_once __DIR__ . '/../../config/config.php';
         <a href="<?php echo APP_URL; ?>/scripts/setup_payments_tables.php" class="btn">
             🚀 Set Up Payments Module
         </a>
+        
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6c757d;">
+            <p style="margin: 0;"><strong>Tip:</strong> You can also install multiple modules at once using the <a href="<?php echo APP_URL; ?>/setup/module_installer.php?from=settings" style="color: #003581; text-decoration: underline;">Unified Module Installer</a></p>
+        </div>
     </div>
 </body>
 </html>

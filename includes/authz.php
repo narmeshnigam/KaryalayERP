@@ -450,4 +450,27 @@ function authz_is_super_admin(mysqli $conn): bool {
     }
     return $context['is_super_admin'];
 }
+
+/**
+ * Check whether the current user has a specific role by name.
+ * 
+ * @param string $role_name Role name to check (case-insensitive)
+ * @return bool True if user has the role
+ */
+function authz_has_role(string $role_name): bool {
+    // Check session for cached role names
+    if (!isset($_SESSION['role_names']) || !is_array($_SESSION['role_names'])) {
+        return false;
+    }
+    
+    $role_name_lower = strtolower(trim($role_name));
+    
+    foreach ($_SESSION['role_names'] as $user_role) {
+        if (strtolower(trim($user_role)) === $role_name_lower) {
+            return true;
+        }
+    }
+    
+    return false;
+}
 ?>

@@ -297,16 +297,16 @@ return [
     [
         'pattern' => 'public/workorders/',
         'table' => 'work_orders',
-        'default' => 'read',
+        'default' => 'view_all',
         'routes' => [
-            'index.php' => 'read',
+            'index.php' => 'view_all',
             'create.php' => 'create',
-            'edit.php' => 'update',
-            'view.php' => 'read',
+            'edit.php' => 'edit_all',
+            'view.php' => 'view_all',
             'api/create.php' => 'create',
-            'api/update.php' => 'update',
-            'api/delete_file.php' => 'update',
-            'api/export.php' => 'read',
+            'api/update.php' => 'edit_all',
+            'api/delete_file.php' => 'edit_all',
+            'api/export.php' => 'export',
         ],
     ],
     [

@@ -7,7 +7,7 @@
  */
 
 // Database configuration constants
-define('DB_HOST', 'localhost');      // Database host (usually localhost)
+define('DB_HOST', 'localhost');      // Database host (use 127.0.0.1 for TCP connection instead of socket)
 define('DB_USER', 'root');           // Database username
 define('DB_PASS', '');               // Database password (empty for XAMPP default)
 define('DB_NAME', 'karyalay_db');    // Database name
@@ -33,8 +33,21 @@ if ($host && $host !== 'localhost' && $host !== '127.0.0.1') {
 
 	define('APP_URL', rtrim($protocol . $host . $basePath, '/'));
 } else {
-	// Localhost/dev: use static local URL
-	define('APP_URL', 'http://localhost/KaryalayERP');
+	// Localhost/dev: use REQUEST_URI to get the actual URL path used by browser
+	$basePath = '';
+	if (isset($_SERVER['REQUEST_URI'])) {
+		// Extract the base path from the current request
+		$requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+		// Find the app root by looking for known paths
+		if (preg_match('#^(/[^/]+)(?:/|$)#', $requestUri, $matches)) {
+			$basePath = $matches[1];
+		}
+	} else {
+		// Fallback for CLI: use directory name
+		$basePath = '/' . basename(dirname(__DIR__));
+	}
+
+	define('APP_URL', 'http://localhost' . $basePath);
 }
 
 // Session configuration

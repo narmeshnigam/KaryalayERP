@@ -63,7 +63,11 @@ closeConnection($conn);
       </div>
 
       <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb;font-size:13px;color:#6c757d;text-align:center;">
-        <p style="margin:0;">After setup, you'll be able to configure your organization's branding from <strong>Settings &gt; Branding</strong></p>
+        <p style="margin:0 0 12px 0;">After setup, you'll be able to configure your organization's branding from <strong>Settings &gt; Branding</strong></p>
+        <p style="margin:0;">
+          <strong>Tip:</strong> You can also install multiple modules at once using the 
+          <a href="<?php echo APP_URL; ?>/setup/module_installer.php?from=settings" style="color:#003581;text-decoration:underline;">Unified Module Installer</a>
+        </p>
       </div>
     </div>
   </div>

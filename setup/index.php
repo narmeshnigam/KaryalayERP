@@ -199,7 +199,7 @@ $page_title = 'Setup Wizard - ' . APP_NAME;
                 </div>
             </div>
         </div>
-        <a href="<?php echo APP_URL; ?>/setup/database.php" class="btn">Start Setup →</a>
+        <a href="database.php" class="btn">Start Setup →</a>
     </div>
 </body>
 </html>

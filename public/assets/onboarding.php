@@ -37,6 +37,9 @@ echo '</div>';
 echo '<p style="color:#666;"><strong>Note:</strong> Running the setup will create 6 database tables: assets_master, asset_allocation_log, asset_status_log, asset_maintenance_log, asset_files, and asset_activity_log.</p>';
 echo '<a href="' . APP_URL . '/scripts/setup_assets_tables.php" class="btn" style="margin-top:20px;">🚀 Setup Asset Management Module</a>';
 echo '<a href="' . APP_URL . '/public/index.php" class="btn btn-accent" style="margin-left:10px;margin-top:20px;">← Back to Dashboard</a>';
+echo '<div style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb;font-size:13px;color:#6c757d;text-align:center;">';
+echo '<p style="margin:0;"><strong>Tip:</strong> You can also install multiple modules at once using the <a href="' . APP_URL . '/setup/module_installer.php?from=settings" style="color:#003581;text-decoration:underline;">Unified Module Installer</a></p>';
+echo '</div>';
 echo '</div></div>';
 
 require_once __DIR__ . '/../../includes/footer_sidebar.php';

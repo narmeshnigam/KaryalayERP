@@ -44,7 +44,7 @@ function crm_setup_ensure_upload_dir(): bool
 {
     $dir = __DIR__ . '/../uploads/crm_attachments';
     if (!is_dir($dir)) {
-        return mkdir($dir, 0755, true);
+        return @mkdir($dir, 0755, true);
     }
     return is_writable($dir);
 }

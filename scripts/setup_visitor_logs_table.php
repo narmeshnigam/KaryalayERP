@@ -4,20 +4,9 @@
  * Creates the visitor_logs table required for the Visitor Log module
  */
 
-session_start();
-require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/db_connect.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../public/login.php');
-    exit;
-}
-
-$page_title = 'Visitor Log Module - Database Setup';
-require_once __DIR__ . '/../includes/header_sidebar.php';
-require_once __DIR__ . '/../includes/sidebar.php';
-
-function tableExists($conn, $table)
+function tableExists_visitors($conn, $table)
 {
     $table = mysqli_real_escape_string($conn, $table);
     $res = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
@@ -32,7 +21,7 @@ function ensureVisitorUploadDirectory()
 {
     $dir = __DIR__ . '/../uploads/visitor_logs';
     if (!is_dir($dir)) {
-        return mkdir($dir, 0755, true);
+        return @mkdir($dir, 0755, true);
     }
     return true;
 }
@@ -44,14 +33,14 @@ function setupVisitorLogModule()
         return ['success' => false, 'message' => 'Database connection failed.'];
     }
 
-    if (!tableExists($conn, 'employees')) {
+    if (!tableExists_visitors($conn, 'employees')) {
         closeConnection($conn);
         return ['success' => false, 'message' => 'Employees table not found. Please install the Employee module first.'];
     }
 
-    if (tableExists($conn, 'visitor_logs')) {
+    if (tableExists_visitors($conn, 'visitor_logs')) {
         closeConnection($conn);
-        return ['success' => false, 'message' => 'visitor_logs table already exists.'];
+        return ['success' => true, 'message' => 'visitor_logs table already exists.'];
     }
 
     $sql = "CREATE TABLE visitor_logs (
@@ -89,20 +78,34 @@ function setupVisitorLogModule()
     return ['success' => true, 'message' => 'Visitor Log table created successfully.'];
 }
 
-$result = null;
-$auto_redirect = false;
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $result = setupVisitorLogModule();
-    if ($result['success']) {
-        $auto_redirect = true;
-    }
-}
+// Only run HTML output if called directly
+if (!defined('AJAX_MODULE_INSTALL') && basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'] ?? '')) {
+    session_start();
+    require_once __DIR__ . '/../config/config.php';
 
-$conn = createConnection(true);
-$has_table = $conn ? tableExists($conn, 'visitor_logs') : false;
-if ($conn) {
-    closeConnection($conn);
-}
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: ../public/login.php');
+        exit;
+    }
+
+    $page_title = 'Visitor Log Module - Database Setup';
+    require_once __DIR__ . '/../includes/header_sidebar.php';
+    require_once __DIR__ . '/../includes/sidebar.php';
+
+    $result = null;
+    $auto_redirect = false;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $result = setupVisitorLogModule();
+        if ($result['success']) {
+            $auto_redirect = true;
+        }
+    }
+
+    $conn = createConnection(true);
+    $has_table = $conn ? tableExists_visitors($conn, 'visitor_logs') : false;
+    if ($conn) {
+        closeConnection($conn);
+    }
 ?>
 
 <div class="main-wrapper">
@@ -124,14 +127,8 @@ if ($conn) {
         <?php echo htmlspecialchars($result['message']); ?>
       </div>
       <?php if ($auto_redirect): ?>
-        <script>
-          setTimeout(function() {
-            window.location.href = '../public/visitors/index.php';
-          }, 2000);
-        </script>
-        <div class="alert alert-info" style="margin-top:16px;">
-          Redirecting to Visitor Log in 2 seconds...
-        </div>
+        <script>setTimeout(function() { window.location.href = '../public/visitors/index.php'; }, 2000);</script>
+        <div class="alert alert-info" style="margin-top:16px;">Redirecting to Visitor Log in 2 seconds...</div>
       <?php endif; ?>
     <?php endif; ?>
 
@@ -145,9 +142,7 @@ if ($conn) {
 
       <div style="margin:24px 0;">
         <?php if ($has_table): ?>
-          <div class="alert alert-info" style="margin-bottom:16px;">
-            The visitor_logs table already exists. You can start using the Visitor Log module.
-          </div>
+          <div class="alert alert-info" style="margin-bottom:16px;">The visitor_logs table already exists. You can start using the Visitor Log module.</div>
           <a href="../public/visitors/index.php" class="btn" style="padding:12px 28px;">📋 Go to Visitor Log</a>
         <?php else: ?>
           <form method="POST">
@@ -155,12 +150,10 @@ if ($conn) {
           </form>
         <?php endif; ?>
       </div>
-
-      <div style="padding:16px;background:#f8f9fa;border-radius:8px;color:#6c757d;">
-        After setup, head to the Visitor Log pages to add entries, manage check-outs, and export daily registers.
-      </div>
     </div>
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../includes/footer_sidebar.php'; ?>
+<?php 
+    require_once __DIR__ . '/../includes/footer_sidebar.php';
+} // End of direct execution block

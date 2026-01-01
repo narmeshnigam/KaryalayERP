@@ -8,6 +8,28 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/db_connect.php';
 
 $conn = createConnection();
+
+// Check if deliverables tables exist
+$tables_to_check = ['deliverables', 'deliverable_versions', 'deliverable_files', 'deliverable_activity_log'];
+$missing_tables = [];
+
+foreach ($tables_to_check as $table) {
+    $check = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
+    if (!$check || mysqli_num_rows($check) === 0) {
+        $missing_tables[] = $table;
+    }
+}
+
+if (!empty($missing_tables)) {
+    die("
+        <h1>Deliverables Module Not Installed</h1>
+        <p>The following tables are missing: <strong>" . implode(', ', $missing_tables) . "</strong></p>
+        <p>Please install the Deliverables module first:</p>
+        <p><a href='" . APP_URL . "/scripts/setup_deliverables_tables.php' style='display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;'>Install Deliverables Module</a></p>
+        <p><a href='" . APP_URL . "/public/index.php'>Back to Dashboard</a></p>
+    ");
+}
+
 $page_title = "Deliverables Dashboard - " . APP_NAME;
 
 // Get filter parameters

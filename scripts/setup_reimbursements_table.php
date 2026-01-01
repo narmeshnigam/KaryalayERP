@@ -4,106 +4,109 @@
  * Creates reimbursements table and supporting resources
  */
 
-session_start();
-require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/db_connect.php';
 
-if (!isset($_SESSION['user_id'])) {
-		header('Location: ../public/login.php');
-		exit;
-}
-
-$page_title = "Reimbursement Module - Database Setup";
-require_once __DIR__ . '/../includes/header_sidebar.php';
-require_once __DIR__ . '/../includes/sidebar.php';
-
 function reimbursementsTableExists($conn) {
-		$result = mysqli_query($conn, "SHOW TABLES LIKE 'reimbursements'");
-		$exists = ($result && mysqli_num_rows($result) > 0);
-		if ($result) {
-				mysqli_free_result($result);
-		}
-		return $exists;
+    $result = mysqli_query($conn, "SHOW TABLES LIKE 'reimbursements'");
+    $exists = ($result && mysqli_num_rows($result) > 0);
+    if ($result) {
+        mysqli_free_result($result);
+    }
+    return $exists;
 }
 
 function ensureUploadDirectory() {
-		$upload_dir = __DIR__ . '/../uploads/reimbursements';
-		if (!is_dir($upload_dir)) {
-				return mkdir($upload_dir, 0755, true);
-		}
-		return true;
+    $upload_dir = __DIR__ . '/../uploads/reimbursements';
+    if (!is_dir($upload_dir)) {
+        return @mkdir($upload_dir, 0755, true);
+    }
+    return true;
 }
 
 function setupReimbursementModule() {
-		$conn = createConnection(true);
-		if (!$conn) {
-				return ['success' => false, 'message' => 'Database connection failed.'];
-		}
+    $conn = createConnection(true);
+    if (!$conn) {
+        return ['success' => false, 'message' => 'Database connection failed.'];
+    }
 
-		// Confirm prerequisite employees table
-		$employees = mysqli_query($conn, "SHOW TABLES LIKE 'employees'");
-		$has_employees = ($employees && mysqli_num_rows($employees) > 0);
-		if ($employees) {
-				mysqli_free_result($employees);
-		}
-		if (!$has_employees) {
-				closeConnection($conn);
-				return ['success' => false, 'message' => 'Employees table not found. Please run the Employee Module setup first.'];
-		}
+    // Confirm prerequisite employees table
+    $employees = mysqli_query($conn, "SHOW TABLES LIKE 'employees'");
+    $has_employees = ($employees && mysqli_num_rows($employees) > 0);
+    if ($employees) {
+        mysqli_free_result($employees);
+    }
+    if (!$has_employees) {
+        closeConnection($conn);
+        return ['success' => false, 'message' => 'Employees table not found. Please run the Employee Module setup first.'];
+    }
 
-		if (reimbursementsTableExists($conn)) {
-				closeConnection($conn);
-				return ['success' => false, 'message' => 'Reimbursements table already exists.'];
-		}
+    if (reimbursementsTableExists($conn)) {
+        closeConnection($conn);
+        return ['success' => true, 'message' => 'Reimbursements table already exists.'];
+    }
 
-	       $create_sql = "CREATE TABLE reimbursements (
-		       id INT AUTO_INCREMENT PRIMARY KEY,
-		       employee_id INT NOT NULL,
-		       date_submitted DATE NOT NULL,
-		       expense_date DATE NOT NULL,
-		       category VARCHAR(50) NOT NULL,
-		       amount DECIMAL(10,2) NOT NULL,
-		       description TEXT NOT NULL,
-		       status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
-			   payment_status ENUM('Pending','Paid') NOT NULL DEFAULT 'Pending',
-			   paid_date DATE NULL,
-		       proof_file TEXT DEFAULT NULL,
-		       admin_remarks TEXT DEFAULT NULL,
-		       action_date TIMESTAMP NULL DEFAULT NULL,
-		       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-		       CONSTRAINT fk_reimbursements_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-		       INDEX idx_reimbursements_employee (employee_id),
-		       INDEX idx_reimbursements_status (status),
-		       INDEX idx_reimbursements_expense_date (expense_date),
-		       INDEX idx_reimbursements_submitted (date_submitted)
-	       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Employee reimbursement claims';";
+    $create_sql = "CREATE TABLE reimbursements (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        employee_id INT NOT NULL,
+        date_submitted DATE NOT NULL,
+        expense_date DATE NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        description TEXT NOT NULL,
+        status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
+        payment_status ENUM('Pending','Paid') NOT NULL DEFAULT 'Pending',
+        paid_date DATE NULL,
+        proof_file TEXT DEFAULT NULL,
+        admin_remarks TEXT DEFAULT NULL,
+        action_date TIMESTAMP NULL DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT fk_reimbursements_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+        INDEX idx_reimbursements_employee (employee_id),
+        INDEX idx_reimbursements_status (status),
+        INDEX idx_reimbursements_expense_date (expense_date),
+        INDEX idx_reimbursements_submitted (date_submitted)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Employee reimbursement claims';";
 
-		if (!mysqli_query($conn, $create_sql)) {
-				$error = mysqli_error($conn);
-				closeConnection($conn);
-				return ['success' => false, 'message' => 'Error creating reimbursements table: ' . $error];
-		}
+    if (!mysqli_query($conn, $create_sql)) {
+        $error = mysqli_error($conn);
+        closeConnection($conn);
+        return ['success' => false, 'message' => 'Error creating reimbursements table: ' . $error];
+    }
 
-		closeConnection($conn);
+    closeConnection($conn);
 
-		if (!ensureUploadDirectory()) {
-				return ['success' => true, 'message' => 'Table created successfully, but the proof upload directory could not be created. Please create uploads/reimbursements manually.'];
-		}
+    if (!ensureUploadDirectory()) {
+        return ['success' => true, 'message' => 'Table created successfully, but the proof upload directory could not be created. Please create uploads/reimbursements manually.'];
+    }
 
-		return ['success' => true, 'message' => 'Reimbursements table created successfully!'];
+    return ['success' => true, 'message' => 'Reimbursements table created successfully!'];
 }
 
-$result = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-		$result = setupReimbursementModule();
-}
+// Only run HTML output if called directly (not included)
+if (!defined('AJAX_MODULE_INSTALL') && basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'] ?? '')) {
+    session_start();
+    require_once __DIR__ . '/../config/config.php';
 
-$conn = createConnection(true);
-$has_reimbursements = $conn ? reimbursementsTableExists($conn) : false;
-if ($conn) {
-		closeConnection($conn);
-}
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: ../public/login.php');
+        exit;
+    }
+
+    $page_title = "Reimbursement Module - Database Setup";
+    require_once __DIR__ . '/../includes/header_sidebar.php';
+    require_once __DIR__ . '/../includes/sidebar.php';
+
+    $result = null;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $result = setupReimbursementModule();
+    }
+
+    $conn = createConnection(true);
+    $has_reimbursements = $conn ? reimbursementsTableExists($conn) : false;
+    if ($conn) {
+        closeConnection($conn);
+    }
 ?>
 
 <div class="main-wrapper">
@@ -153,4 +156,6 @@ if ($conn) {
 	</div>
 </div>
 
-<?php require_once __DIR__ . '/../includes/footer_sidebar.php'; ?>
+<?php 
+    require_once __DIR__ . '/../includes/footer_sidebar.php';
+} // End of direct execution block

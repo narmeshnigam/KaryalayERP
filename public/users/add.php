@@ -23,13 +23,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
         'entity_id' => !empty($_POST['entity_id']) ? (int)$_POST['entity_id'] : null,
         'entity_type' => $_POST['entity_type'] ?? null,
-        'username' => trim($_POST['username']),
-        'full_name' => trim($_POST['full_name']),
-        'email' => trim($_POST['email']),
-        'phone' => trim($_POST['phone']),
-        'password' => $_POST['password'],
-        'password_confirm' => $_POST['password_confirm'],
-        'role_id' => (int)$_POST['role_id'],
+        'username' => trim($_POST['username'] ?? ''),
+        'full_name' => trim($_POST['full_name'] ?? ''),
+        'email' => trim($_POST['email'] ?? ''),
+        'phone' => trim($_POST['phone'] ?? ''),
+        'password' => $_POST['password'] ?? '',
+        'password_confirm' => $_POST['password_confirm'] ?? '',
+        'role_id' => isset($_POST['role_id']) ? (int)$_POST['role_id'] : null,
         'status' => $_POST['status'] ?? 'Active',
         'created_by' => $CURRENT_USER_ID
     ];
