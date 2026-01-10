@@ -26,14 +26,15 @@ $per_page = 20;
 
 // Get logs
 
-$result = get_activity_logs($conn, $filters, $page, $per_page);
-if (!is_array($result) || !isset($result['logs'])) {
+$activity_result = get_activity_logs($conn, $filters, $page, $per_page);
+if (!is_array($activity_result) || !isset($activity_result['logs'])) {
     echo '<div class="alert alert-error" style="margin: 30px;">Unable to fetch logs. Please check your database connection or PHP MySQL driver.</div>';
     require_once __DIR__ . '/../../includes/footer_sidebar.php';
     exit;
 }
-$logs = $result['logs'];
-$total_pages = $result['total_pages'];
+$logs = $activity_result['logs'];
+$total_pages = $activity_result['total_pages'];
+$total_records = $activity_result['total'];
 
 // Get accessible tables for filter
 $accessible_tables = get_accessible_tables($conn);
@@ -103,7 +104,7 @@ require_once __DIR__ . '/../../includes/sidebar.php';
         <div class="card">
             <h3 style="color: #003581; margin-bottom: 20px; border-bottom: 2px solid #003581; padding-bottom: 10px;">
                 📋 Activity Records
-                <span style="font-size: 14px; color: #6c757d; font-weight: normal;">(<?php echo $result['total']; ?> total)</span>
+                <span style="font-size: 14px; color: #6c757d; font-weight: normal;">(<?php echo $total_records; ?> total)</span>
             </h3>
 
             <?php if (!empty($logs)): ?>

@@ -27,8 +27,8 @@ if ($result['success']) {
     // Log the export
     log_data_transfer($conn, $CURRENT_USER_ID, $table_name, 'Export', $result['filepath'], $result['record_count'], $result['record_count'], 0, 'Success', null);
     
-    // Add download URL
-    $result['download_url'] = '../../uploads/exports/' . $result['filename'];
+    // Add download URL - use download handler to force file download
+    $result['download_url'] = '../api/data-transfer/download.php?file=' . urlencode($result['filename']);
 }
 
 echo json_encode($result);

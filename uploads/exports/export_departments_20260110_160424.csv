@@ -1,0 +1,7 @@
+id,department_name,department_code,head_of_department,description,status,created_at,updated_at
+1,IT,IT001,,"Information Technology",Active,"2026-01-01 11:02:58","2026-01-01 11:02:58"
+2,HR,HR001,,"Human Resources",Active,"2026-01-01 11:02:58","2026-01-01 11:02:58"
+3,Finance,FIN001,,"Finance & Accounts",Active,"2026-01-01 11:02:58","2026-01-01 11:02:58"
+4,Sales,SAL001,,"Sales & Marketing",Active,"2026-01-01 11:02:58","2026-01-01 11:02:58"
+5,Operations,OPS001,,Operations,Active,"2026-01-01 11:02:58","2026-01-01 11:02:58"
+6,Admin,ADM001,,Administration,Active,"2026-01-01 11:02:58","2026-01-01 11:02:58"
