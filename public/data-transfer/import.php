@@ -108,6 +108,38 @@ require_once __DIR__ . '/../../includes/sidebar.php';
                     </p>
                 </div>
 
+                <!-- Mandatory Fields Section -->
+                <div id="mandatoryFieldsSection" style="display: none; margin-bottom: 20px;">
+                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px;">
+                        <p style="margin: 0 0 10px 0; color: #856404; font-weight: 600;">
+                            ⚠️ Required Fields <span id="mandatoryCount" style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 5px;"></span>
+                        </p>
+                        <p style="margin: 0 0 10px 0; font-size: 13px; color: #856404;">
+                            These fields must have values in your CSV file:
+                        </p>
+                        <div id="mandatoryFieldsList" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                    </div>
+                    
+                    <div id="optionalFieldsContainer" style="margin-top: 15px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; padding: 15px;">
+                        <details>
+                            <summary style="cursor: pointer; color: #155724; font-weight: 600;">
+                                ✓ Optional Fields <span id="optionalCount" style="background: #28a745; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 5px;"></span>
+                            </summary>
+                            <p style="margin: 10px 0 10px 0; font-size: 13px; color: #155724;">
+                                These fields have default values or can be left empty:
+                            </p>
+                            <div id="optionalFieldsList" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                        </details>
+                    </div>
+                    
+                    <div id="tableStatsSection" style="margin-top: 15px; background: #e7f1ff; border: 1px solid #b6d4fe; border-radius: 4px; padding: 12px;">
+                        <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 14px; color: #084298;">
+                            <span>📊 <strong>Current Records:</strong> <span id="currentRecordCount">0</span></span>
+                            <span>📋 <strong>Total Columns:</strong> <span id="totalColumnCount">0</span></span>
+                        </div>
+                    </div>
+                </div>
+
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">
                         Upload CSV File *
@@ -156,14 +188,62 @@ require_once __DIR__ . '/../../includes/sidebar.php';
 
 <script>
 // Show sample download section when table is selected
-document.getElementById('tableSelect').addEventListener('change', function() {
+document.getElementById('tableSelect').addEventListener('change', async function() {
     const tableName = this.value;
     const sampleSection = document.getElementById('sampleSection');
+    const mandatoryFieldsSection = document.getElementById('mandatoryFieldsSection');
     
     if (tableName) {
         sampleSection.style.display = 'block';
+        
+        // Fetch table info including mandatory fields
+        try {
+            const response = await fetch(`../api/data-transfer/table-info.php?table=${encodeURIComponent(tableName)}`);
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show mandatory fields section
+                mandatoryFieldsSection.style.display = 'block';
+                
+                // Update counts
+                document.getElementById('mandatoryCount').textContent = result.total_mandatory;
+                document.getElementById('optionalCount').textContent = result.total_optional;
+                document.getElementById('currentRecordCount').textContent = result.record_count;
+                document.getElementById('totalColumnCount').textContent = result.column_count;
+                
+                // Render mandatory fields
+                const mandatoryList = document.getElementById('mandatoryFieldsList');
+                if (result.mandatory_fields.length > 0) {
+                    mandatoryList.innerHTML = result.mandatory_fields.map(field => {
+                        const typeShort = field.type.split('(')[0];
+                        return `<span style="background: #fff; border: 1px solid #ffc107; padding: 4px 10px; border-radius: 4px; font-size: 13px; color: #856404;">
+                            <strong>${field.name}</strong> <span style="color: #999; font-size: 11px;">(${typeShort})</span>
+                        </span>`;
+                    }).join('');
+                } else {
+                    mandatoryList.innerHTML = '<span style="color: #155724; font-size: 13px;">No mandatory fields - all fields have defaults</span>';
+                }
+                
+                // Render optional fields
+                const optionalList = document.getElementById('optionalFieldsList');
+                if (result.optional_fields.length > 0) {
+                    optionalList.innerHTML = result.optional_fields.map(field => {
+                        const typeShort = field.type.split('(')[0];
+                        const defaultVal = field.default ? ` = ${field.default}` : '';
+                        return `<span style="background: #fff; border: 1px solid #c3e6cb; padding: 4px 10px; border-radius: 4px; font-size: 13px; color: #155724;">
+                            ${field.name} <span style="color: #999; font-size: 11px;">(${typeShort}${defaultVal})</span>
+                        </span>`;
+                    }).join('');
+                } else {
+                    optionalList.innerHTML = '<span style="color: #6c757d; font-size: 13px;">No optional fields</span>';
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching table info:', error);
+        }
     } else {
         sampleSection.style.display = 'none';
+        mandatoryFieldsSection.style.display = 'none';
     }
 });
 
