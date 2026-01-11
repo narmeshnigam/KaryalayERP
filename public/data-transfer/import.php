@@ -193,8 +193,12 @@ document.getElementById('downloadSampleBtn').addEventListener('click', async fun
 // Handle form submission
 document.getElementById('importForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    console.log('=== Import Started ===');
     
     const formData = new FormData(this);
+    console.log('Table:', formData.get('table_name'));
+    console.log('File:', formData.get('csv_file')?.name);
+    
     const progressSection = document.getElementById('progressSection');
     const resultSection = document.getElementById('resultSection');
     const submitBtn = this.querySelector('button[type="submit"]');
@@ -205,12 +209,27 @@ document.getElementById('importForm').addEventListener('submit', async function(
     resultSection.style.display = 'none';
     
     try {
+        console.log('Sending request to API...');
         const response = await fetch('../api/data-transfer/import.php', {
             method: 'POST',
-            body: formData
+            body: formData,
+            credentials: 'same-origin'
         });
         
-        const result = await response.json();
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        const text = await response.text();
+        console.log('Raw response:', text);
+        
+        let result;
+        try {
+            result = JSON.parse(text);
+            console.log('Parsed result:', result);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            throw new Error('Server returned invalid response: ' + text.substring(0, 500));
+        }
         
         // Hide progress
         progressSection.style.display = 'none';
@@ -218,6 +237,12 @@ document.getElementById('importForm').addEventListener('submit', async function(
         
         // Show results
         resultSection.style.display = 'block';
+        console.log('Success:', result.success);
+        console.log('Total rows:', result.total_rows);
+        console.log('Success count:', result.success_count);
+        console.log('Failed count:', result.failed_count);
+        console.log('Errors:', result.errors);
+        console.log('Table count after:', result.table_count_after);
         
         if (result.success) {
             let html = '<div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; padding: 20px; margin-bottom: 20px;">';
@@ -227,6 +252,9 @@ document.getElementById('importForm').addEventListener('submit', async function(
             html += `<div><strong style="color: #155724;">Successful:</strong> ${result.success_count}</div>`;
             html += `<div><strong style="color: #155724;">Failed:</strong> ${result.failed_count}</div>`;
             html += `<div><strong style="color: #155724;">Status:</strong> ${result.status}</div>`;
+            if (result.table_count_after !== undefined) {
+                html += `<div><strong style="color: #155724;">Records in table:</strong> ${result.table_count_after}</div>`;
+            }
             html += '</div>';
             
             if (result.error_file) {
@@ -263,6 +291,9 @@ document.getElementById('importForm').addEventListener('submit', async function(
         }
         
     } catch (error) {
+        console.error('=== Import Error ===');
+        console.error('Error:', error);
+        
         progressSection.style.display = 'none';
         submitBtn.disabled = false;
         

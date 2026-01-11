@@ -128,31 +128,30 @@ function generate_sample_csv($conn, string $table): array {
 }
 
 /**
- * Create automatic backup before import
+ * Create automatic backup before import (does not log - backup is part of import workflow)
  */
 function create_backup($conn, string $table, int $user_id): array {
     $backup_dir = __DIR__ . '/../../backups/' . date('Ymd-Hi') . '/';
     if (!is_dir($backup_dir)) {
-        mkdir($backup_dir, 0755, true);
+        if (!@mkdir($backup_dir, 0755, true)) {
+            return ['success' => false, 'message' => 'Could not create backup directory'];
+        }
     }
     
     $filename = 'backup_' . $table . '_' . date('Ymd_His') . '.csv';
     $filepath = $backup_dir . $filename;
     
-    $result = export_table_to_csv($conn, $table, $filepath);
-    
-    if ($result['success']) {
-        // Log backup creation
-        log_data_transfer($conn, $user_id, $table, 'Export', $filepath, $result['record_count'], $result['record_count'], 0, 'Success', 'Auto-backup before import');
-    }
+    // Export without logging - backup is internal to import process
+    $result = export_table_to_csv($conn, $table, $filepath, false);
     
     return $result;
 }
 
 /**
  * Export table data to CSV
+ * @param bool $is_user_export Whether this is a user-initiated export (for logging purposes)
  */
-function export_table_to_csv($conn, string $table, string $filepath = null): array {
+function export_table_to_csv($conn, string $table, string $filepath = null, bool $is_user_export = true): array {
     // If no filepath provided, create in exports folder
     if (!$filepath) {
         $export_dir = __DIR__ . '/../../uploads/exports/';
@@ -163,9 +162,9 @@ function export_table_to_csv($conn, string $table, string $filepath = null): arr
         $filepath = $export_dir . $filename;
     }
     
-    $fp = fopen($filepath, 'w');
+    $fp = @fopen($filepath, 'w');
     if (!$fp) {
-        return ['success' => false, 'message' => 'Could not create export file'];
+        return ['success' => false, 'message' => 'Could not create export file: ' . $filepath];
     }
     
     // Get data
@@ -233,12 +232,18 @@ function import_csv_to_table($conn, string $table, string $csv_path, int $user_i
         return ['success' => false, 'message' => 'CSV file is empty or invalid'];
     }
     
+    // Clean BOM and whitespace from headers
+    $csv_headers = array_map(function($h) {
+        // Remove BOM if present
+        $h = preg_replace('/^\xEF\xBB\xBF/', '', $h);
+        return trim($h);
+    }, $csv_headers);
+    
     // Validate headers
-    $csv_headers = array_map('trim', $csv_headers);
     $invalid_headers = array_diff($csv_headers, $table_fields);
     if (!empty($invalid_headers)) {
         fclose($fp);
-        return ['success' => false, 'message' => 'Invalid CSV headers: ' . implode(', ', $invalid_headers)];
+        return ['success' => false, 'message' => 'Invalid CSV headers: ' . implode(', ', $invalid_headers) . '. Expected: ' . implode(', ', $table_fields)];
     }
     
     $success_count = 0;
@@ -277,23 +282,39 @@ function import_csv_to_table($conn, string $table, string $csv_path, int $user_i
                 $data['created_by'] = $user_id;
             }
             
-            // Check if ID provided for update
-            $is_update = !empty($data['id']) && is_numeric($data['id']);
+            // Check if ID provided for update - but first verify the record exists
+            $has_id = !empty($data['id']) && is_numeric($data['id']);
+            $is_update = false;
+            
+            if ($has_id) {
+                // Check if record with this ID exists
+                $check_stmt = $conn->prepare("SELECT id FROM `$table` WHERE id = ?");
+                if ($check_stmt) {
+                    $check_id = (int)$data['id'];
+                    $check_stmt->bind_param('i', $check_id);
+                    $check_stmt->execute();
+                    $check_stmt->store_result();
+                    $is_update = $check_stmt->num_rows > 0;
+                    $check_stmt->close();
+                }
+            }
             
             if ($is_update) {
                 // UPDATE existing record
                 $id = (int)$data['id'];
                 unset($data['id']); // Remove ID from update data
                 
+                // Filter out null values - only update non-null fields
+                $update_data = array_filter($data, function($v) { return $v !== null; });
+                
                 $set_clause = [];
                 $params = [];
                 $types = '';
                 
-                foreach ($data as $field => $value) {
-                    if ($field === 'id') continue; // Skip ID
+                foreach ($update_data as $field => $value) {
                     $set_clause[] = "`$field` = ?";
                     $params[] = $value;
-                    $types .= is_null($value) ? 's' : 's';
+                    $types .= 's';
                 }
                 
                 if (empty($set_clause)) {
@@ -317,7 +338,12 @@ function import_csv_to_table($conn, string $table, string $csv_path, int $user_i
                 $stmt->bind_param($types, ...$params);
                 
                 if ($stmt->execute()) {
-                    $success_count++;
+                    if ($stmt->affected_rows > 0) {
+                        $success_count++;
+                    } else {
+                        // No rows affected - data might be identical, count as success
+                        $success_count++;
+                    }
                 } else {
                     $errors[] = ['row' => $row_number, 'error' => 'Update failed: ' . $stmt->error];
                     $failed_count++;
@@ -329,8 +355,43 @@ function import_csv_to_table($conn, string $table, string $csv_path, int $user_i
                 // INSERT new record
                 unset($data['id']); // Remove ID field for insert
                 
-                $fields = array_keys($data);
-                $values = array_values($data);
+                // Get required fields (NOT NULL without default)
+                $required_fields = [];
+                foreach ($structure as $field_info) {
+                    if ($field_info['null'] === false && 
+                        $field_info['default'] === null && 
+                        $field_info['extra'] !== 'auto_increment' &&
+                        $field_info['field'] !== 'created_at' &&
+                        $field_info['field'] !== 'updated_at') {
+                        $required_fields[] = $field_info['field'];
+                    }
+                }
+                
+                // Check for missing required fields
+                $missing_required = [];
+                foreach ($required_fields as $req_field) {
+                    if (!isset($data[$req_field]) || $data[$req_field] === null || $data[$req_field] === '') {
+                        $missing_required[] = $req_field;
+                    }
+                }
+                
+                if (!empty($missing_required)) {
+                    $errors[] = ['row' => $row_number, 'error' => 'Missing required fields: ' . implode(', ', $missing_required)];
+                    $failed_count++;
+                    continue;
+                }
+                
+                // Filter out null values for optional fields - let DB handle defaults
+                $insert_data = array_filter($data, function($v) { return $v !== null && $v !== ''; });
+                
+                if (empty($insert_data)) {
+                    $errors[] = ['row' => $row_number, 'error' => 'No valid data to insert'];
+                    $failed_count++;
+                    continue;
+                }
+                
+                $fields = array_keys($insert_data);
+                $values = array_values($insert_data);
                 $types = str_repeat('s', count($values));
                 
                 $placeholders = implode(', ', array_fill(0, count($values), '?'));
@@ -345,10 +406,20 @@ function import_csv_to_table($conn, string $table, string $csv_path, int $user_i
                     continue;
                 }
                 
-                $stmt->bind_param($types, ...$values);
+                if (!$stmt->bind_param($types, ...$values)) {
+                    $errors[] = ['row' => $row_number, 'error' => 'Bind failed: ' . $stmt->error];
+                    $failed_count++;
+                    $stmt->close();
+                    continue;
+                }
                 
                 if ($stmt->execute()) {
-                    $success_count++;
+                    if ($stmt->affected_rows > 0) {
+                        $success_count++;
+                    } else {
+                        $errors[] = ['row' => $row_number, 'error' => 'Insert executed but no rows affected'];
+                        $failed_count++;
+                    }
                 } else {
                     $errors[] = ['row' => $row_number, 'error' => 'Insert failed: ' . $stmt->error];
                     $failed_count++;
@@ -359,7 +430,9 @@ function import_csv_to_table($conn, string $table, string $csv_path, int $user_i
         }
         
         // Commit transaction
-        $conn->commit();
+        if (!$conn->commit()) {
+            $errors[] = ['row' => 0, 'error' => 'Commit failed: ' . $conn->error];
+        }
         
     } catch (Exception $e) {
         $conn->rollback();
@@ -368,6 +441,10 @@ function import_csv_to_table($conn, string $table, string $csv_path, int $user_i
     }
     
     fclose($fp);
+    
+    // Verify records were actually inserted
+    $verify_result = $conn->query("SELECT COUNT(*) as cnt FROM `$table`");
+    $verify_count = $verify_result ? $verify_result->fetch_assoc()['cnt'] : 0;
     
     // Generate error CSV if there are errors
     $error_file = null;
@@ -392,10 +469,33 @@ function import_csv_to_table($conn, string $table, string $csv_path, int $user_i
     }
     
     $total_count = $success_count + $failed_count;
-    $status = $failed_count === 0 ? 'Success' : ($success_count > 0 ? 'Partial' : 'Failed');
+    
+    // Determine actual success - import fails if no rows were successfully imported
+    $import_success = $success_count > 0;
+    $status = $failed_count === 0 && $success_count > 0 ? 'Success' : ($success_count > 0 ? 'Partial' : 'Failed');
     
     // Log the import
     log_data_transfer($conn, $user_id, $table, 'Import', $csv_path, $total_count, $success_count, $failed_count, $status, json_encode($errors));
+    
+    // Return failure if no rows were imported
+    if (!$import_success) {
+        $error_message = 'No rows were imported.';
+        if (!empty($errors)) {
+            $error_message .= ' First error: ' . $errors[0]['error'];
+        }
+        return [
+            'success' => false,
+            'message' => $error_message,
+            'total_rows' => $total_count,
+            'success_count' => $success_count,
+            'failed_count' => $failed_count,
+            'status' => $status,
+            'errors' => $errors,
+            'error_file' => $error_file,
+            'backup_path' => $backup_result['filepath'],
+            'table_count_after' => $verify_count
+        ];
+    }
     
     return [
         'success' => true,
@@ -405,7 +505,8 @@ function import_csv_to_table($conn, string $table, string $csv_path, int $user_i
         'status' => $status,
         'errors' => $errors,
         'error_file' => $error_file,
-        'backup_path' => $backup_result['filepath']
+        'backup_path' => $backup_result['filepath'],
+        'table_count_after' => $verify_count
     ];
 }
 

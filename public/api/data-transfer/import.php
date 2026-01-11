@@ -3,10 +3,41 @@
  * API Endpoint - Import CSV Data
  */
 
+// Set JSON header first and start output buffering to catch any PHP errors
+ob_start();
 header('Content-Type: application/json');
 
-require_once __DIR__ . '/../../../includes/auth_check.php';
-require_once __DIR__ . '/../../data-transfer/helpers.php';
+// Start session to check auth before including auth_check (which redirects)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Check authentication before including auth_check to prevent HTML redirect
+if (!isset($_SESSION['user_id'])) {
+    ob_end_clean();
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Authentication required. Please log in.']);
+    exit;
+}
+
+// Custom error handler to return JSON instead of HTML
+set_error_handler(function($severity, $message, $file, $line) {
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+
+try {
+    require_once __DIR__ . '/../../../includes/auth_check.php';
+    require_once __DIR__ . '/../../data-transfer/helpers.php';
+} catch (Throwable $e) {
+    ob_end_clean();
+    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+    exit;
+}
+
+restore_error_handler();
+
+// Clear any output that might have been generated
+ob_end_clean();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
@@ -54,7 +85,10 @@ if (!move_uploaded_file($_FILES['csv_file']['tmp_name'], $filepath)) {
     exit;
 }
 
-// Process import
-$result = import_csv_to_table($conn, $table_name, $filepath, $CURRENT_USER_ID);
-
-echo json_encode($result);
+// Process import with error handling
+try {
+    $result = import_csv_to_table($conn, $table_name, $filepath, $CURRENT_USER_ID);
+    echo json_encode($result);
+} catch (Throwable $e) {
+    echo json_encode(['success' => false, 'message' => 'Import error: ' . $e->getMessage()]);
+}
