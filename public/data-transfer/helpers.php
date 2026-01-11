@@ -270,10 +270,31 @@ function import_csv_to_table($conn, string $table, string $csv_path, int $user_i
             // Clean and prepare data
             foreach ($data as $key => $value) {
                 $value = trim($value);
-                if ($value === '' || $value === 'NULL') {
+                if ($value === '' || $value === 'NULL' || $value === '0000-00-00' || $value === '0000-00-00 00:00:00') {
                     $data[$key] = null;
                 } else {
                     $data[$key] = $value;
+                }
+            }
+            
+            // Handle foreign key fields that reference users table
+            // These fields should use current user ID if the referenced user doesn't exist
+            $user_fk_fields = ['created_by', 'updated_by', 'owner_id', 'assigned_to', 'user_id', 'reporting_manager_id'];
+            foreach ($user_fk_fields as $fk_field) {
+                if (isset($data[$fk_field]) && $data[$fk_field] !== null) {
+                    // Check if this user exists
+                    $fk_check = $conn->prepare("SELECT id FROM users WHERE id = ?");
+                    if ($fk_check) {
+                        $fk_id = (int)$data[$fk_field];
+                        $fk_check->bind_param('i', $fk_id);
+                        $fk_check->execute();
+                        $fk_check->store_result();
+                        if ($fk_check->num_rows === 0) {
+                            // User doesn't exist - set to current user or null
+                            $data[$fk_field] = ($fk_field === 'created_by' || $fk_field === 'owner_id') ? $user_id : null;
+                        }
+                        $fk_check->close();
+                    }
                 }
             }
             
