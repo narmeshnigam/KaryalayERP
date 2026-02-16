@@ -156,7 +156,7 @@ $lead_funnel = crm_report_group($conn,
   'SELECT status, COUNT(*) c FROM crm_leads WHERE deleted_at IS NULL AND ' . $date_between('created_at') . ' GROUP BY status ORDER BY c DESC',
   [$from,$to], 'ss');
 
-$converted = 0; $total_leads = 0; foreach ($lead_funnel as $f) { $total_leads += (int)$f['c']; if (($f['status'] ?? '') === 'Converted') { $converted = (int)$f['c']; } }
+$converted = 0; $total_leads = 0; foreach ($lead_funnel as $f) { $total_leads += (int)$f['c']; if (($f['status'] ?? '') === 'Demo Completed') { $converted = (int)$f['c']; } }
 $conversion_rate = $total_leads > 0 ? round(($converted/$total_leads)*100, 1) : 0.0;
 
 // 4) Detailed records export (retain original functionality)

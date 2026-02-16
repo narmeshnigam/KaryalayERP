@@ -114,17 +114,23 @@ function crm_lead_employee_label(?string $code, ?string $first, ?string $last): 
 
 function crm_lead_status_badge_class(string $status): string {
     return match ($status) {
-        'New' => 'badge-info',
-        'Contacted' => 'badge-warning',
-        'Converted' => 'badge-success',
-        'Dropped' => 'badge-secondary',
+        'Prospecting' => 'badge-info',
+        'Potential' => 'badge-warning',
+        'Hot' => 'badge-danger',
+        'Not Interested' => 'badge-secondary',
+        'Junk' => 'badge-dark',
+        'Negotiation' => 'badge-primary',
+        'Unqualified' => 'badge-warning',
+        'Interested' => 'badge-info',
+        'Demo Completed' => 'badge-success',
         default => 'badge-light',
     };
 }
 
 function crm_lead_reset_follow_up_on_final_status(array &$data): void {
     $status = $data['status'] ?? '';
-    if (in_array($status, ['Converted','Dropped'], true)) {
+    // Reset follow-up for terminal statuses
+    if (in_array($status, ['Not Interested','Junk','Unqualified'], true)) {
         $data['follow_up_date'] = null;
         $data['follow_up_type'] = null;
         $data['follow_up_created'] = 0;

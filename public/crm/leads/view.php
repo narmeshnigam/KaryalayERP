@@ -170,13 +170,15 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
         <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
           <?php
             $status_colors = [
-                'New' => 'background:#e3f2fd;color:#1565c0;',
-                'Contacted' => 'background:#fff3cd;color:#856404;',
-                'Qualified' => 'background:#d1ecf1;color:#0c5460;',
-                'Proposal' => 'background:#cfe2ff;color:#084298;',
-                'Negotiation' => 'background:#f8d7da;color:#721c24;',
-                'Converted' => 'background:#d4edda;color:#155724;',
-                'Dropped' => 'background:#f8d7da;color:#721c24;'
+                'Prospecting' => 'background:#e3f2fd;color:#1565c0;',
+                'Potential' => 'background:#fff3cd;color:#856404;',
+                'Hot' => 'background:#f8d7da;color:#dc3545;',
+                'Not Interested' => 'background:#e2e3e5;color:#41464b;',
+                'Junk' => 'background:#6c757d;color:#fff;',
+                'Negotiation' => 'background:#cfe2ff;color:#084298;',
+                'Unqualified' => 'background:#f5c6cb;color:#721c24;',
+                'Interested' => 'background:#d1ecf1;color:#0c5460;',
+                'Demo Completed' => 'background:#d4edda;color:#155724;'
             ];
             $badge_style = $status_colors[$lead['status'] ?? ''] ?? 'background:#e2e3e5;color:#41464b;';
           ?>

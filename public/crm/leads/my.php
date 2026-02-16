@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $is_final = in_array($new_status, ['Converted','Dropped'], true);
+        $is_final = in_array($new_status, ['Not Interested','Junk','Unqualified'], true);
         $query = $is_final
             ? 'UPDATE crm_leads SET status = ?, follow_up_date = NULL, follow_up_type = NULL, follow_up_created = 0, updated_at = NOW() WHERE id = ? AND deleted_at IS NULL'
             : 'UPDATE crm_leads SET status = ?, updated_at = NOW() WHERE id = ? AND deleted_at IS NULL';
@@ -289,15 +289,15 @@ $next_week = date('Y-m-d', strtotime('+7 days'));
 
 foreach ($all_my_leads as $lead) {
     $status = $lead['status'] ?? '';
-    if ($status === 'New') $metrics['pending']++;
-    if (in_array($status, ['Contacted', 'Qualified'], true)) $metrics['in_progress']++;
-    if ($status === 'Converted') $metrics['converted']++;
+    if ($status === 'Prospecting') $metrics['pending']++;
+    if (in_array($status, ['Potential', 'Hot', 'Interested', 'Negotiation'], true)) $metrics['in_progress']++;
+    if ($status === 'Demo Completed') $metrics['converted']++;
     
     if ($has_follow_up_col && !empty($lead['follow_up_date'])) {
         $follow_date = $lead['follow_up_date'];
-        if ($follow_date < $today && in_array($status, ['New', 'Contacted'], true)) {
+        if ($follow_date < $today && in_array($status, ['Prospecting', 'Potential', 'Hot', 'Interested', 'Negotiation'], true)) {
             $metrics['overdue']++;
-        } elseif ($follow_date >= $today && $follow_date <= $next_week && in_array($status, ['New', 'Contacted'], true)) {
+        } elseif ($follow_date >= $today && $follow_date <= $next_week && in_array($status, ['Prospecting', 'Potential', 'Hot', 'Interested', 'Negotiation'], true)) {
             $metrics['upcoming']++;
         }
     }

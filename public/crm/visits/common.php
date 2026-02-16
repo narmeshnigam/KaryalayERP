@@ -72,7 +72,7 @@ function crm_fetch_active_leads_for_visits(mysqli $conn): array {
     
     $sql = "$select FROM crm_leads WHERE deleted_at IS NULL";
     if ($has_status) {
-        $sql .= " AND status IN ('New', 'Contacted')";
+        $sql .= " AND status IN ('Prospecting', 'Potential', 'Hot', 'Interested', 'Negotiation')";
     }
     $sql .= " ORDER BY name ASC";
     

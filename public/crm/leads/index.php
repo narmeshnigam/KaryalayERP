@@ -45,9 +45,9 @@ $metrics = [
 if ($has_follow_up_col) {
   $metricQueries = [
     'total' => "SELECT COUNT(*) AS c FROM crm_leads WHERE deleted_at IS NULL",
-    'upcoming' => "SELECT COUNT(*) AS c FROM crm_leads WHERE deleted_at IS NULL AND follow_up_date IS NOT NULL AND follow_up_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND status IN ('New','Contacted')",
-    'overdue' => "SELECT COUNT(*) AS c FROM crm_leads WHERE deleted_at IS NULL AND follow_up_date IS NOT NULL AND follow_up_date < CURDATE() AND status IN ('New','Contacted')",
-    'converted' => "SELECT COUNT(*) AS c FROM crm_leads WHERE deleted_at IS NULL AND status = 'Converted'",
+    'upcoming' => "SELECT COUNT(*) AS c FROM crm_leads WHERE deleted_at IS NULL AND follow_up_date IS NOT NULL AND follow_up_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND status IN ('Prospecting','Potential','Hot','Negotiation','Interested')",
+    'overdue' => "SELECT COUNT(*) AS c FROM crm_leads WHERE deleted_at IS NULL AND follow_up_date IS NOT NULL AND follow_up_date < CURDATE() AND status IN ('Prospecting','Potential','Hot','Negotiation','Interested')",
+    'converted' => "SELECT COUNT(*) AS c FROM crm_leads WHERE deleted_at IS NULL AND status = 'Demo Completed'",
   ];
 } else {
   // Fallback metric queries for installations without the new columns
@@ -55,7 +55,7 @@ if ($has_follow_up_col) {
     'total' => "SELECT COUNT(*) AS c FROM crm_leads WHERE deleted_at IS NULL",
     'upcoming' => "SELECT 0 AS c",
     'overdue' => "SELECT 0 AS c",
-    'converted' => "SELECT COUNT(*) AS c FROM crm_leads WHERE deleted_at IS NULL AND status = 'Converted'",
+    'converted' => "SELECT COUNT(*) AS c FROM crm_leads WHERE deleted_at IS NULL AND status = 'Demo Completed'",
   ];
 }
 
@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $is_final = in_array($new_status, ['Converted','Dropped'], true);
+        $is_final = in_array($new_status, ['Not Interested','Junk','Unqualified'], true);
     if ($is_final) {
             $stmt = mysqli_prepare($conn, 'UPDATE crm_leads SET status = ?, follow_up_date = NULL, follow_up_type = NULL, follow_up_created = 0, updated_at = NOW() WHERE id = ? AND deleted_at IS NULL');
             if ($stmt) {
@@ -460,13 +460,15 @@ require_once __DIR__ . '/../../../includes/sidebar.php';
                   <td style="padding:12px;">
                     <?php
                     $status_colors = [
-                        'New' => 'background:#e3f2fd;color:#1565c0;',
-                        'Contacted' => 'background:#fff3cd;color:#856404;',
-                        'Qualified' => 'background:#d1ecf1;color:#0c5460;',
-                        'Proposal' => 'background:#cfe2ff;color:#084298;',
-                        'Negotiation' => 'background:#f8d7da;color:#721c24;',
-                        'Converted' => 'background:#d4edda;color:#155724;',
-                        'Dropped' => 'background:#f8d7da;color:#721c24;'
+                        'Prospecting' => 'background:#e3f2fd;color:#1565c0;',
+                        'Potential' => 'background:#fff3cd;color:#856404;',
+                        'Hot' => 'background:#f8d7da;color:#dc3545;',
+                        'Not Interested' => 'background:#e2e3e5;color:#41464b;',
+                        'Junk' => 'background:#6c757d;color:#fff;',
+                        'Negotiation' => 'background:#cfe2ff;color:#084298;',
+                        'Unqualified' => 'background:#f5c6cb;color:#721c24;',
+                        'Interested' => 'background:#d1ecf1;color:#0c5460;',
+                        'Demo Completed' => 'background:#d4edda;color:#155724;'
                     ];
                     $badge_style = $status_colors[$lead['status'] ?? ''] ?? 'background:#e2e3e5;color:#41464b;';
                     ?>

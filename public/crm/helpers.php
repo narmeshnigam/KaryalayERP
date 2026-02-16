@@ -106,7 +106,7 @@ function crm_notify_task_completed(mysqli $conn, int $task_id): void {
 }
 
 function crm_lead_statuses(): array {
-    return ['New','Contacted','Converted','Dropped'];
+    return ['Prospecting','Potential','Hot','Not Interested','Junk','Negotiation','Unqualified','Interested','Demo Completed'];
 }
 
 function crm_lead_follow_up_types(): array {
@@ -134,14 +134,8 @@ function crm_fetch_employee_map(mysqli $conn): array {
 }
 
 function crm_lead_allowed_statuses(string $current): array {
-    $current = ucfirst(strtolower($current));
-    return match ($current) {
-        'New' => ['New','Contacted','Dropped'],
-        'Contacted' => ['Contacted','Converted','Dropped'],
-        'Converted' => ['Converted'],
-        'Dropped' => ['Dropped'],
-        default => crm_lead_statuses(),
-    };
+    // All statuses can transition to any other status for flexibility
+    return crm_lead_statuses();
 }
 
 function crm_notify_lead_assigned(mysqli $conn, int $lead_id, int $assigned_to): void {
@@ -182,9 +176,9 @@ function crm_counts_summary(mysqli $conn): array {
     // Leads
     $res = mysqli_query($conn, "SELECT 
         COUNT(*) AS total,
-        SUM(status IN ('New','Contacted')) AS open_cnt,
-        SUM(status='Converted') AS conv_cnt,
-        SUM(status='Dropped') AS drop_cnt
+        SUM(status IN ('Prospecting','Potential','Hot','Interested','Negotiation')) AS open_cnt,
+        SUM(status='Demo Completed') AS conv_cnt,
+        SUM(status IN ('Not Interested','Junk','Unqualified')) AS drop_cnt
       FROM crm_leads WHERE deleted_at IS NULL");
     if ($res) {
         $r = mysqli_fetch_assoc($res) ?: [];
@@ -228,7 +222,7 @@ function crm_counts_summary(mysqli $conn): array {
 }
 
 function crm_leads_by_status(mysqli $conn): array {
-    $labels = ['New','Contacted','Converted','Dropped'];
+    $labels = crm_lead_statuses();
     $data = array_fill_keys($labels, 0);
     $res = mysqli_query($conn, "SELECT status, COUNT(*) AS c FROM crm_leads WHERE deleted_at IS NULL GROUP BY status");
     if ($res) {
@@ -584,7 +578,7 @@ function crm_filter_where(array $filters, string $entity, string $alias = 't'): 
 }
 
 function crm_lead_funnel(mysqli $conn, array $filters): array {
-    $stages = ['New','Contacted','Converted','Dropped'];
+    $stages = crm_lead_statuses();
     $data = array_fill_keys($stages, 0);
     $w = crm_filter_where($filters, 'leads', 'l');
     $sql = "SELECT status, COUNT(*) AS c FROM crm_leads l WHERE l.deleted_at IS NULL AND $w GROUP BY status";
@@ -643,8 +637,8 @@ function crm_kpis(mysqli $conn, array $filters): array {
     $wL = crm_filter_where($filters, 'leads', 'l');
     $tot = 0; $active = 0; $conv = 0;
     if ($r = mysqli_query($conn, "SELECT COUNT(*) c FROM crm_leads l WHERE l.deleted_at IS NULL AND $wL")) { $tot = (int)mysqli_fetch_assoc($r)['c']; mysqli_free_result($r);}    
-    if ($r = mysqli_query($conn, "SELECT COUNT(*) c FROM crm_leads l WHERE l.deleted_at IS NULL AND $wL AND l.status IN ('New','Contacted')")) { $active = (int)mysqli_fetch_assoc($r)['c']; mysqli_free_result($r);}    
-    if ($r = mysqli_query($conn, "SELECT COUNT(*) c FROM crm_leads l WHERE l.deleted_at IS NULL AND $wL AND l.status = 'Converted'")) { $conv = (int)mysqli_fetch_assoc($r)['c']; mysqli_free_result($r);}    
+    if ($r = mysqli_query($conn, "SELECT COUNT(*) c FROM crm_leads l WHERE l.deleted_at IS NULL AND $wL AND l.status IN ('Prospecting','Potential','Hot','Interested','Negotiation')")) { $active = (int)mysqli_fetch_assoc($r)['c']; mysqli_free_result($r);}    
+    if ($r = mysqli_query($conn, "SELECT COUNT(*) c FROM crm_leads l WHERE l.deleted_at IS NULL AND $wL AND l.status = 'Demo Completed'")) { $conv = (int)mysqli_fetch_assoc($r)['c']; mysqli_free_result($r);}    
 
     $convRate = $tot ? round(($conv / $tot) * 100, 1) : 0.0;
 
@@ -719,7 +713,7 @@ function crm_employee_performance(mysqli $conn, array $filters): array {
 
     // Leads by assigned_to within range
     $wL = crm_filter_where($filters, 'leads', 'l');
-    $sql = "SELECT assigned_to AS e, COUNT(*) AS c, SUM(status='Converted') AS conv FROM crm_leads l WHERE l.deleted_at IS NULL AND $wL AND assigned_to IS NOT NULL GROUP BY assigned_to";
+    $sql = "SELECT assigned_to AS e, COUNT(*) AS c, SUM(status='Demo Completed') AS conv FROM crm_leads l WHERE l.deleted_at IS NULL AND $wL AND assigned_to IS NOT NULL GROUP BY assigned_to";
     if ($res = mysqli_query($conn, $sql)) {
         while ($r = mysqli_fetch_assoc($res)) { $eid = (int)$r['e']; $touch($eid); $perf[$eid]['leads'] += (int)$r['c']; $perf[$eid]['leads_converted'] += (int)$r['conv']; }
         mysqli_free_result($res);

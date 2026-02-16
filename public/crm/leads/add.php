@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($created_by <= 0) {
       $created_by = $form['assigned_to'];
     }
-    $status = 'New';
+    $status = 'Prospecting';
     $follow_up_date = $form['follow_up_date'] !== '' ? $form['follow_up_date'] : null;
     $follow_up_type = $form['follow_up_type'] !== '' ? $form['follow_up_type'] : null;
 
