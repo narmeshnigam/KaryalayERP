@@ -155,19 +155,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $update_data = [
             'name' => $form['name'],
-            'company_name' => $form['company_name'],
-            'phone' => $form['phone'],
-            'email' => $form['email'],
+            'company_name' => $form['company_name'] !== '' ? $form['company_name'] : null,
+            'phone' => $form['phone'] !== '' ? $form['phone'] : null,
+            'email' => $form['email'] !== '' ? $form['email'] : null,
             'source' => $form['source'],
             'status' => $form['status'],
-            'notes' => $form['notes'],
-            'interests' => $form['interests'],
+            'notes' => $form['notes'] !== '' ? $form['notes'] : null,
+            'interests' => $form['interests'] !== '' ? $form['interests'] : null,
             'follow_up_date' => $follow_up_date,
             'follow_up_type' => $follow_up_type,
             'follow_up_created' => $follow_up_created,
             'assigned_to' => $form['assigned_to'],
             'attachment' => $attachment_path,
-            'location' => $form['location']
+            'location' => $form['location'] !== '' ? $form['location'] : null
         ];
 
         crm_lead_reset_follow_up_on_final_status($update_data);

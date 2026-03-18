@@ -239,8 +239,8 @@ function crm_setup_create(): array
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP NULL DEFAULT NULL,
-        UNIQUE KEY uniq_leads_phone (phone),
-        UNIQUE KEY uniq_leads_email (email),
+        UNIQUE KEY uniq_leads_phone_not_null (phone),
+        UNIQUE KEY uniq_leads_email_not_null (email),
         INDEX idx_status (status),
         INDEX idx_assigned_to (assigned_to),
         INDEX idx_follow_up_date (follow_up_date)
@@ -267,6 +267,8 @@ function crm_setup_create(): array
             'last_contacted_at' => "ALTER TABLE crm_leads ADD COLUMN last_contacted_at DATETIME NULL AFTER follow_up_created",
             'updated_at' => "ALTER TABLE crm_leads ADD COLUMN updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP AFTER created_at",
             'status_enum_update' => "ALTER TABLE crm_leads MODIFY COLUMN status ENUM('Prospecting','Potential','Hot','Not Interested','Junk','Negotiation','Unqualified','Interested','Demo Completed','New','Contacted','Converted','Dropped') NOT NULL DEFAULT 'Prospecting'",
+            'convert_empty_to_null_phone' => "UPDATE crm_leads SET phone = NULL WHERE phone = ''",
+            'convert_empty_to_null_email' => "UPDATE crm_leads SET email = NULL WHERE email = ''",
             // CRM Tasks columns
             'tasks_lead_id' => "ALTER TABLE crm_tasks ADD COLUMN lead_id INT NULL AFTER description",
             'tasks_notes' => "ALTER TABLE crm_tasks ADD COLUMN notes TEXT NULL AFTER description",
@@ -385,8 +387,8 @@ function crm_setup_create(): array
 
     if ($ok) {
         $indexStatements = [
-            'uniq_leads_phone' => "ALTER TABLE crm_leads ADD UNIQUE KEY uniq_leads_phone (phone)",
-            'uniq_leads_email' => "ALTER TABLE crm_leads ADD UNIQUE KEY uniq_leads_email (email)",
+            'uniq_leads_phone_not_null' => "ALTER TABLE crm_leads ADD UNIQUE KEY uniq_leads_phone_not_null (phone)",
+            'uniq_leads_email_not_null' => "ALTER TABLE crm_leads ADD UNIQUE KEY uniq_leads_email_not_null (email)",
             'idx_follow_up_date' => "ALTER TABLE crm_leads ADD INDEX idx_follow_up_date (follow_up_date)",
             // CRM Tasks indexes
             'idx_tasks_lead_id' => "ALTER TABLE crm_tasks ADD INDEX idx_lead_id (lead_id)",
