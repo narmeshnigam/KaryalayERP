@@ -225,7 +225,7 @@ function crm_setup_create(): array
         phone VARCHAR(20) NULL,
         email VARCHAR(100) NULL,
         source VARCHAR(50) NULL,
-        status ENUM('New','Contacted','Converted','Dropped') NOT NULL DEFAULT 'New',
+        status ENUM('Prospecting','Potential','Hot','Not Interested','Junk','Negotiation','Unqualified','Interested','Demo Completed','New','Contacted','Converted','Dropped') NOT NULL DEFAULT 'Prospecting',
         notes TEXT NULL,
         interests TEXT NULL,
         follow_up_date DATE NULL,
@@ -266,6 +266,7 @@ function crm_setup_create(): array
             'follow_up_created' => "ALTER TABLE crm_leads ADD COLUMN follow_up_created TINYINT(1) NOT NULL DEFAULT 0 AFTER follow_up_type",
             'last_contacted_at' => "ALTER TABLE crm_leads ADD COLUMN last_contacted_at DATETIME NULL AFTER follow_up_created",
             'updated_at' => "ALTER TABLE crm_leads ADD COLUMN updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP AFTER created_at",
+            'status_enum_update' => "ALTER TABLE crm_leads MODIFY COLUMN status ENUM('Prospecting','Potential','Hot','Not Interested','Junk','Negotiation','Unqualified','Interested','Demo Completed','New','Contacted','Converted','Dropped') NOT NULL DEFAULT 'Prospecting'",
             // CRM Tasks columns
             'tasks_lead_id' => "ALTER TABLE crm_tasks ADD COLUMN lead_id INT NULL AFTER description",
             'tasks_notes' => "ALTER TABLE crm_tasks ADD COLUMN notes TEXT NULL AFTER description",
